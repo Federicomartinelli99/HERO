@@ -1,0 +1,43 @@
+2026-05-17 10:07:37,011 - hdx_rainfall_loader - INFO - [YEM] Downloading yem-rainfall-subnat-full.csv
+2026-05-17 10:07:41,557 - hdx_rainfall_loader - INFO - [YEM] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_rainfall\yem\yem-rainfall-subnat-full.csv
+2026-05-17 10:07:41,723 - hdx_rainfall_loader - INFO - [AFG] Downloading afg-rainfall-subnat-full.csv
+2026-05-17 10:07:45,692 - hdx_rainfall_loader - INFO - [AFG] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_rainfall\afg\afg-rainfall-subnat-full.csv
+2026-05-17 10:07:45,866 - hdx_rainfall_loader - INFO - [NGA] Downloading nga-rainfall-subnat-full.csv
+2026-05-17 10:07:54,318 - hdx_rainfall_loader - INFO - [NGA] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_rainfall\nga\nga-rainfall-subnat-full.csv
+2026-05-17 10:51:20,787 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 10:51:21,978 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 10:51:21,980 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 10:51:24,139 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 10:51:24,140 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 10:51:25,141 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 10:52:01,293 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 10:52:02,441 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 10:52:02,442 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 10:52:04,636 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 10:52:04,638 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 10:52:05,503 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 10:53:08,622 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 10:53:09,762 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 10:53:09,764 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 10:53:12,108 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 10:53:12,109 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 10:53:13,075 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 10:57:07,701 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 10:57:08,843 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 10:57:08,844 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 10:57:10,855 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 10:57:10,856 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 10:57:11,699 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 10:58:24,501 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 10:58:25,576 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 10:58:25,577 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 10:58:27,777 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 10:58:27,778 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 10:58:28,723 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 11:01:44,234 - rainfall_transformer - INFO - [AFG] Reading afg-rainfall-subnat-full.csv
+2026-05-17 11:01:45,459 - rainfall_transformer - INFO - [AFG] Kept 235,552 monthly rows
+2026-05-17 11:01:45,461 - rainfall_transformer - INFO - [NGA] Reading nga-rainfall-subnat-full.csv
+2026-05-17 11:01:47,669 - rainfall_transformer - INFO - [NGA] Kept 435,744 monthly rows
+2026-05-17 11:01:47,670 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
+2026-05-17 11:01:48,572 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
+2026-05-17 11:01:50,882 - rainfall_transformer - INFO - Wrote 856,256 rows (26.1 MB) -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\clean_rainfall\rainfall_monthly.parquet
