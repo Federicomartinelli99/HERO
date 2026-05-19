@@ -41,3 +41,10 @@
 2026-05-17 11:01:47,670 - rainfall_transformer - INFO - [YEM] Reading yem-rainfall-subnat-full.csv
 2026-05-17 11:01:48,572 - rainfall_transformer - INFO - [YEM] Kept 184,960 monthly rows
 2026-05-17 11:01:50,882 - rainfall_transformer - INFO - Wrote 856,256 rows (26.1 MB) -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\clean_rainfall\rainfall_monthly.parquet
+2026-05-17 18:09:21,571 - hdx_boundaries_loader - INFO - [YEM] Downloading yem_admin_boundaries.geojson.zip
+2026-05-17 18:10:12,584 - hdx_boundaries_loader - INFO - [YEM] Downloading yem_admin_boundaries.geojson.zip
+2026-05-17 18:10:15,059 - hdx_boundaries_loader - INFO - [YEM] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_boundaries\yem\yem_admin_boundaries.geojson.zip
+2026-05-17 18:10:15,262 - hdx_boundaries_loader - INFO - [AFG] Downloading afg_admin_boundaries.geojson.zip
+2026-05-17 18:10:17,016 - hdx_boundaries_loader - INFO - [AFG] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_boundaries\afg\afg_admin_boundaries.geojson.zip
+2026-05-17 18:10:17,192 - hdx_boundaries_loader - INFO - [NGA] Downloading nga_admin_boundaries.geojson.zip
+2026-05-17 18:10:18,594 - hdx_boundaries_loader - INFO - [NGA] Saved -> C:\Users\jonas\Documents\master-data-science\progettone\HERO\rainfall\data\raw_boundaries\nga\nga_admin_boundaries.geojson.zip
