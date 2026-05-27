@@ -1,0 +1,407 @@
+	
+import requests
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import *
+from sklearn.cluster import KMeans
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.inspection import permutation_importance
+import altair as alt
+import geopandas as gpd
+import geoplot as gplt
+---
+
+url = "https://data.humdata.org/api/3/action/package_show?id=global-acute-food-insecurity-country-data"
+response = requests.get(url).json()
+
+if response['success']:
+    resources = response['result']['resources']
+    for resource in resources:
+        print(f"File: {resource['name']}")
+        print(f"URL di download: {resource['url']}")
+        print(f"ID Risorsa: {resource['id']}\n")
+
+----
+df_2.shape
+
+(457525, 11)
+
+----
+df_2["From"] = pd.to_datetime(df_2["From"])
+
+# 2. Estraiamo l'anno più piccolo (il valore minimo) presente nella colonna
+anno_partenza = df_2["From"].dt.year.min()
+
+print(f"I dati nel database partono dall'anno: {anno_partenza}")
+
+----
+
+# 1. Assicuriamoci che la colonna 'From' sia in formato data reale
+df_2["From"] = pd.to_datetime(df_2["From"])
+
+# 2. Estraiamo solo l'anno dalla data completa
+df_2["Year"] = df_2["From"].dt.year
+
+# 3. Raggruppiamo per Paese (Country) e troviamo l'anno minimo (.min())
+anni_partenza_paesi = df_2.groupby("Country")["Year"].min().reset_index()
+
+# Rinominiamo la colonna per rendere il risultato più chiaro
+anni_partenza_paesi.columns = ["Paese", "Anno_Partenza"]
+
+# 4. Ordiniamo il risultato in base all'anno di partenza e poi per Paese
+anni_partenza_paesi = anni_partenza_paesi.sort_values(
+    by=["Anno_Partenza", "Paese"]
+).reset_index(drop=True)
+
+# Mostriamo il risultato a schermo
+print("--- ANNO DI PARTENZA DEI DATI PER OGNI PAESE ---")
+print(anni_partenza_paesi.to_string())
+
+--- ANNO DI PARTENZA DEI DATI PER OGNI PAESE ---
+   Paese  Anno_Partenza
+0    AFG           2017
+1    BDI           2017
+2    CAF           2017
+3    COD           2017
+4    GTM           2017
+5    HTI           2017
+6    LSO           2017
+7    MDG           2017
+8    MOZ           2017
+9    MWI           2017
+10   PAK           2017
+11   SLV           2017
+12   SOM           2017
+13   SSD           2017
+14   SWZ           2017
+15   TZA           2017
+16   UGA           2017
+17   YEM           2017
+18   HND           2018
+19   ZMB           2018
+20   AGO           2019
+21   ETH           2019
+22   KEN           2019
+23   NAM           2019
+24   SDN           2019
+25   ZWE           2019
+26   BEN           2020
+27   BFA           2020
+28   CIV           2020
+29   CMR           2020
+30   DJI           2020
+31   GHA           2020
+32   GIN           2020
+33   GMB           2020
+34   GNB           2020
+35   LBR           2020
+36   MLI           2020
+37   MRT           2020
+38   NER           2020
+39   NGA           2020
+40   SEN           2020
+41   SLE           2020
+42   TCD           2020
+43   TGO           2020
+44   ZAF           2020
+45   CPV           2022
+46   DOM           2022
+47   LBN           2022
+48   TLS           2022
+49   BGD           2023
+50   PSE           2023
+51   ECU           2024
+
+
+
+
+----
+
+paesi_univoci = df_2["Country"].unique()
+print("--- Lista dei Paesi nel database ---")
+print(paesi_univoci)
+
+# 2. Per sapere esattamente quanti Paesi diversi ci sono in totale
+totale_paesi = df_2["Country"].nunique()
+print(f"\nNel database ci sono in totale {totale_paesi} paesi diversi.")
+
+# 3. Per vedere l'elenco ordinato in ordine alfabetico (più comodo da leggere)
+paesi_ordinati = sorted(df_2["Country"].unique())
+print("\n--- Paesi in ordine alfabetico ---")
+print(paesi_ordinati)
+
+--- Lista dei Paesi nel database ---
+['AFG' 'AGO' 'BDI' 'BEN' 'BFA' 'BGD' 'CAF' 'CIV' 'CMR' 'COD' 'CPV' 'DJI'
+ 'DOM' 'ECU' 'ETH' 'GHA' 'GIN' 'GMB' 'GNB' 'GTM' 'HND' 'HTI' 'KEN' 'LBN'
+ 'LBR' 'LSO' 'MDG' 'MLI' 'MOZ' 'MRT' 'MWI' 'NAM' 'NER' 'NGA' 'PAK' 'PSE'
+ 'SDN' 'SEN' 'SLE' 'SLV' 'SOM' 'SSD' 'SWZ' 'TCD' 'TGO' 'TLS' 'TZA' 'UGA'
+ 'YEM' 'ZAF' 'ZMB' 'ZWE']
+
+Nel database ci sono in totale 52 paesi diversi.
+
+--- Paesi in ordine alfabetico ---
+['AFG', 'AGO', 'BDI', 'BEN', 'BFA', 'BGD', 'CAF', 'CIV', 'CMR', 'COD', 'CPV', 'DJI', 'DOM', 'ECU', 'ETH', 'GHA', 'GIN', 'GMB', 'GNB', 'GTM', 'HND', 'HTI', 'KEN', 'LBN', 'LBR', 'LSO', 'MDG', 'MLI', 'MOZ', 'MRT', 'MWI', 'NAM', 'NER', 'NGA', 'PAK', 'PSE', 'SDN', 'SEN', 'SLE', 'SLV', 'SOM', 'SSD', 'SWZ', 'TCD', 'TGO', 'TLS', 'TZA', 'UGA', 'YEM', 'ZAF', 'ZMB', 'ZWE']
+
+
+# 1. FILTRO TEMPORALE IN PANDAS (Solo anno 2025)
+df_2['Date_From_Cleaned'] = pd.to_datetime(df_2['From'], errors='coerce')
+df_2025 = df_2[df_2['Date_From_Cleaned'].dt.year == 2025].copy()
+
+# Escludiamo le fasi cumulative ('all', '3+') per non duplicare i dati visivi
+fasi_valide = ['1', '2', '3', '4', '5']
+df_2025 = df_2025[df_2025['Phase'].astype(str).isin(fasi_valide)]
+
+# Puliamo i dati mancanti dalle colonne che useremo
+df_2025 = df_2025.dropna(subset=['Country', 'Phase', 'Percentage'])
+
+# Disattiviamo il limite di righe di sicurezza di Altair
+alt.data_transformers.disable_max_rows()
+
+
+# 2. CREAZIONE DELLO SLIDER SULLA TUA COLONNA PERCENTAGE (0.0 - 1.0)
+slider_percentuale = alt.binding_range(
+    min=0.0,
+    max=1.0,
+    step=0.05,
+    name='Percentuale Minima (es. 0.20 = 20%): '
+)
+
+filtro_interattivo = alt.param(
+    name='Percentuale_Selezionata',
+    value=0.0,
+    bind=slider_percentuale
+)
+
+
+# 3. COSTRUZIONE DEL GRAFICO CON LIVELLO PAESE E MEDIA DELLE PERCENTUALI
+grafico = alt.Chart(df_2025).mark_bar().encode(
+    # Usiamo 'mean(Percentage)' per aggregare correttamente a livello Paese
+    x=alt.X(
+        'mean(Percentage):Q',
+        title='Media delle Percentuali (dal Dataset)',
+        stack='zero',
+        axis=alt.Axis(format='%') # Mostra i decimali come 0.30 in formato 30%
+    ),
+    # Asse Y solo con il Paese
+    y=alt.Y('Country:N', title='Paese (Country)', sort='-x'),
+    color=alt.Color(
+        'Phase:N',
+        title='Fase (Phase)',
+        scale=alt.Scale(scheme='yelloworangered'),
+        sort=fasi_valide
+    ),
+    tooltip=[
+        alt.Tooltip('Country:N', title='Paese'),
+        alt.Tooltip('Phase:N', title='Fase'),
+        alt.Tooltip('mean(Percentage):Q', title='Media Percentuale', format='.1%'),
+        alt.Tooltip('mean(Total country population):Q', title='Popolazione Paese', format=',')
+    ]
+).properties(
+    width=800,
+    height=600,
+    title="Distribuzione Media delle Fasi per Paese nel 2025 (Valori Originali)"
+).transform_filter(
+    # Il filtro interattivo agisce direttamente sulla tua colonna 'Percentage' prima dell'aggregazione
+    alt.datum.Percentage >= filtro_interattivo
+).add_params(
+    filtro_interattivo
+)
+
+# Mostra il grafico
+grafico
+
+----
+
+# 1. DIZIONARIO DI MAPPATURA (Uguaglianza rispetto a prima)
+mappa_regioni = {
+    'LBN': 'Medio Oriente', 'PSE': 'Medio Oriente', 'YEM': 'Medio Oriente',
+    'MRT': 'Nord Africa', 'SDN': 'Nord Africa',
+    'BEN': 'Africa Occidentale', 'BFA': 'Africa Occidentale', 'CIV': 'Africa Occidentale',
+    'GHA': 'Africa Occidentale', 'GIN': 'Africa Occidentale', 'GMB': 'Africa Occidentale',
+    'GNB': 'Africa Occidentale', 'MLI': 'Africa Occidentale', 'NER': 'Africa Occidentale',
+    'NGA': 'Africa Occidentale', 'SEN': 'Africa Occidentale', 'SLE': 'Africa Occidentale',
+    'TGO': 'Africa Occidentale', 'CPV': 'Africa Occidentale',
+    'BDI': 'Africa Orientale', 'DJI': 'Africa Orientale', 'ETH': 'Africa Orientale',
+    'KEN': 'Africa Orientale', 'SOM': 'Africa Orientale', 'SSD': 'Africa Orientale',
+    'TZA': 'Africa Orientale', 'UGA': 'Africa Orientale',
+    'CAF': 'Africa Centrale', 'CMR': 'Africa Centrale', 'COD': 'Africa Centrale', 'TCD': 'Africa Centrale',
+    'AGO': 'Africa Meridionale', 'LSO': 'Africa Meridionale', 'MDG': 'Africa Meridionale',
+    'MOZ': 'Africa Meridionale', 'MWI': 'Africa Meridionale', 'NAM': 'Africa Meridionale',
+    'SWZ': 'Africa Meridionale', 'ZAF': 'Africa Meridionale', 'ZMB': 'Africa Meridionale', 'ZWE': 'Africa Meridionale',
+    'AFG': 'Asia Meridionale/Centrale', 'BGD': 'Asia Meridionale/Centrale', 'PAK': 'Asia Meridionale/Centrale',
+    'TLS': 'Asia del Sud-Est',
+    'DOM': 'America Latina e Caraibi', 'ECU': 'America Latina e Caraibi',
+    'GTM': 'America Latina e Caraibi', 'HND': 'America Latina e Caraibi', 'HTI': 'America Latina e Caraibi', 'SLV': 'America Latina e Caraibi'
+}
+
+# 2. FILTRO TEMPORALE E PREPARAZIONE DATI
+df_2['Date_From_Cleaned'] = pd.to_datetime(df_2['From'], errors='coerce')
+df_2025 = df_2[df_2['Date_From_Cleaned'].dt.year == 2025].copy()
+df_2025['Region'] = df_2025['Country'].map(mappa_regioni).fillna('Altro')
+
+fasi_valide = ['1', '2', '3', '4', '5']
+df_2025 = df_2025[df_2025['Phase'].astype(str).isin(fasi_valide)]
+df_2025 = df_2025.dropna(subset=['Country', 'Phase', 'Percentage'])
+
+alt.data_transformers.disable_max_rows()
+
+# 3. CREAZIONE DEL PARAMETRO SLIDER GLOBALE
+slider_percentuale = alt.binding_range(
+    min=0.0,
+    max=1.0,
+    step=0.05,
+    name='Percentuale Minima (0.0 - 1.0): '
+)
+filtro_interattivo = alt.param(
+    name='Percentuale_Selezionata',
+    value=0.0,
+    bind=slider_percentuale
+)
+
+# 4. CICLO FOR PER GENERARE E MOSTRARE UN GRAFICO SEPARATO PER OGNI REGIONE
+# Prendiamo la lista unica delle regioni disponibili
+regioni_disponibili = sorted(df_2025['Region'].unique())
+
+for regione in regioni_disponibili:
+    # Filtriamo il subset di dati per la regione corrente del ciclo
+    df_regione = df_2025[df_2025['Region'] == 'Africa Occidentale'] if regione == 'Africa Occidentale' else df_2025[df_2025['Region'] == regione]
+
+    # Costruiamo il grafico specifico per questa regione
+    chart_regione = alt.Chart(df_regione).mark_bar().encode(
+        x=alt.X('mean(Percentage):Q', title='Media delle Percentuali', stack='zero', axis=alt.Axis(format='%')),
+        y=alt.Y('Country:N', title='Paese', sort='-x'), # Ora mostra SOLO i paesi di questa regione!
+        color=alt.Color('Phase:N', title='Fase (Phase)', scale=alt.Scale(scheme='yelloworangered'), sort=fasi_valide),
+        tooltip=[
+            alt.Tooltip('Country:N', title='Paese'),
+            alt.Tooltip('Phase:N', title='Fase'),
+            alt.Tooltip('mean(Percentage):Q', title='Media Percentuale', format='.1%')
+        ]
+    ).properties(
+        width=600,
+        height=alt.Step(25), # L'altezza si adatta automaticamente al numero di paesi presenti nella regione
+        title=f"Regione: {regione} (Anno 2025)"
+    ).transform_filter(
+        alt.datum.Percentage >= filtro_interattivo
+    ).add_params(
+        filtro_interattivo
+    )
+
+    # Visualizziamo il grafico della regione corrente
+    chart_regione.display()
+
+----
+
+# 1. DIZIONARIO DI MAPPATURA (Invariato)
+mappa_regioni = {
+    'LBN': 'Medio Oriente', 'PSE': 'Medio Oriente', 'YEM': 'Medio Oriente',
+    'MRT': 'Nord Africa', 'SDN': 'Nord Africa',
+    'BEN': 'Africa Occidentale', 'BFA': 'Africa Occidentale', 'CIV': 'Africa Occidentale',
+    'GHA': 'Africa Occidentale', 'GIN': 'Africa Occidentale', 'GMB': 'Africa Occidentale',
+    'GNB': 'Africa Occidentale', 'MLI': 'Africa Occidentale', 'NER': 'Africa Occidentale',
+    'NGA': 'Africa Occidentale', 'SEN': 'Africa Occidentale', 'SLE': 'Africa Occidentale',
+    'TGO': 'Africa Occidentale', 'CPV': 'Africa Occidentale',
+    'BDI': 'Africa Orientale', 'DJI': 'Africa Orientale', 'ETH': 'Africa Orientale',
+    'KEN': 'Africa Orientale', 'SOM': 'Africa Orientale', 'SSD': 'Africa Orientale',
+    'TZA': 'Africa Orientale', 'UGA': 'Africa Orientale',
+    'CAF': 'Africa Centrale', 'CMR': 'Africa Centrale', 'COD': 'Africa Centrale', 'TCD': 'Africa Centrale',
+    'AGO': 'Africa Meridionale', 'LSO': 'Africa Meridionale', 'MDG': 'Africa Meridionale',
+    'MOZ': 'Africa Meridionale', 'MWI': 'Africa Meridionale', 'NAM': 'Africa Meridionale',
+    'SWZ': 'Africa Meridionale', 'ZAF': 'Africa Meridionale', 'ZMB': 'Africa Meridionale', 'ZWE': 'Africa Meridionale',
+    'AFG': 'Asia Meridionale/Centrale', 'BGD': 'Asia Meridionale/Centrale', 'PAK': 'Asia Meridionale/Centrale',
+    'TLS': 'Asia del Sud-Est',
+    'DOM': 'America Latina e Caraibi', 'ECU': 'America Latina e Caraibi',
+    'GTM': 'America Latina e Caraibi', 'HND': 'America Latina e Caraibi', 'HTI': 'America Latina e Caraibi', 'SLV': 'America Latina e Caraibi'
+}
+
+# 2. FILTRO TEMPORALE E PULIZIA
+df_2['Date_From_Cleaned'] = pd.to_datetime(df_2['From'], errors='coerce')
+df_2025 = df_2[df_2['Date_From_Cleaned'].dt.year == 2025].copy()
+df_2025['Region'] = df_2025['Country'].map(mappa_regioni).fillna('Altro')
+
+# Escludiamo rigorosamente 'all' e '3+' dal conteggio
+fasi_valide = ['1', '2', '3', '4', '5']
+df_2025 = df_2025[df_2025['Phase'].astype(str).isin(fasi_valide)]
+df_2025 = df_2025.dropna(subset=['Country', 'Phase', 'Percentage', 'Number'])
+
+# 💡 3. DISCRETIZZAZIONE E AGGREGAZIONE MATEMATICA IN PANDAS
+def raggruppa_fasi(fase):
+    fase_str = str(fase)
+    if fase_str in ['1', '2']:
+        return 'Fase 1-2: Stabile / Stress'
+    elif fase_str in ['3', '4']:
+        return 'Fase 3-4: Crisi / Emergenza'
+    elif fase_str == '5':
+        return 'Fase 5: Catastrofe / Carestia'
+    return 'Altro'
+
+df_2025['Phase_Grouped'] = df_2025['Phase'].apply(raggruppa_fasi)
+
+# Raggruppiamo i PERSONE (Number) per Paese e per la nuova Macro-Fase
+df_aggregato = df_2025.groupby(['Region', 'Country', 'Phase_Grouped'], as_index=False)['Number'].sum()
+
+# Calcoliamo il totale della popolazione analizzata per ciascun Paese nel 2025
+df_totale_paese = df_2025.groupby('Country')['Number'].sum().reset_index().rename(columns={'Number': 'Total_Analyzed_Pop'})
+
+# Uniamo i dataset per fare la divisione corretta
+df_finale = pd.merge(df_aggregato, df_totale_paese, on='Country')
+df_finale['Percentage_Correct'] = df_finale['Number'] / df_finale['Total_Analyzed_Pop']
+
+# Configurazione ordine e colori della legenda
+ordine_gruppi = ['Fase 1-2: Stabile / Stress', 'Fase 3-4: Crisi / Emergenza', 'Fase 5: Catastrofe / Carestia']
+colori_gruppi = ['#e0f3db', '#f4a582', '#b2182b']
+
+alt.data_transformers.disable_max_rows()
+
+# 4. CREAZIONE DEL PARAMETRO SLIDER GLOBALE (Filtra sulla percentuale calcolata)
+slider_percentuale = alt.binding_range(
+    min=0.0,
+    max=1.0,
+    step=0.05,
+    name='Percentuale Minima Macro-Fase (0.0 - 1.0): '
+)
+filtro_interattivo = alt.param(
+    name='Percentuale_Selezionata',
+    value=0.0,
+    bind=slider_percentuale
+)
+
+# 5. CICLO FOR PER GENERARE I GRAFICI REGIONALI PULITI
+regioni_disponibili = sorted(df_finale['Region'].unique())
+
+for region in regioni_disponibili:
+    df_regione = df_finale[df_finale['Region'] == region]
+
+    chart_regione = alt.Chart(df_regione).mark_bar().encode(
+        # Usiamo la nuova percentuale pre-calcolata. Usiamo 'sum' ma ora la somma farà massimo 1.0 (100%)
+        x=alt.X('sum(Percentage_Correct):Q', title='Percentuale Totale Paese', stack='zero', axis=alt.Axis(format='%')),
+        y=alt.Y('Country:N', title='Paese', sort='-x'),
+        color=alt.Color(
+            'Phase_Grouped:N',
+            title='Macro-Fasi Accorpate',
+            scale=alt.Scale(domain=ordine_gruppi, range=colori_gruppi),
+            sort=ordine_gruppi
+        ),
+        tooltip=[
+            alt.Tooltip('Country:N', title='Paese'),
+            alt.Tooltip('Phase_Grouped:N', title='Gruppo Fasi'),
+            alt.Tooltip('Percentage_Correct:Q', title='Percentuale Reale', format='.1%'),
+            alt.Tooltip('Number:Q', title='Persone colpite', format=',')
+        ]
+    ).properties(
+        width=600,
+        height=alt.Step(25),
+        title=f"Regione: {region} (Anno 2025 - Valori Normalizzati)"
+    ).transform_filter(
+        alt.datum.Percentage_Correct >= filtro_interattivo
+    ).add_params(
+        filtro_interattivo
+    )
+
+    chart_regione.display()
+
+
