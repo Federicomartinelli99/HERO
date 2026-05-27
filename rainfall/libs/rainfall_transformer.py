@@ -17,7 +17,14 @@ logger = get_logger("rainfall_transformer")
 DEFAULT_RAW_DIR = Path(__file__).resolve().parent.parent / "data" / "raw_rainfall"
 DEFAULT_CLEAN_DIR = Path(__file__).resolve().parent.parent / "data" / "clean_rainfall"
 
-DROP_COLS = ["n_pixels", "version", "rfh", "rfh_avg"]
+MIN_YEAR = 2015
+DROP_COLS = ["n_pixels", "version", "rfh", "rfh_avg", "r1h_avg", "r3h_avg", "rfq"]
+RENAME_COLS = {
+    "r1h": "rain_1m",
+    "r3h": "rain_3m",
+    "r1q": "rain_anomaly_1m",
+    "r3q": "rain_anomaly_3m",
+}
 CATEGORICAL_COLS = ["ISO3", "PCODE", "adm_level"]
 
 
@@ -46,8 +53,9 @@ class RainfallTransformer:
             logger.info(f"[{iso3}] Reading {csv_path.name}")
             df = pd.read_csv(csv_path, parse_dates=["date"], low_memory=False)
 
-            df = df[df["date"].dt.day == 21]
+            df = df[(df["date"].dt.day == 21) & (df["date"].dt.year >= MIN_YEAR)]
             df = df.drop(columns=[c for c in DROP_COLS if c in df.columns])
+            df = df.rename(columns=RENAME_COLS)
             df["ISO3"] = iso3
 
             frames.append(df)
