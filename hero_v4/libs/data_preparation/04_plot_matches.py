@@ -35,19 +35,22 @@ def main():
     
     # 2. Definizione colori e livelli
     domain_levels = ['Admin2', 'Admin1_Code', 'Admin1_Name', 'National', 'No_Match']
+    # Ripristino della palette originale coerente dal punto di vista semantico:
+    # Verde (Admin2), Verde Scuro (Admin1_Code), Blu (Admin1_Name), Arancione (National), Grigio (No_Match)
     color_range = ['#2ca02c', '#117768', '#1f3b8b', '#ffa600', '#a2a9b1'] 
     
     # Ordinamento cromatico coerente (Admin2 in alto, No_Match in basso)
     sort_map = {level: i for i, level in enumerate(domain_levels)}
     chart_data['sort_index'] = chart_data['wfp_match_level'].map(sort_map)
+
     
     # 3. Creazione del grafico Altair
     logger.info("Generazione del grafico Altair...")
     chart = alt.Chart(chart_data).mark_bar().encode(
         x=alt.X('Country:N', 
                 title='Paese', 
-                sort=alt.EncodingSortField(field="count", op="sum", order='descending'),
-                axis=alt.Axis(labelAngle=-45)),
+                sort='ascending',
+                axis=alt.Axis(labelAngle=-90)),
         
         y=alt.Y('count:Q', 
                 stack='normalize', 
@@ -76,6 +79,7 @@ def main():
     ).configure_view(
         strokeWidth=0
     )
+
     
     # 4. Salvataggio grafico
     sub_dir = plots_dir / "distributions"
