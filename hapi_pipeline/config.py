@@ -25,9 +25,12 @@ THEMES   = {
     "acled": "coordination-context/conflict-events",
     "idp":  "affected-people/idps",
 }
-# Note: rainfall is NOT fetched from the API. data/raw/rainfall.parquet is supplied
-# externally (different schema: ISO3 + PCODE + adm_level, wide rain_1m/3m columns) and is
-# read directly by merge.py via raw_file("rainfall").
+# Note: rainfall and WFP are NOT fetched from the API.
+# - data/raw/rainfall.parquet is supplied externally (ISO3 + PCODE + adm_level,
+#   wide rain_1m/3m columns) and read directly by merge.py via raw_file("rainfall").
+# - WFP prices come from hero_v5/data/wfp_with_pcodes.parquet, produced by the
+#   two-script prep chain in hero_v5/libs/ (wfp_consolidate.py + wfp_spatial_mapping.py).
+#   See WFP_WITH_PCODES below and DECISIONS.md for the contract.
 
 LIMIT   = 10000
 TIMEOUT = 60
@@ -39,8 +42,24 @@ PARQUET_ENGINE = "fastparquet"
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR    = os.path.join(BASE_DIR, "data", "raw")
 FINAL_DIR  = os.path.join(BASE_DIR, "data", "final")
+
+# Legacy single-output paths (kept for backwards compatibility with widen.py defaults).
 FINAL_FILE      = os.path.join(FINAL_DIR, "hapi_merged_2017.parquet")
 FINAL_FILE_WIDE = os.path.join(FINAL_DIR, "hapi_merged_2017_wide.parquet")
+
+# Admin-level-split outputs (current).
+FINAL_FILE_ADM1      = os.path.join(FINAL_DIR, "hapi_merged_2017_adm1.parquet")
+FINAL_FILE_ADM2      = os.path.join(FINAL_DIR, "hapi_merged_2017_adm2.parquet")
+FINAL_FILE_ADM1_WIDE = os.path.join(FINAL_DIR, "hapi_merged_2017_adm1_wide.parquet")
+FINAL_FILE_ADM2_WIDE = os.path.join(FINAL_DIR, "hapi_merged_2017_adm2_wide.parquet")
+
+# WFP food prices: input contract from the hero_v5/libs/ prep chain.
+# Produced by hero_v5/libs/wfp_consolidate.py + hero_v5/libs/wfp_spatial_mapping.py
+# (PIP + intentional elastic buffer for coastal markets).
+WFP_WITH_PCODES = os.path.join(BASE_DIR, "..", "hero_v5", "data", "wfp_with_pcodes.parquet")
+
+# Boundary GeoJSONs (referenced only by future extensions/, not by merge.py itself).
+BOUNDARIES_DIR  = os.path.join(BASE_DIR, "..", "hero_v5", "data", "boundaries")
 
 
 def raw_file(theme_key):

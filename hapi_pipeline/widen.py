@@ -1,5 +1,5 @@
 """
-widen.py — Pivot hapi_merged_2017.parquet from long to wide format.
+widen.py — Pivot a merged long parquet to wide format.
 
 The long file has 7 rows per (location, period, ipc_type) — one per IPC phase
 (1, 2, 3, 3+, 4, 5, all). This collapses them into 1 wide row with
@@ -7,15 +7,17 @@ phase_1_number ... phase_all_percentage columns, matching the column naming
 conventions of the legacy workflow.
 
 Pivot strategy:
-  - Pivot only on the minimal key (no ACLED/IDP/rainfall in the index) to avoid
+  - Pivot only on the minimal key (no ACLED/IDP/rainfall/WFP in the index) to avoid
     pivot_table silently dropping rows where pass-through columns are NaN.
-  - Join the pass-through columns (ACLED, IDP, rainfall, admin names, dates) from
-    the 'all' phase rows — identical across all 7 phase rows per key.
+  - Join the pass-through columns (ACLED, IDP, rainfall, WFP, admin names, dates)
+    from the 'all' phase rows — identical across all 7 phase rows per key.
 
 Usage:
-    python widen.py
+    python widen.py                                   # uses legacy FINAL_FILE/FINAL_FILE_WIDE
+    python widen.py --in INPUT.parquet --out OUT.parquet
 """
 
+import argparse
 import pandas as pd
 from config import FINAL_FILE, FINAL_FILE_WIDE, PARQUET_ENGINE
 
@@ -31,8 +33,15 @@ KEY_COLS = [
 
 
 def main():
-    df = pd.read_parquet(FINAL_FILE, engine=PARQUET_ENGINE)
-    print(f"Loaded: {len(df):,} rows x {len(df.columns)} cols")
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--in",  dest="in_path",  default=FINAL_FILE,
+                        help="Input long parquet (default: legacy FINAL_FILE)")
+    parser.add_argument("--out", dest="out_path", default=FINAL_FILE_WIDE,
+                        help="Output wide parquet (default: legacy FINAL_FILE_WIDE)")
+    args = parser.parse_args()
+
+    df = pd.read_parquet(args.in_path, engine=PARQUET_ENGINE)
+    print(f"Loaded: {len(df):,} rows x {len(df.columns)} cols from {args.in_path}")
 
     # fastparquet reads nullable string columns back as pd.NA; groupby drops NaN keys.
     # Fill admin code NaN with '' so all rows survive the pivot.
@@ -89,7 +98,6 @@ def main():
         "rain_3m_mean":           "rain_3m",
         "rain_anom_1m_mean":      "rain_anomaly_1m",
         "rain_anom_3m_mean":      "rain_anomaly_3m",
-        "rain_match_level":       "rainfall_match_level",
     })
 
     # Reorder: identity cols first, then phase cols, then ACLED/IDP/rainfall.
@@ -103,9 +111,9 @@ def main():
     rest_cols = [c for c in wide.columns if c not in id_cols + phase_cols]
     wide = wide[[c for c in id_cols + phase_cols + rest_cols if c in wide.columns]]
 
-    wide.to_parquet(FINAL_FILE_WIDE, index=False, engine=PARQUET_ENGINE)
+    wide.to_parquet(args.out_path, index=False, engine=PARQUET_ENGINE)
     print(f"Saved: {len(wide):,} rows x {len(wide.columns)} cols")
-    print(f"File: {FINAL_FILE_WIDE}")
+    print(f"File: {args.out_path}")
 
 
 if __name__ == "__main__":
