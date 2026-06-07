@@ -1,6 +1,5 @@
 *.csv
 *.pyc
 *.parquet
-*.html
 *.log
-
+!hero_v5\data\wfp_with_pcodes.parquet
