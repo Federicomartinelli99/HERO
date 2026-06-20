@@ -2,4 +2,5 @@
 *.pyc
 *.parquet
 *.log
-!hero_v5\data\wfp_with_pcodes.parquet
+!hero_v5/data/wfp_with_pcodes.parquet
+!hapi_pipeline/data/raw/join_wpdx_with_ipc_wide.parquet
