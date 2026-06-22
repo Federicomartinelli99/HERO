@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERO v6 Data Explorer - Dashboard Analitica e Copertura</title>
+    
+    <!-- Meta Descriptions for SEO -->
+    <meta name="description" content="Dashboard interattiva per l'esplorazione dei dati e della copertura spazio-temporale del dataset umanitario HERO v6. Visualizzazione integrata di sicurezza alimentare (IPC), conflitti (ACLED), sfoltamenti (IDP), precipitazioni (CHIRPS) e prezzi alimentari (WFP).">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- svgMap Library CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/svgmap@v2.21.0/dist/svg-map.min.css" rel="stylesheet">
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Custom Styles for svgMap integration to match our dark theme -->
+    <style>
+        .svgMap-map-wrapper {
+            background: transparent !important;
+        }
+        .svgMap-map-image {
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));
+        }
+        .svgMap-country {
+            stroke: var(--bg-main) !important;
+            stroke-width: 0.6px !important;
+        }
+        .svgMap-tooltip,
+        .svgMap-tooltip * {
+            color: #ffffff !important;
+        }
+        .svgMap-tooltip {
+            background: rgba(15, 23, 42, 0.95) !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 8px !important;
+            font-family: var(--font-sans) !important;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5) !important;
+            padding: 5px 9px !important;
+            font-size: 11px !important;
+            pointer-events: none !important;
+        }
+        .svgMap-tooltip-content-container {
+            margin-top: 4px !important;
+            font-size: 0.75rem !important;
+        }
+        .svgMap-map-controls-wrapper {
+            position: absolute !important;
+            bottom: 24px !important;
+            right: 24px !important;
+            top: auto !important;
+            left: auto !important;
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 10px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+            padding: 0 !important;
+            gap: 0 !important;
+            z-index: 10 !important;
+        }
+        .svgMap-map-controls-wrapper button,
+        .svgMap-control-button {
+            width: 38px !important;
+            height: 38px !important;
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-secondary) !important;
+            font-size: 1.25rem !important;
+            font-weight: 500 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            outline: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .svgMap-map-controls-wrapper button:first-child,
+        .svgMap-control-button:first-child {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .svgMap-map-controls-wrapper button:hover,
+        .svgMap-control-button:hover {
+            color: white !important;
+            background: rgba(99, 102, 241, 0.2) !important;
+            text-shadow: 0 0 8px rgba(99, 102, 241, 0.6) !important;
+        }
+        .svgMap-map-controls-wrapper button:active,
+        .svgMap-control-button:active {
+            background: rgba(99, 102, 241, 0.35) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside>
+        <div class="logo-container" id="logo-block">
+            <div class="logo-icon">H</div>
+            <div>
+                <div class="logo-text">HERO v6</div>
+                <div class="logo-sub">Data Explorer</div>
+            </div>
+        </div>
+        
+        <ul class="nav-menu">
+            <li>
+                <a class="nav-item active" id="nav-global" onclick="switchView('global')">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                    </svg>
+                    <span>Panoramica Globale</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" id="nav-country" onclick="switchView('country')">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" />
+                    </svg>
+                    <span>Dettaglio Paese</span>
+                </a>
+                <ul class="sub-nav-menu" id="country-sub-menu" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem; list-style: none; flex-direction: column; gap: 0.25rem;">
+                    <li>
+                        <a class="nav-item sub-nav-item active" id="nav-country-map" onclick="switchCountrySubViewFromSidebar('map')">
+                            <i class="fa-solid fa-map-location-dot" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Mappa & Regioni</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-markets" onclick="switchCountrySubViewFromSidebar('markets')">
+                            <i class="fa-solid fa-store" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Mercati (WFP)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-charts" onclick="switchCountrySubViewFromSidebar('charts')">
+                            <i class="fa-solid fa-chart-line" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Grafici e Trend</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-table" onclick="switchCountrySubViewFromSidebar('table')">
+                            <i class="fa-solid fa-table" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Tabella Dati</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a class="nav-item" id="nav-compare" onclick="switchView('compare')">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                    </svg>
+                    <span>Confronto Paesi</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" id="nav-heatmaps" onclick="switchView('heatmaps')">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
+                    </svg>
+                    <span>Mappa Temporale</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer" style="font-size: 0.7rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: auto; width: 100%;">
+            <i class="fa-solid fa-code-merge text-indigo-500 mr-1"></i> <span>HERO v6 Pipeline</span>
+        </div>
+        
+        <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Riduci/Espandi Menu">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+    </aside>
+
+    <!-- MAIN APP VIEW -->
+    <main>
+        
+        <!-- PAGE HEADER -->
+        <header id="main-header">
+            <div class="page-title">
+                <h1 id="view-title">Panoramica Globale dei Dati</h1>
+                <p id="view-subtitle">Monitoraggio della completezza spazio-temporale in 52 paesi</p>
+            </div>
+            
+            <div class="controls-row">
+
+
+                <!-- Admin Level Toggle -->
+                <div id="admin-level-toggle-wrapper" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem;">
+                    <div class="toggle-group" id="admin-level-toggle-group">
+                        <button class="toggle-btn active" id="btn-level-adm1" onclick="toggleAdminLevel('adm1')">ADMIN 1 (Province)</button>
+                        <button class="toggle-btn" id="btn-level-adm2" onclick="toggleAdminLevel('adm2')">ADMIN 2 (Distretti)</button>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); text-align: right; max-width: 280px; line-height: 1.25;">
+                        Scegli la risoluzione: dati aggregati per Province (Admin 1) o per singoli Distretti (Admin 2, dettaglio più fine).
+                    </span>
+                </div>
+                
+                <!-- Country View Selector (Hidden in global view, shown in country view) -->
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="toggle-group" id="chart-layout-toggle-group" style="display: none;">
+                        <button class="toggle-btn active" id="btn-chart-linear" onclick="toggleChartType('linear')">LINEARE</button>
+                        <button class="toggle-btn" id="btn-chart-circular" onclick="toggleChartType('circular')">STAGIONALE</button>
+                    </div>
+                    <div class="select-wrapper" id="country-selector-wrapper" style="display: none;">
+                        <select id="country-selector" onchange="onCountrySelectorChange()">
+                            <option value="">Seleziona Paese...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- GLOBAL OVERVIEW PANEL -->
+        <section class="view-panel active" id="panel-global">
+            
+
+
+            <!-- Map Card with Split Layout -->
+            <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
+                <div class="card-title">
+                    <div class="card-title-text">
+                        <i class="fa-solid fa-map-location-dot text-indigo-500"></i>
+                        <span>Disponibilità Dati Geografica (Clicca un Paese per analizzare le regioni)</span>
+                    </div>
+                    <div class="badge badge-blue" id="map-indicator-badge">Tutti i Temi</div>
+                </div>
+                <div style="display: flex; gap: 1rem; width: 100%; height: 680px; align-items: stretch;">
+                    <!-- Left Sidebar Country List (Narrow) -->
+                    <div class="countries-list-sidebar" style="width: 190px; border-right: 1px solid var(--border-color); overflow-y: auto; padding-right: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                        <!-- Country search/filter -->
+                        <div style="position: relative; margin-bottom: 0.5rem; margin-top: 0.2rem;">
+                            <input type="text" id="map-country-search" placeholder="Cerca paese..." oninput="filterMapCountryList(this.value)" style="width: 100%; font-size: 0.75rem; padding: 0.45rem 2rem 0.45rem 0.75rem; border-radius: 6px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); color: white; outline: none; transition: border-color 0.2s;">
+                            <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-muted);"></i>
+                        </div>
+                        <div id="map-countries-items" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <!-- Dynamically populated countries list -->
+                        </div>
+                    </div>
+                    <!-- Right Container for svgMap -->
+                    <div class="map-container" id="svg-map-wrapper" style="flex-grow: 1; height: 100%; overflow: hidden; position: relative;">
+                        <div id="world-map" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heatmap Matrix Card -->
+            <div class="glass-card" id="heatmap-panel-card">
+                <div class="card-title">
+                    <div class="card-title-text">
+                        <i class="fa-solid fa-border-all text-indigo-500"></i>
+                        <span>Matrice di Completezza Spazio-Temporale</span>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="heatmap-theme-selector" onchange="onHeatmapThemeChange()">
+                            <option value="overall">Completezza Media (%)</option>
+                            <option value="ipc">Sicurezza Alimentare (IPC) (%)</option>
+                            <option value="acled">Conflitti (ACLED) (%)</option>
+                            <option value="idp">Sfollati Interni (IDP) (%)</option>
+                            <option value="rainfall">Precipitazioni (CHIRPS) (%)</option>
+                            <option value="wfp">Prezzi Alimentari (WFP) (%)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="heatmap-wrapper" id="heatmap-chart-container">
+                    <!-- ApexCharts Heatmap will render here -->
+                    <div style="height: 550px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Generazione matrice...
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- COUNTRY PANEL VIEW -->
+        <section class="view-panel" id="panel-country">
+            
+            <!-- Country Sub-tabs Navigation -->
+            <div style="display: flex; align-items: center; justify-content: flex-start; margin-top: -1rem; margin-bottom: 1.25rem; width: 100%;">
+                <div class="sub-tabs-wrapper">
+                    <button class="sub-tab-btn active" id="btn-country-tab-map" onclick="switchCountrySubView('map')">
+                        <i class="fa-solid fa-map-location-dot"></i> Mappa & Sotto-Regioni
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-markets" onclick="switchCountrySubView('markets')">
+                        <i class="fa-solid fa-store"></i> Mercati (WFP)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-charts" onclick="switchCountrySubView('charts')">
+                        <i class="fa-solid fa-chart-line"></i> Grafici e Trend
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-table" onclick="switchCountrySubView('table')">
+                        <i class="fa-solid fa-table"></i> Tabella Dati
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL 1: MAPPA E SOTTO-REGIONI -->
+            <div class="country-sub-panel active" id="country-sub-panel-map" style="width: 100%;">
+                <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.25rem;">
+                        <div class="card-title-text" style="font-size: 1.1rem; font-weight: 700; color: white;">
+                            <i class="fa-solid fa-map-location-dot text-indigo-500 mr-2"></i>Esploratore delle Sotto-Regioni (Clicca una regione per analizzare i grafici)
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase;">Colora Per:</span>
+                                <div class="select-wrapper">
+                                    <select id="map-color-metric" onchange="onMapColorMetricChange()" style="font-size: 0.75rem; padding: 0.4rem 1rem;">
+                                        <option value="completeness">Completezza Dati (%)</option>
+                                        <option value="ipc">Sicurezza Alimentare (IPC Fase 3+ %)</option>
+                                        <option value="acled">Conflitti (ACLED Eventi)</option>
+                                        <option value="idp">Sfollati Interni (IDP)</option>
+                                        <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
+                                        <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 0.75rem; color: var(--text-secondary);">Mostra Mercati:</span>
+                                <label class="switch-container">
+                                    <input type="checkbox" id="toggle-markets-layer" onchange="toggleMarketsLayer()" checked>
+                                    <span class="slider-round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.5rem; width: 100%; height: 580px; align-items: stretch;">
+                        <!-- Left: Large Map -->
+                        <div class="sidebar-map-container" id="country-tab-map-container" style="height: 100%; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; position: relative;">
+                            <!-- SVG map is rendered here -->
+                        </div>
+                        <!-- Right: Subregion list with raw details -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; height: 100%;">
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Analisi e Statistiche Regionali (Clicca per selezionare)</span>
+                            <div class="modal-subregions-list" id="country-tab-subregions-list" style="max-height: 100%; height: 100%; overflow-y: auto; padding-right: 0.25rem;">
+                                <!-- Dynamically populated list -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL 2: MERCATI (WFP) -->
+            <div class="country-sub-panel" id="country-sub-panel-markets" style="display: none; width: 100%;">
+                <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.25rem;">
+                        <div class="card-title-text" style="font-size: 1.1rem; font-weight: 700; color: white;">
+                            <i class="fa-solid fa-store text-indigo-500 mr-2"></i>Punti ad Alta Granularità (Mercati Alimentari WFP)
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.5rem; width: 100%; height: 580px; align-items: stretch;">
+                        <!-- Left: Large Map with Markets -->
+                        <div class="sidebar-map-container" id="country-tab-markets-container" style="height: 100%; background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; position: relative;">
+                            <!-- SVG map with market dots -->
+                        </div>
+                        <!-- Right: Markets List -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; height: 100%;">
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Lista dei Mercati Censiti</span>
+                            <div class="modal-subregions-list" id="country-tab-markets-list" style="max-height: 100%; height: 100%; overflow-y: auto; padding-right: 0.25rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                                <!-- Dynamically populated markets list -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL 3: GRAFICI E TREND -->
+            <div class="country-sub-panel" id="country-sub-panel-charts" style="display: none; width: 100%;">
+                <!-- Sub-region Selectors and info header (Compacted) -->
+                <div class="glass-card" style="padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.05em;">Sotto-Regione:</span>
+                        <div class="select-wrapper">
+                            <select id="subregion-selector" onchange="onSubregionSelectorChange()" style="width: 240px; font-size: 0.8rem; padding: 0.45rem 1rem;">
+                                <option value="national">Nazionale (Tutte le Aree)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="country-active-badges" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <!-- Dynamically injected badges -->
+                    </div>
+                </div>
+
+                <!-- Linear Charts Wrapper -->
+                <div id="country-linear-container" style="width: 100%;">
+                    <div class="country-charts-grid" style="width: 100%;">
+                        <!-- Food Security IPC Stacked Chart -->
+                        <div class="glass-card chart-card-double">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-wheat-awn text-emerald-400"></i>
+                                    <span id="chart-ipc-title">Evoluzione Classificazione Fasi IPC (Popolazione %)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-ipc"></div>
+                        </div>
+
+                        <!-- ACLED Conflict Events and Fatalities -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-burst text-rose-500"></i>
+                                    <span id="chart-acled-title">Frequenza ed Intensità dei Conflitti (ACLED)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-acled"></div>
+                        </div>
+
+                        <!-- IDP Population Trends -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-person-walking-arrow-right text-amber-500"></i>
+                                    <span id="chart-idp-title">Popolazione Sfollata Interna (IDP)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-idp"></div>
+                        </div>
+
+                        <!-- Rainfall and Anomalies -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-cloud-showers-water text-blue-400"></i>
+                                    <span id="chart-rainfall-title">Andamento Precipitazioni e Anomalia CHIRPS</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-rainfall"></div>
+                        </div>
+
+                        <!-- WFP Food Prices and Inflation -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-store text-indigo-400"></i>
+                                    <span id="chart-wfp-title">Indice Prezzi Alimentari e Inflazione Locale (WFP)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-wfp"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seasonal/Radar Charts Wrapper -->
+                <div id="country-seasonal-container" style="display: none; width: 100%;">
+                    <div class="country-charts-grid" style="width: 100%;">
+                        <!-- IPC Card -->
+                        <div class="glass-card chart-card-double">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-wheat-awn text-emerald-400"></i>
+                                    <span id="chart-ipc-seasonal-title">Profilo Stagionale Fasi IPC (Media Fase 3+ %)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-ipc-seasonal" style="height: 320px;"></div>
+                        </div>
+
+                        <!-- ACLED Card (2 charts stacked vertically) -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-burst text-rose-500"></i>
+                                    <span>Profilo Stagionale Conflitti (ACLED: Eventi & Vittime)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-acled-events-seasonal" style="height: 220px; min-height: 220px;"></div>
+                                <div class="chart-container" id="chart-acled-fatalities-seasonal" style="height: 220px; min-height: 220px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- IDP Card -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-person-walking-arrow-right text-amber-500"></i>
+                                    <span id="chart-idp-seasonal-title">Profilo Stagionale Sfollati Interni (IDP)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-idp-seasonal" style="height: 460px; min-height: 460px;"></div>
+                        </div>
+
+                        <!-- Rainfall Card (2 charts stacked vertically) -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-cloud-showers-water text-blue-400"></i>
+                                    <span>Profilo Stagionale Precipitazioni & Anomalia CHIRPS</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-rainfall-rain-seasonal" style="height: 220px; min-height: 220px;"></div>
+                                <div class="chart-container" id="chart-rainfall-anomaly-seasonal" style="height: 220px; min-height: 220px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- WFP Card (2 charts stacked vertically) -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-store text-indigo-400"></i>
+                                    <span>Profilo Stagionale Prezzi & Inflazione (WFP)</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-wfp-price-seasonal" style="height: 220px; min-height: 220px;"></div>
+                                <div class="chart-container" id="chart-wfp-inflation-seasonal" style="height: 220px; min-height: 220px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL 4: TABELLA DATI -->
+            <div class="country-sub-panel" id="country-sub-panel-table" style="display: none; width: 100%;">
+                <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                        <div class="card-title-text" style="font-size: 1.1rem; font-weight: 700; color: white;">
+                            <i class="fa-solid fa-table text-indigo-500 mr-2"></i>Archivio Storico dei Dati Tabellari
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);" id="country-table-subregion-label">
+                            Area: Nazionale
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x: auto; width: 100%;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: left;">Periodo</th>
+                                    <th style="text-align: right;">IPC Fase 3+ (%)</th>
+                                    <th style="text-align: right;">Eventi Conflitto</th>
+                                    <th style="text-align: right;">Vittime (Fatalities)</th>
+                                    <th style="text-align: right;">Sfollati (IDP)</th>
+                                    <th style="text-align: right;">Pioggia (mm)</th>
+                                    <th style="text-align: right;">Anomalia Pioggia</th>
+                                    <th style="text-align: right;">Prezzi (Indice)</th>
+                                    <th style="text-align: right;">Inflazione</th>
+                                </tr>
+                            </thead>
+                            <tbody id="country-tab-table-body">
+                                <!-- Dynamically populated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- COUNTRY COMPARISON PANEL -->
+        <section class="view-panel" id="panel-compare">
+            
+            <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; margin-top: -1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; flex-grow: 1;">
+                        
+                        <!-- Metric Selector -->
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Indicatore</span>
+                            <div class="select-wrapper">
+                                <select id="compare-metric" onchange="onCompareCountriesChange()" style="width: 250px;">
+                                    <option value="ipc">Sicurezza Alimentare (IPC Fase 3+ %)</option>
+                                    <option value="acled">Conflitti (ACLED Eventi)</option>
+                                    <option value="idp">Popolazione Sfollata (IDP)</option>
+                                    <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
+                                    <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Add Country Selector & Button -->
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Aggiungi Paese al Confronto</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="select-wrapper">
+                                    <select id="compare-add-selector" style="width: 220px;">
+                                        <!-- Remaining countries populated dynamically -->
+                                    </select>
+                                </div>
+                                <button class="toggle-btn" onclick="addCountryToComparison()" style="padding: 0.65rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>AGGIUNGI</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                
+                <!-- Tag container for currently selected countries -->
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Paesi in Confronto (Clicca la "x" per rimuovere)</span>
+                    <div id="compare-tags-container" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <!-- Tags rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Chart -->
+            <div class="glass-card">
+                <div class="card-title">
+                    <div class="card-title-text">
+                        <i class="fa-solid fa-chart-line text-indigo-500"></i>
+                        <span id="compare-chart-title">Confronto Temporale</span>
+                    </div>
+                </div>
+                <div class="chart-container" id="chart-compare" style="height: 380px;"></div>
+            </div>
+
+            <!-- Multi-Country Details Grid -->
+            <div id="compare-details-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+                <!-- Cards rendered dynamically -->
+            </div>
+
+        </section>
+
+        <!-- VALUE HEATMAPS PANEL -->
+        <!-- TEMPORAL MAP PANEL -->
+        <section class="view-panel" id="panel-heatmaps">
+            <!-- Timeline controls card -->
+            <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-top: -1rem;">
+                <div style="display: flex; align-items: center; gap: 1.5rem; flex-grow: 1; flex-wrap: wrap;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Indicatore</span>
+                        <div class="select-wrapper">
+                            <select id="values-theme-selector" onchange="onValuesThemeChange()" style="width: 250px;">
+                                <option value="ipc">Sicurezza Alimentare (IPC Fase 3+ %)</option>
+                                <option value="acled">Conflitti (ACLED Eventi)</option>
+                                <option value="idp">Sfollati Interni (IDP)</option>
+                                <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
+                                <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Player Controls -->
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem;">
+                        <button class="toggle-btn" id="btn-play-timeline" onclick="toggleTimelinePlay()" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; width: 100px; justify-content: center;">
+                            <i class="fa-solid fa-play"></i>
+                            <span id="btn-play-text">AVVIA</span>
+                        </button>
+                    </div>
+
+                    <!-- Slider Control -->
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem; flex-grow: 1; min-width: 200px;">
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Linea Temporale</span>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <input type="range" id="timeline-slider" oninput="onTimelineSliderInput(this.value)" style="flex-grow: 1; cursor: pointer; height: 6px; border-radius: 3px; background: #1e293b; outline: none;">
+                            <span id="timeline-quarter-label" style="font-family: var(--font-title); font-weight: 800; font-size: 1.2rem; color: #a5b4fc; min-width: 80px; text-align: center; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); padding: 0.25rem 0.75rem; border-radius: 8px;">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Card (Full Width) -->
+            <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
+                <div class="card-title" style="margin-bottom: 0.75rem;">
+                    <div class="card-title-text">
+                        <i class="fa-solid fa-earth-africa text-indigo-500"></i>
+                        <span>Evoluzione Geografica dei Valori (Clicca un Paese per analizzare le regioni)</span>
+                    </div>
+                </div>
+                <div class="map-container" id="temporal-map-wrapper" style="height: 580px;">
+                    <!-- Target container for svgMap -->
+                    <div id="temporal-map" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- GEOGRAPHIC AUDIT MODAL -->
+    <div class="modal-overlay" id="country-audit-modal" style="display: none;">
+        <div class="glass-card modal-card modal-card-lg">
+            <button class="modal-close-btn" onclick="closeCountryAuditModal()">&times;</button>
+            
+            <div class="modal-header" style="margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <h2 id="modal-country-name" style="font-family: var(--font-title); font-weight: 700; font-size: 1.5rem; color: white;">Somalia (SOM)</h2>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Audit geografico della disponibilità dei dati e dei mercati</p>
+            </div>
+            
+            <div class="modal-body-grid">
+                <!-- Left: Map -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Mappa Disponibilità Sotto-Regioni</span>
+                    <div class="modal-map-container" id="modal-country-map-container">
+                        <!-- Subregion map rendered dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Right: Completeness list -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; min-height: 0;">
+                    <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Completezza Sotto-Regioni</span>
+                    <div class="modal-subregions-list" id="modal-subregions-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; justify-content: flex-end;">
+                <button class="toggle-btn active" id="modal-go-to-details-btn" style="padding: 0.65rem 1.5rem; font-size: 0.85rem;">VAI AL DETTAGLIO PAESE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PERIOD DETAIL MODAL -->
+    <div class="modal-overlay" id="period-detail-modal" style="display: none;">
+        <div class="glass-card modal-card" style="max-width: 600px;">
+            <button class="modal-close-btn" onclick="closePeriodDetailModal()">&times;</button>
+            
+            <div class="modal-header" style="margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <h2 id="modal-period-title" style="font-family: var(--font-title); font-weight: 700; font-size: 1.5rem; color: white;">Dettagli Periodo: 2021-Q3</h2>
+                <p id="modal-period-subtitle" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Statistiche dettagliate per Somalia (SOM)</p>
+            </div>
+            
+            <div class="modal-body" id="modal-period-body" style="overflow-y: auto; max-height: 55vh; padding-right: 0.25rem;">
+                <!-- Dynamically populated stats -->
+            </div>
+            
+            <div class="modal-footer" style="margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; justify-content: flex-end;">
+                <button class="toggle-btn active" onclick="closePeriodDetailModal()" style="padding: 0.65rem 1.5rem; font-size: 0.85rem;">CHIUDI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ApexCharts JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <!-- svgMap dependencies and JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/svgmap@v2.21.0/dist/svg-map.umd.min.js"></script>
+    
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
