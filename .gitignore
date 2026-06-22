@@ -4,3 +4,5 @@
 *.log
 !hero_v5/data/wfp_with_pcodes.parquet
 !hapi_pipeline/data/raw/join_wpdx_with_ipc_wide.parquet
+hero_v6/data/boundaries/
+hero_v6/data/boundaries.7z

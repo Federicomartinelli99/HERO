@@ -1899,14 +1899,14 @@ function renderRadarCharts(trends) {
     });
 
     const chartsToRender = [
-        { key: 'ipc_seasonal', containerId: 'chart-ipc-seasonal', series: ipcSeries },
-        { key: 'acled_events_seasonal', containerId: 'chart-acled-events-seasonal', series: acledEventsSeries },
-        { key: 'acled_fatalities_seasonal', containerId: 'chart-acled-fatalities-seasonal', series: acledFatalitiesSeries },
-        { key: 'idp_seasonal', containerId: 'chart-idp-seasonal', series: idpSeries },
-        { key: 'rainfall_rain_seasonal', containerId: 'chart-rainfall-rain-seasonal', series: rainSeries },
-        { key: 'rainfall_anomaly_seasonal', containerId: 'chart-rainfall-anomaly-seasonal', series: rainAnomalySeries },
-        { key: 'wfp_price_seasonal', containerId: 'chart-wfp-price-seasonal', series: wfpPriceSeries },
-        { key: 'wfp_inflation_seasonal', containerId: 'chart-wfp-inflation-seasonal', series: wfpInflationSeries }
+        { key: 'ipc_seasonal', containerId: 'chart-ipc-seasonal', series: ipcSeries, height: 320 },
+        { key: 'acled_events_seasonal', containerId: 'chart-acled-events-seasonal', series: acledEventsSeries, height: 220 },
+        { key: 'acled_fatalities_seasonal', containerId: 'chart-acled-fatalities-seasonal', series: acledFatalitiesSeries, height: 220 },
+        { key: 'idp_seasonal', containerId: 'chart-idp-seasonal', series: idpSeries, height: 460 },
+        { key: 'rainfall_rain_seasonal', containerId: 'chart-rainfall-rain-seasonal', series: rainSeries, height: 220 },
+        { key: 'rainfall_anomaly_seasonal', containerId: 'chart-rainfall-anomaly-seasonal', series: rainAnomalySeries, height: 220 },
+        { key: 'wfp_price_seasonal', containerId: 'chart-wfp-price-seasonal', series: wfpPriceSeries, height: 220 },
+        { key: 'wfp_inflation_seasonal', containerId: 'chart-wfp-inflation-seasonal', series: wfpInflationSeries, height: 220 }
     ];
 
     chartsToRender.forEach(c => {
@@ -1916,7 +1916,7 @@ function renderRadarCharts(trends) {
             container.innerHTML = "";
             const hasData = c.series.some(s => s.data.some(d => d !== null));
             if (!hasData) {
-                container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.8rem;">Nessun dato disponibile</div>`;
+                container.innerHTML = `<div style="height: ${c.height}px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.8rem;">Nessun dato disponibile</div>`;
                 return;
             }
             const options = {
@@ -1924,7 +1924,8 @@ function renderRadarCharts(trends) {
                 series: c.series,
                 chart: {
                     ...seasonalCommonOptions.chart,
-                    id: c.containerId
+                    id: c.containerId,
+                    height: c.height
                 }
             };
             countryCharts[c.key] = new ApexCharts(container, options);
