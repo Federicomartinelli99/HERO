@@ -33,6 +33,15 @@ area-period. Columns:
   `idp_staleness_days`.
 - **Rainfall** — `rain_1m_sum`, `rain_1m`, `rain_3m`, `rain_anomaly_1m`, `rain_anomaly_3m`.
 - **WFP** — `wfp_price`, `wfp_inflation`, `wfp_obs_count`, `wfp_mapping_method`.
+- **GDELT** *(admin1 file only)* — `gdelt_{verbal_coop,material_coop,verbal_conflict,material_conflict}_{events,mentions,tone}`
+  (media-based CAMEO signals, collapsed to the 4 QuadClasses; counts summed over the IPC
+  period, tone is the mentions-weighted mean). GDELT is admin1-native, so it is **not**
+  present in `merged_adm2_wide`. *Note:* `_tone` is noisy where `_mentions` is low (sparse
+  classes/periods) — down-weight or filter by `_mentions` when using it. Tone is `NaN` when a
+  class had no mentions in the period.
+- **NDVI** *(both files)* — `ndvi_vim` (vegetation greenness) and `ndvi_viq` (vegetation
+  condition as % of normal — the drought/anomaly signal). Dekadal source, aggregated to the
+  IPC period as an `n_pixels`-weighted mean.
 
 ```python
 import pandas as pd
@@ -50,7 +59,7 @@ hero_v6/
 ├── merge.py             ← join all sources onto IPC → data/merged/merged_adm{1,2}.parquet
 ├── widen.py             ← pivot long → wide → data/merged/merged_adm{1,2}_wide.parquet
 └── data/
-    ├── raw/             ← inputs: ipc, acled, idp, rainfall, wfp_with_pcodes (all shipped)
+    ├── raw/             ← inputs: ipc, acled, idp, rainfall, wfp_with_pcodes, df_gdelt_pivot, wfp_ndvi (all shipped)
     └── merged/          ← outputs: the two *_wide.parquet files (shipped)
 ```
 
