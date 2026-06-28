@@ -16,6 +16,12 @@ Aggregation rules:
               mapping_method propagation ('elastic_buffer' if any contributing market used
               it, else 'strict_pip'). WFP ships pre-prepared at
               data/raw/wfp_with_pcodes.parquet (see README.md for provenance).
+  - GDELT:    admin1-only media-conflict signals (CAMEO). Per-period sum of events + mentions
+              and mentions-weighted mean tone, aggregated into the 4 CAMEO QuadClasses.
+              Joined on admin1_code, so it is added to the admin1 output only.
+  - NDVI:     dekadal vegetation index (WFP), native at both admin levels. Per-period,
+              n_pixels-weighted mean of vim (greenness) and viq (% of normal); exact-duplicate
+              rows dropped first. Native admin level filter, like rainfall.
 
 Usage:
     python merge.py
@@ -26,7 +32,8 @@ import pandas as pd
 
 from config import (
     COUNTRIES, FINAL_DIR, FINAL_FILE_ADM1, FINAL_FILE_ADM2,
-    raw_file, PARQUET_ENGINE, MAX_IDP_STALENESS_DAYS, WFP_WITH_PCODES,
+    raw_file, PARQUET_ENGINE, MAX_IDP_STALENESS_DAYS, WFP_WITH_PCODES, GDELT_FILE,
+    NDVI_FILE,
 )
 
 
@@ -40,6 +47,16 @@ def load(theme_key):
 
 def to_dt(series):
     return pd.to_datetime(series, utc=True).dt.tz_localize(None)
+
+
+# CAMEO root codes grouped into their 4 QuadClasses (per the GDELT dataset doc). Used to
+# collapse GDELT's 20 root codes into 12 columns (4 quads x events/mentions/tone).
+CAMEO_QUADCLASS = {
+    "verbal_coop":       ["01", "02", "03", "04", "05"],
+    "material_coop":     ["06", "07"],
+    "verbal_conflict":   ["08", "09", "10", "11", "12", "13", "14", "15", "16"],
+    "material_conflict": ["17", "18", "19", "20"],
+}
 
 
 # ── ACLED aggregation ─────────────────────────────────────────────────────────
@@ -102,6 +119,67 @@ def aggregate_acled(acled, join_key_col, ipc_periods):
     pivot["acled_total_fatalities"] = pivot[f_cols].sum(axis=1)
 
     return pivot
+
+
+# ── GDELT aggregation ───────────────────────────────────────────────────────────
+
+def aggregate_gdelt(gdelt, join_key_col, ipc_periods):
+    """
+    Aggregate monthly GDELT rows (admin1-only) to IPC reference periods, collapsing the
+    20 CAMEO root codes into the 4 QuadClasses. `join_key_col` is "admin1_code".
+
+    Per (join_key, ipc_start, ipc_end) and per QuadClass q:
+        gdelt_q_events   = sum(n_events_{rc})        over rc in q and months in period
+        gdelt_q_mentions = sum(total_mentions_{rc})  likewise
+        gdelt_q_tone     = mentions-weighted mean of avg_tone_{rc}
+                           = sum(avg_tone * mentions) / sum(mentions), NaN if no mentions
+                           (absence of events != neutral tone, so tone is never imputed to 0).
+
+    Returns DataFrame with [join_key_col, ipc_start, ipc_end, gdelt_<quad>_<metric> x 12].
+    """
+    out_cols = [f"gdelt_{q}_{m}" for q in CAMEO_QUADCLASS for m in ("events", "mentions", "tone")]
+    empty_base = ipc_periods[[join_key_col, "ipc_start", "ipc_end"]].drop_duplicates().copy()
+
+    if gdelt.empty:
+        return empty_base
+
+    gdelt = gdelt.copy()
+    gdelt["gdelt_date"] = pd.to_datetime(
+        dict(year=gdelt["year"], month=gdelt["month"], day=1)
+    )
+    gdelt[join_key_col] = gdelt["adm1_pcode"].astype(str)
+
+    # Per-row, per-quad: sum counts and build the mentions-weighted tone numerator.
+    agg_cols = []
+    for q, codes in CAMEO_QUADCLASS.items():
+        ev = [f"n_events_{rc}" for rc in codes]
+        mn = [f"total_mentions_{rc}" for rc in codes]
+        gdelt[f"_{q}_events"]   = gdelt[ev].sum(axis=1)
+        gdelt[f"_{q}_mentions"] = gdelt[mn].sum(axis=1)
+        # weight=0 nullifies a NaN tone, so fillna(0) on tone is safe inside the product
+        tone_num = sum(gdelt[f"avg_tone_{rc}"].fillna(0) * gdelt[f"total_mentions_{rc}"]
+                       for rc in codes)
+        gdelt[f"_{q}_tonenum"] = tone_num
+        agg_cols += [f"_{q}_events", f"_{q}_mentions", f"_{q}_tonenum"]
+
+    merged = ipc_periods.merge(gdelt[[join_key_col, "gdelt_date"] + agg_cols],
+                               on=join_key_col, how="left")
+    in_period = (merged["gdelt_date"] >= merged["ipc_start"]) & \
+                (merged["gdelt_date"] <= merged["ipc_end"])
+    merged = merged[in_period]
+
+    if merged.empty:
+        return empty_base
+
+    summed = merged.groupby([join_key_col, "ipc_start", "ipc_end"], as_index=False)[agg_cols].sum()
+
+    for q in CAMEO_QUADCLASS:
+        summed[f"gdelt_{q}_events"]   = summed[f"_{q}_events"]
+        summed[f"gdelt_{q}_mentions"] = summed[f"_{q}_mentions"]
+        mentions = summed[f"_{q}_mentions"]
+        summed[f"gdelt_{q}_tone"] = (summed[f"_{q}_tonenum"] / mentions).where(mentions > 0)
+
+    return summed[[join_key_col, "ipc_start", "ipc_end"] + out_cols]
 
 
 # ── IDP matching ──────────────────────────────────────────────────────────────
@@ -190,6 +268,60 @@ def aggregate_rainfall(rain, join_key_col, level, ipc_periods):
     return agg
 
 
+# ── NDVI aggregation ────────────────────────────────────────────────────────────
+
+def aggregate_ndvi(ndvi, join_key_col, level, ipc_periods):
+    """
+    Aggregate dekadal NDVI rows to IPC reference periods, at one admin level.
+
+    `level` selects the native NDVI adm_level (1 or 2). `join_key_col` is the IPC-side key
+    to emit ("admin1_code" or "admin2_code"); NDVI's join key is its PCODE column.
+
+    Per (join_key_col, ipc_start, ipc_end), an n_pixels-weighted mean over every in-period
+    (sub-polygon, dekad) observation:
+        ndvi_vim = sum(vim * n_pixels) / sum(n_pixels)   # greenness
+        ndvi_viq = sum(viq * n_pixels) / sum(n_pixels)   # vegetation condition, % of normal
+
+    Weighting by n_pixels collapses the (rare) PCODE collisions — pcodes that map to >1 adm_id
+    sub-polygon — by polygon size. Exact-duplicate rows (an upstream concat artifact) are
+    dropped first so duplicated dekads are not double-counted.
+    """
+    empty_base = ipc_periods[[join_key_col, "ipc_start", "ipc_end"]].drop_duplicates().copy()
+
+    if ndvi.empty:
+        return empty_base
+
+    ndvi = ndvi[ndvi["adm_level"].astype(str) == str(level)].drop_duplicates()
+    if ndvi.empty:
+        return empty_base
+
+    ndvi = ndvi.copy()
+    ndvi["ndvi_date"]  = to_dt(ndvi["date"])
+    ndvi[join_key_col] = ndvi["PCODE"].astype(str)
+
+    merged = ipc_periods.merge(
+        ndvi[[join_key_col, "ndvi_date", "vim", "viq", "n_pixels"]],
+        on=join_key_col, how="left",
+    )
+    in_period = (merged["ndvi_date"] >= merged["ipc_start"]) & \
+                (merged["ndvi_date"] <= merged["ipc_end"])
+    merged = merged[in_period]
+
+    if merged.empty:
+        return empty_base
+
+    w = merged["n_pixels"]
+    merged["_vim_w"] = merged["vim"] * w
+    merged["_viq_w"] = merged["viq"] * w
+    grouped = merged.groupby([join_key_col, "ipc_start", "ipc_end"], as_index=False).agg(
+        _vim_w=("_vim_w", "sum"), _viq_w=("_viq_w", "sum"), _w=("n_pixels", "sum"),
+    )
+    grouped["ndvi_vim"] = grouped["_vim_w"] / grouped["_w"]
+    grouped["ndvi_viq"] = grouped["_viq_w"] / grouped["_w"]
+
+    return grouped[[join_key_col, "ipc_start", "ipc_end", "ndvi_vim", "ndvi_viq"]]
+
+
 # ── WFP aggregation ───────────────────────────────────────────────────────────
 
 def aggregate_wfp(wfp, join_key_col, level, ipc_periods):
@@ -262,18 +394,23 @@ def slice_country(df, iso3, col="location_code"):
     return df[df[col] == iso3].copy()
 
 
-def merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all,
+def merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all, gdelt_all, ndvi_all,
                   join_key_col, admin_level):
     """
     Pure-level country merge. Filters IPC to rows where IPC's `admin_level` == `admin_level`
-    arg, then joins ACLED / IDP / rainfall / WFP using `join_key_col` only
+    arg, then joins ACLED / IDP / rainfall / WFP / NDVI using `join_key_col` only
     ("admin1_code" or "admin2_code"). No fallback, no *_match_level flags.
+
+    GDELT is admin1-only, so it is joined (on admin1_code) in the admin_level==1 pass only.
+    NDVI is native at both levels (like rainfall) and is joined in both passes.
     """
     ipc   = slice_country(ipc_all,   iso3)
     acled = slice_country(acled_all, iso3)
     idp   = slice_country(idp_all,   iso3)
     rain  = slice_country(rain_all,  iso3, col="ISO3")
     wfp   = slice_country(wfp_all,   iso3, col="ISO3")
+    gdelt = slice_country(gdelt_all, iso3, col="iso3")
+    ndvi  = slice_country(ndvi_all,  iso3, col="country_iso3")
 
     if ipc.empty:
         return pd.DataFrame()
@@ -295,11 +432,18 @@ def merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all,
     idp_agg   = match_idp(idp, join_key_col, ends)
     rain_agg  = aggregate_rainfall(rain, join_key_col, admin_level, periods)
     wfp_agg   = aggregate_wfp(wfp, join_key_col, admin_level, periods)
+    ndvi_agg  = aggregate_ndvi(ndvi, join_key_col, admin_level, periods)
 
     result = ipc.merge(acled_agg, on=[join_key_col, "ipc_start", "ipc_end"], how="left")
     result = result.merge(idp_agg,  on=[join_key_col, "ipc_end"], how="left")
     result = result.merge(rain_agg, on=[join_key_col, "ipc_start", "ipc_end"], how="left")
     result = result.merge(wfp_agg,  on=[join_key_col, "ipc_start", "ipc_end"], how="left")
+    result = result.merge(ndvi_agg, on=[join_key_col, "ipc_start", "ipc_end"], how="left")
+
+    # GDELT is admin1-native — join on admin1_code, admin1 pass only.
+    if admin_level == 1:
+        gdelt_agg = aggregate_gdelt(gdelt, join_key_col, periods)
+        result = result.merge(gdelt_agg, on=[join_key_col, "ipc_start", "ipc_end"], how="left")
 
     # QA: raw coverage per theme.
     n = len(result)
@@ -307,9 +451,14 @@ def merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all,
     idp_cov  = result["idp_population"].notna().sum() / n     if "idp_population"      in result.columns else 0
     rain_cov = result["rain_1m_sum"].notna().sum() / n        if "rain_1m_sum"         in result.columns else 0
     wfp_cov  = result["wfp_price"].notna().sum() / n          if "wfp_price"           in result.columns else 0
-    print(f"  {iso3} adm{admin_level}: {n:>6,} rows | "
-          f"ACLED {acl_cov:>4.0%} | IDP {idp_cov:>4.0%} | "
-          f"RAIN {rain_cov:>4.0%} | WFP {wfp_cov:>4.0%}")
+    ndvi_cov = result["ndvi_vim"].notna().sum() / n           if "ndvi_vim"            in result.columns else 0
+    line = (f"  {iso3} adm{admin_level}: {n:>6,} rows | "
+            f"ACLED {acl_cov:>4.0%} | IDP {idp_cov:>4.0%} | "
+            f"RAIN {rain_cov:>4.0%} | WFP {wfp_cov:>4.0%} | NDVI {ndvi_cov:>4.0%}")
+    if "gdelt_material_conflict_events" in result.columns:
+        gdelt_cov = result["gdelt_material_conflict_events"].notna().sum() / n
+        line += f" | GDELT {gdelt_cov:>4.0%}"
+    print(line)
 
     return result
 
@@ -331,8 +480,23 @@ def main():
         print(f"[warn] WFP source not found at {WFP_WITH_PCODES} — wfp_* columns will be empty.")
         print(f"       Expected the pre-prepared file at data/raw/wfp_with_pcodes.parquet.")
 
+    gdelt_all = (
+        pd.read_parquet(GDELT_FILE, engine=PARQUET_ENGINE)
+        if os.path.exists(GDELT_FILE) else pd.DataFrame()
+    )
+    if gdelt_all.empty:
+        print(f"[warn] GDELT source not found at {GDELT_FILE} — gdelt_* columns will be empty.")
+
+    ndvi_all = (
+        pd.read_parquet(NDVI_FILE, engine=PARQUET_ENGINE)
+        if os.path.exists(NDVI_FILE) else pd.DataFrame()
+    )
+    if ndvi_all.empty:
+        print(f"[warn] NDVI source not found at {NDVI_FILE} — ndvi_* columns will be empty.")
+
     print(f"Loaded raw: ipc={len(ipc_all):,} acled={len(acled_all):,} "
-          f"idp={len(idp_all):,} rain={len(rain_all):,} wfp={len(wfp_all):,}")
+          f"idp={len(idp_all):,} rain={len(rain_all):,} wfp={len(wfp_all):,} "
+          f"gdelt={len(gdelt_all):,} ndvi={len(ndvi_all):,}")
 
     for admin_level, join_key_col, out_path in [
         (1, "admin1_code", FINAL_FILE_ADM1),
@@ -341,8 +505,8 @@ def main():
         print(f"\n-- Pass admin_level={admin_level}, key={join_key_col} -> {out_path}")
         frames = []
         for iso3 in COUNTRIES:
-            df = merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all,
-                               join_key_col, admin_level)
+            df = merge_country(iso3, ipc_all, acled_all, idp_all, rain_all, wfp_all, gdelt_all,
+                               ndvi_all, join_key_col, admin_level)
             if not df.empty:
                 frames.append(df)
 
@@ -358,9 +522,14 @@ def main():
         idp_cov  = final["idp_population"].notna().sum() / n     if "idp_population"      in final.columns else 0
         rain_cov = final["rain_1m_sum"].notna().sum() / n        if "rain_1m_sum"         in final.columns else 0
         wfp_cov  = final["wfp_price"].notna().sum() / n          if "wfp_price"           in final.columns else 0
+        ndvi_cov = final["ndvi_vim"].notna().sum() / n           if "ndvi_vim"            in final.columns else 0
         print(f"  Saved {n:,} rows -> {out_path}")
-        print(f"  Coverage (row-weighted): ACLED {acl_cov:.0%} | IDP {idp_cov:.0%} | "
-              f"RAIN {rain_cov:.0%} | WFP {wfp_cov:.0%}")
+        cov_line = (f"  Coverage (row-weighted): ACLED {acl_cov:.0%} | IDP {idp_cov:.0%} | "
+                    f"RAIN {rain_cov:.0%} | WFP {wfp_cov:.0%} | NDVI {ndvi_cov:.0%}")
+        if "gdelt_material_conflict_events" in final.columns:
+            gdelt_cov = final["gdelt_material_conflict_events"].notna().sum() / n
+            cov_line += f" | GDELT {gdelt_cov:.0%}"
+        print(cov_line)
 
 
 if __name__ == "__main__":
