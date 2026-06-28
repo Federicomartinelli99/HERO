@@ -33,6 +33,7 @@ let state = {
 // Data Cache
 let globalData = null;
 let countryCache = {};
+let rawCache = {}; // Cache for raw high-resolution datasets: rawCache[iso3][feature]
 
 // Chart References
 let heatmapChart = null;
@@ -41,7 +42,28 @@ let countryCharts = {
     acled: null,
     idp: null,
     rainfall: null,
-    wfp: null
+    wfp: null,
+    ndvi: null,
+    gdelt: null
+};
+let gdeltTabCharts = {
+    tone: null,
+    salience: null
+};
+let rawCharts = {
+    ipc: null,
+    acledEvents: null,
+    acledFatalities: null,
+    idp: null,
+    rainfallReal: null,
+    rainfallAnom: null,
+    ndviVim: null,
+    ndviViq: null
+};
+let wfpMarketsCache = {}; // Cache for raw market prices: wfpMarketsCache[iso3]
+let wfpMarketCharts = {
+    priceIndex: null,
+    inflation: null
 };
 let svgMapInstance = null;
 
@@ -150,6 +172,8 @@ function switchView(viewName) {
         const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
         if (toggleGroupVal) toggleGroupVal.style.display = 'none';
         document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
         
         // Re-render map and heatmap to handle container resized issues
         setTimeout(() => {
@@ -166,6 +190,8 @@ function switchView(viewName) {
             toggleGroupVal.style.display = state.countrySubView === 'charts' ? 'flex' : 'none';
         }
         document.getElementById('country-selector-wrapper').style.display = 'block';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'block';
         
         // Load default country if none selected
         if (!state.selectedCountry && globalData && globalData.countries.length > 0) {
@@ -551,14 +577,15 @@ function renderHeatmap() {
 function onHeatmapThemeChange() {
     state.heatmapTheme = document.getElementById("heatmap-theme-selector").value;
     
-    // Update map indicator badge text
     const labels = {
         "overall": "Tutti i Temi",
         "ipc": "Sicurezza Alimentare (IPC)",
         "acled": "Conflitti (ACLED)",
         "idp": "Sfollati (IDP)",
         "rainfall": "Precipitazioni (CHIRPS)",
-        "wfp": "Prezzi Alimentari (WFP)"
+        "wfp": "Prezzi Alimentari (WFP)",
+        "ndvi": "Vegetazione (NDVI)",
+        "gdelt": "Copertura News (GDELT)"
     };
     document.getElementById("map-indicator-badge").innerText = labels[state.heatmapTheme];
     
@@ -583,6 +610,12 @@ async function loadCountryDetails(code, pcodeToSelect = null) {
     document.getElementById('view-title').innerText = `Dati Paese: ${code}`;
     document.getElementById('view-subtitle').innerText = "Caricamento delle serie storiche in corso...";
     
+    // Hide market details section on country switch
+    const mktDet = document.getElementById("country-market-details-section");
+    if (mktDet) mktDet.style.display = "none";
+    if (wfpMarketCharts.priceIndex) { wfpMarketCharts.priceIndex.destroy(); wfpMarketCharts.priceIndex = null; }
+    if (wfpMarketCharts.inflation) { wfpMarketCharts.inflation.destroy(); wfpMarketCharts.inflation = null; }
+
     // Clear subregion selector options
     const subSel = document.getElementById("subregion-selector");
     subSel.innerHTML = '<option value="national">Nazionale (Tutte le Aree)</option>';
@@ -712,6 +745,8 @@ function updateCountryDashboard() {
         document.getElementById("chart-idp-title").innerText = "Popolazione Sfollata Interna (IDP)";
         document.getElementById("chart-rainfall-title").innerText = "Andamento Precipitazioni e Anomalia CHIRPS";
         document.getElementById("chart-wfp-title").innerText = "Indice Prezzi Alimentari e Inflazione Locale (WFP)";
+        document.getElementById("chart-ndvi-title").innerText = "Indice Vegetazione NDVI (VIM & VIQ)";
+        document.getElementById("chart-gdelt-title").innerText = "Instabilità Media (GDELT CAMEO QuadClass)";
         
         // Render Cartesian charts
         renderIpcChart(filteredTrends);
@@ -719,6 +754,8 @@ function updateCountryDashboard() {
         renderIdpChart(filteredTrends);
         renderRainfallChart(filteredTrends);
         renderWfpChart(filteredTrends);
+        renderNdviChart(filteredTrends);
+        renderGdeltChart(filteredTrends);
         
         // Populate the details sidebar with the latest period initially
         if (filteredTrends.length > 0) {
@@ -736,6 +773,30 @@ function updateCountryDashboard() {
     
     // Populate raw historical data table
     populateCountryTabTable(filteredTrends);
+    
+    // Update GDELT tab if active
+    if (state.countrySubView === 'gdelt') {
+        renderGdeltTab(filteredTrends);
+    }
+    
+    // Update WFP Markets tab if active
+    if (state.countrySubView === 'markets') {
+        const data = countryCache[code];
+        if (data) {
+            fetch(`data/boundaries/${code}.json`)
+                .then(res => res.ok ? res.json() : null)
+                .then(geojson => {
+                    drawMarketsOnlyMap("country-tab-markets-container", geojson, data);
+                    populateCountryTabMarketsList(data);
+                })
+                .catch(err => console.error("Error loading boundaries in markets sub-view:", err));
+        }
+    }
+    
+    // Update raw tabs if active
+    if (['ipc', 'acled', 'idp', 'rainfall', 'ndvi'].includes(state.countrySubView)) {
+        loadAndRenderRawTab(state.selectedCountry, state.countrySubView);
+    }
 }
 
 // Toggle chart type (linear vs circular radar)
@@ -988,6 +1049,15 @@ function openPeriodDetailModal(trends, index) {
     const wfpMethod = data.wfp_mapping_method || "N/A";
     const wfpObs = data.wfp_obs_count !== undefined && data.wfp_obs_count !== null ? Math.round(data.wfp_obs_count) : "N/A";
 
+    const ndviVim = data.ndvi_vim !== undefined && data.ndvi_vim !== null ? data.ndvi_vim.toFixed(3) : "N/A";
+    const ndviViq = data.ndvi_viq !== undefined && data.ndvi_viq !== null ? data.ndvi_viq.toFixed(1) + "%" : "N/A";
+
+    const gdeltVCoop = data.gdelt_verbal_coop_events !== undefined && data.gdelt_verbal_coop_events !== null ? Math.round(data.gdelt_verbal_coop_events) : "N/A";
+    const gdeltMCoop = data.gdelt_material_coop_events !== undefined && data.gdelt_material_coop_events !== null ? Math.round(data.gdelt_material_coop_events) : "N/A";
+    const gdeltVConf = data.gdelt_verbal_conflict_events !== undefined && data.gdelt_verbal_conflict_events !== null ? Math.round(data.gdelt_verbal_conflict_events) : "N/A";
+    const gdeltMConf = data.gdelt_material_conflict_events !== undefined && data.gdelt_material_conflict_events !== null ? Math.round(data.gdelt_material_conflict_events) : "N/A";
+    const gdeltTone = data.gdelt_material_conflict_tone !== undefined && data.gdelt_material_conflict_tone !== null ? data.gdelt_material_conflict_tone.toFixed(2) : "N/A";
+
     const content = `
         <div style="margin-bottom: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
             <div>
@@ -1161,6 +1231,44 @@ function openPeriodDetailModal(trends, index) {
                         </div>
                     </div>
                 </div>
+
+                <!-- NDVI VEGETATION -->
+                <div class="detail-section" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 8px;">
+                    <div class="detail-section-title" style="color: #10b981; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-seedling"></i> Vegetazione (NDVI)
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="detail-label">NDVI VIM (Verde):</span>
+                            <span class="detail-value" style="font-weight: 600;">${ndviVim}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="detail-label">NDVI VIQ (Condizione):</span>
+                            <span class="detail-value" style="font-weight: 600;">${ndviViq}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GDELT MEDIA -->
+                <div class="detail-section" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 0.85rem; border-radius: 8px;">
+                    <div class="detail-section-title" style="color: #a855f7; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                        <i class="fa-solid fa-globe"></i> Media & Instabilità (GDELT)
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.8rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
+                            <span>Conflitto Mat/Verb:</span>
+                            <span>${gdeltMConf} / ${gdeltVConf}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary);">
+                            <span>Coop Mat/Verb:</span>
+                            <span>${gdeltMCoop} / ${gdeltVCoop}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span class="detail-label">Tono Conflitto Mat.:</span>
+                            <span class="detail-value" style="font-weight: 600;">${gdeltTone}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -1198,7 +1306,7 @@ function renderIpcChart(trends) {
         return;
     }
     
-    const categories = trends.map(t => `${t.from}`);
+    const categories = trends.map(t => t.from.substring(0, 7));
     const p1 = trends.map(t => t.phase_1_percentage !== null ? parseFloat(t.phase_1_percentage.toFixed(1)) : 0);
     const p2 = trends.map(t => t.phase_2_percentage !== null ? parseFloat(t.phase_2_percentage.toFixed(1)) : 0);
     const p3 = trends.map(t => t.phase_3_percentage !== null ? parseFloat(t.phase_3_percentage.toFixed(1)) : 0);
@@ -1218,7 +1326,6 @@ function renderIpcChart(trends) {
             height: 320,
             stacked: true,
             stackType: '100%',
-            group: 'hero-v6-country',
             id: 'chart-ipc',
             toolbar: { show: false },
             background: 'transparent',
@@ -1235,7 +1342,7 @@ function renderIpcChart(trends) {
         plotOptions: {
             bar: {
                 horizontal: false,
-                columnWidth: '65%'
+                columnWidth: '75%'
             }
         },
         dataLabels: {
@@ -1251,8 +1358,9 @@ function renderIpcChart(trends) {
             }
         },
         xaxis: {
+            type: 'category',
             categories: categories,
-            tickAmount: Math.min(categories.length, 10),
+            tickAmount: Math.min(categories.length, 12),
             crosshairs: { show: true },
             tooltip: { enabled: false },
             labels: {
@@ -1291,19 +1399,28 @@ function renderAcledChart(trends) {
         return;
     }
     
-    const categories = trends.map(t => `${t.from}`);
-    const events = trends.map(t => t.acled_total_events !== null ? Math.round(t.acled_total_events) : 0);
-    const fatalities = trends.map(t => t.acled_total_fatalities !== null ? Math.round(t.acled_total_fatalities) : 0);
+    const eventsData = [];
+    const fatalitiesData = [];
+    
+    trends.forEach(t => {
+        const ts = new Date(t.from).getTime();
+        if (t.acled_total_events !== null) {
+            eventsData.push({ x: ts, y: Math.round(t.acled_total_events) });
+        }
+        if (t.acled_total_fatalities !== null) {
+            fatalitiesData.push({ x: ts, y: Math.round(t.acled_total_fatalities) });
+        }
+    });
     
     const options = {
         series: [
-            { name: 'Eventi Conflitto', type: 'line', data: events, color: '#f59e0b' },
-            { name: 'Vittime (Fatalities)', type: 'line', data: fatalities, color: '#ef4444' }
+            { name: 'Eventi Conflitto', type: 'line', data: eventsData, color: '#f59e0b' },
+            { name: 'Vittime (Fatalities)', type: 'line', data: fatalitiesData, color: '#ef4444' }
         ],
         chart: {
             height: 320,
             type: 'line',
-            group: 'hero-v6-country',
+            group: 'hero-v6-country-linear',
             id: 'chart-acled',
             toolbar: { show: false },
             background: 'transparent',
@@ -1334,11 +1451,11 @@ function renderAcledChart(trends) {
             }
         },
         xaxis: {
-            categories: categories,
-            tickAmount: Math.min(categories.length, 10),
+            type: 'datetime',
             crosshairs: { show: true },
             tooltip: { enabled: false },
             labels: {
+                datetimeUTC: false,
                 style: { fontSize: '9px' }
             }
         },
@@ -1356,7 +1473,8 @@ function renderAcledChart(trends) {
         tooltip: {
             enabled: true,
             shared: true,
-            intersect: false
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
         },
         legend: {
             position: 'top',
@@ -1380,18 +1498,25 @@ function renderIdpChart(trends) {
         return;
     }
     
-    const categories = trends.map(t => `${t.from}`);
-    const idpPop = trends.map(t => t.idp_population);
+    const idpData = [];
+    trends.forEach(t => {
+        if (t.idp_population !== null) {
+            idpData.push({
+                x: new Date(t.from).getTime(),
+                y: t.idp_population
+            });
+        }
+    });
     
     const options = {
         series: [{
             name: 'Popolazione IDP',
-            data: idpPop
+            data: idpData
         }],
         chart: {
             type: 'line',
             height: 320,
-            group: 'hero-v6-country',
+            group: 'hero-v6-country-linear',
             id: 'chart-idp',
             toolbar: { show: false },
             background: 'transparent',
@@ -1417,11 +1542,11 @@ function renderIdpChart(trends) {
         },
         colors: ['#fbbf24'],
         xaxis: {
-            categories: categories,
-            tickAmount: Math.min(categories.length, 10),
+            type: 'datetime',
             crosshairs: { show: true },
             tooltip: { enabled: false },
             labels: {
+                datetimeUTC: false,
                 style: { fontSize: '9px' }
             }
         },
@@ -1442,7 +1567,8 @@ function renderIdpChart(trends) {
         tooltip: {
             enabled: true,
             shared: true,
-            intersect: false
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
         }
     };
     
@@ -1462,19 +1588,27 @@ function renderRainfallChart(trends) {
         return;
     }
     
-    const categories = trends.map(t => `${t.from}`);
-    const rain = trends.map(t => t.rain_1m !== null ? parseFloat(t.rain_1m.toFixed(1)) : null);
-    const anomaly = trends.map(t => t.rain_anomaly_1m !== null ? parseFloat(t.rain_anomaly_1m.toFixed(1)) : null);
+    const rainData = [];
+    const anomalyData = [];
+    trends.forEach(t => {
+        const ts = new Date(t.from).getTime();
+        if (t.rain_1m !== null) {
+            rainData.push({ x: ts, y: parseFloat(t.rain_1m.toFixed(1)) });
+        }
+        if (t.rain_anomaly_1m !== null) {
+            anomalyData.push({ x: ts, y: parseFloat(t.rain_anomaly_1m.toFixed(1)) });
+        }
+    });
     
     const options = {
         series: [
-            { name: 'Precipitazioni (mm)', type: 'line', data: rain, color: '#3b82f6' },
-            { name: 'Anomalia (mm)', type: 'line', data: anomaly, color: '#a855f7' }
+            { name: 'Precipitazioni (mm)', type: 'line', data: rainData, color: '#3b82f6' },
+            { name: 'Anomalia (mm)', type: 'line', data: anomalyData, color: '#a855f7' }
         ],
         chart: {
             height: 320,
             type: 'line',
-            group: 'hero-v6-country',
+            group: 'hero-v6-country-linear',
             id: 'chart-rainfall',
             toolbar: { show: false },
             background: 'transparent',
@@ -1505,11 +1639,11 @@ function renderRainfallChart(trends) {
             }
         },
         xaxis: {
-            categories: categories,
-            tickAmount: Math.min(categories.length, 10),
+            type: 'datetime',
             crosshairs: { show: true },
             tooltip: { enabled: false },
             labels: {
+                datetimeUTC: false,
                 style: { fontSize: '9px' }
             }
         },
@@ -1529,7 +1663,8 @@ function renderRainfallChart(trends) {
         tooltip: {
             enabled: true,
             shared: true,
-            intersect: false
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
         },
         legend: {
             position: 'top',
@@ -1553,19 +1688,27 @@ function renderWfpChart(trends) {
         return;
     }
     
-    const categories = trends.map(t => `${t.from}`);
-    const price = trends.map(t => t.wfp_price !== null ? parseFloat(t.wfp_price.toFixed(2)) : null);
-    const inflation = trends.map(t => t.wfp_inflation !== null ? parseFloat((t.wfp_inflation * 100).toFixed(1)) : null);
+    const priceData = [];
+    const inflationData = [];
+    trends.forEach(t => {
+        const ts = new Date(t.from).getTime();
+        if (t.wfp_price !== null) {
+            priceData.push({ x: ts, y: parseFloat(t.wfp_price.toFixed(2)) });
+        }
+        if (t.wfp_inflation !== null) {
+            inflationData.push({ x: ts, y: parseFloat((t.wfp_inflation * 100).toFixed(1)) });
+        }
+    });
     
     const options = {
         series: [
-            { name: 'Indice dei Prezzi', type: 'line', data: price, color: '#818cf8' },
-            { name: 'Inflazione Alimentare (%)', type: 'line', data: inflation, color: '#f97316' }
+            { name: 'Indice dei Prezzi', type: 'line', data: priceData, color: '#818cf8' },
+            { name: 'Inflazione Alimentare (%)', type: 'line', data: inflationData, color: '#f97316' }
         ],
         chart: {
             height: 320,
             type: 'line',
-            group: 'hero-v6-country',
+            group: 'hero-v6-country-linear',
             id: 'chart-wfp',
             toolbar: { show: false },
             background: 'transparent',
@@ -1596,11 +1739,11 @@ function renderWfpChart(trends) {
             }
         },
         xaxis: {
-            categories: categories,
-            tickAmount: Math.min(categories.length, 10),
+            type: 'datetime',
             crosshairs: { show: true },
             tooltip: { enabled: false },
             labels: {
+                datetimeUTC: false,
                 style: { fontSize: '9px' }
             }
         },
@@ -1623,7 +1766,8 @@ function renderWfpChart(trends) {
         tooltip: {
             enabled: true,
             shared: true,
-            intersect: false
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
         },
         legend: {
             position: 'top',
@@ -1635,6 +1779,205 @@ function renderWfpChart(trends) {
     countryCharts.wfp.render();
 }
 
+// Render NDVI Vegetation Signal
+function renderNdviChart(trends) {
+    destroyChart('ndvi');
+    const container = document.getElementById("chart-ndvi");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const hasData = trends.some(t => t.ndvi_vim !== null && t.ndvi_vim !== undefined);
+    if (!trends || trends.length === 0 || !hasData) {
+        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato NDVI (Vegetazione) disponibile</div>`;
+        return;
+    }
+    
+    const vimData = [];
+    const viqData = [];
+    trends.forEach(t => {
+        const ts = new Date(t.from).getTime();
+        if (t.ndvi_vim !== null && t.ndvi_vim !== undefined) {
+            vimData.push({ x: ts, y: parseFloat(t.ndvi_vim.toFixed(3)) });
+        }
+        if (t.ndvi_viq !== null && t.ndvi_viq !== undefined) {
+            viqData.push({ x: ts, y: parseFloat(t.ndvi_viq.toFixed(1)) });
+        }
+    });
+    
+    const options = {
+        series: [
+            { name: 'NDVI VIM (Verde)', type: 'line', data: vimData, color: '#10b981' },
+            { name: 'NDVI VIQ (Condizione %)', type: 'line', data: viqData, color: '#fbbf24' }
+        ],
+        chart: {
+            height: 320,
+            type: 'line',
+            group: 'hero-v6-country-linear',
+            id: 'chart-ndvi',
+            toolbar: { show: false },
+            background: 'transparent',
+            events: {
+                markerClick: function(event, chartContext, { seriesIndex, dataPointIndex, config }) {
+                    if (dataPointIndex !== undefined && dataPointIndex >= 0) {
+                        openPeriodDetailModal(trends, dataPointIndex);
+                    }
+                },
+                dataPointSelection: function(event, chartContext, config) {
+                    const dataPointIndex = config.dataPointIndex;
+                    if (dataPointIndex !== undefined && dataPointIndex >= 0) {
+                        openPeriodDetailModal(trends, dataPointIndex);
+                    }
+                }
+            }
+        },
+        theme: { mode: 'dark' },
+        stroke: {
+            width: [3, 3],
+            curve: 'smooth',
+            connectNulls: true
+        },
+        markers: {
+            size: 5,
+            hover: { size: 7 }
+        },
+        xaxis: {
+            type: 'datetime',
+            crosshairs: { show: true },
+            tooltip: { enabled: false },
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '10px' }
+            }
+        },
+        yaxis: [
+            {
+                title: { text: 'NDVI VIM' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(3) : "" }
+            },
+            {
+                opposite: true,
+                title: { text: 'NDVI VIQ (%)' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) + "%" : "" }
+            }
+        ],
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    countryCharts.ndvi = new ApexCharts(container, options);
+    countryCharts.ndvi.render();
+}
+
+// Render GDELT Media Instability
+function renderGdeltChart(trends) {
+    destroyChart('gdelt');
+    const container = document.getElementById("chart-gdelt");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const hasData = trends.some(t => t.gdelt_material_conflict_events !== null && t.gdelt_material_conflict_events !== undefined);
+    if (!trends || trends.length === 0 || !hasData) {
+        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato GDELT (Instabilità Mediatica) disponibile per questa selezione</div>`;
+        return;
+    }
+    
+    const vCoopData = [];
+    const mCoopData = [];
+    const vConfData = [];
+    const mConfData = [];
+    const toneData = [];
+    
+    trends.forEach(t => {
+        const ts = new Date(t.from).getTime();
+        vCoopData.push({ x: ts, y: (t.gdelt_verbal_coop_events !== null && t.gdelt_verbal_coop_events !== undefined) ? Math.round(t.gdelt_verbal_coop_events) : 0 });
+        mCoopData.push({ x: ts, y: (t.gdelt_material_coop_events !== null && t.gdelt_material_coop_events !== undefined) ? Math.round(t.gdelt_material_coop_events) : 0 });
+        vConfData.push({ x: ts, y: (t.gdelt_verbal_conflict_events !== null && t.gdelt_verbal_conflict_events !== undefined) ? Math.round(t.gdelt_verbal_conflict_events) : 0 });
+        mConfData.push({ x: ts, y: (t.gdelt_material_conflict_events !== null && t.gdelt_material_conflict_events !== undefined) ? Math.round(t.gdelt_material_conflict_events) : 0 });
+        toneData.push({ x: ts, y: (t.gdelt_material_conflict_tone !== null && t.gdelt_material_conflict_tone !== undefined) ? parseFloat(t.gdelt_material_conflict_tone.toFixed(2)) : null });
+    });
+    
+    const options = {
+        series: [
+            { name: 'Coop. Verbale (Eventi)', type: 'column', data: vCoopData, color: '#34d399' },
+            { name: 'Coop. Materiale (Eventi)', type: 'column', data: mCoopData, color: '#60a5fa' },
+            { name: 'Conflitto Verbale (Eventi)', type: 'column', data: vConfData, color: '#fbbf24' },
+            { name: 'Conflitto Materiale (Eventi)', type: 'column', data: mConfData, color: '#f87171' },
+            { name: 'Tono Conflitto Materiale', type: 'line', data: toneData, color: '#a855f7' }
+        ],
+        chart: {
+            height: 320,
+            type: 'line',
+            stacked: true,
+            group: 'hero-v6-country-linear',
+            id: 'chart-gdelt',
+            toolbar: { show: false },
+            background: 'transparent',
+            events: {
+                markerClick: function(event, chartContext, { seriesIndex, dataPointIndex, config }) {
+                    if (dataPointIndex !== undefined && dataPointIndex >= 0) {
+                        openPeriodDetailModal(trends, dataPointIndex);
+                    }
+                },
+                dataPointSelection: function(event, chartContext, config) {
+                    const dataPointIndex = config.dataPointIndex;
+                    if (dataPointIndex !== undefined && dataPointIndex >= 0) {
+                        openPeriodDetailModal(trends, dataPointIndex);
+                    }
+                }
+            }
+        },
+        theme: { mode: 'dark' },
+        stroke: {
+            width: [0, 0, 0, 0, 3],
+            curve: 'smooth',
+            connectNulls: true
+        },
+        markers: {
+            size: [0, 0, 0, 0, 5],
+            hover: { size: 7 }
+        },
+        plotOptions: {
+            bar: {
+                columnWidth: '55%',
+                opacity: 0.85
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            crosshairs: { show: true },
+            tooltip: { enabled: false },
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '10px' }
+            }
+        },
+        yaxis: [
+            {
+                title: { text: 'Numero di Eventi' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+            },
+            {
+                opposite: true,
+                title: { text: 'Tono Medio (-10 a +10)' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) : "" }
+            }
+        ],
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    countryCharts.gdelt = new ApexCharts(container, options);
+    countryCharts.gdelt.render();
+}
+
 // ── CIRCULAR/RADAR CHARTS BUILDER (Seasonal Analysis) ──
 
 // Synchronized hover highlights for seasonal radar charts
@@ -1642,7 +1985,9 @@ function highlightMarkerInAllSeasonalCharts(qIndex) {
     const chartIds = [
         'chart-ipc-seasonal', 'chart-acled-events-seasonal', 'chart-acled-fatalities-seasonal', 
         'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
-        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal'
+        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal',
+        'chart-ndvi-vim-seasonal', 'chart-ndvi-viq-seasonal',
+        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal'
     ];
     chartIds.forEach(id => {
         const container = document.getElementById(id);
@@ -1673,7 +2018,9 @@ function clearHighlightInAllSeasonalCharts() {
     const chartIds = [
         'chart-ipc-seasonal', 'chart-acled-events-seasonal', 'chart-acled-fatalities-seasonal', 
         'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
-        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal'
+        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal',
+        'chart-ndvi-vim-seasonal', 'chart-ndvi-viq-seasonal',
+        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal'
     ];
     chartIds.forEach(id => {
         const container = document.getElementById(id);
@@ -1694,7 +2041,9 @@ function renderRadarCharts(trends) {
         const keys = [
             'ipc-seasonal', 'acled-events-seasonal', 'acled-fatalities-seasonal', 
             'idp-seasonal', 'rainfall-rain-seasonal', 'rainfall-anomaly-seasonal', 
-            'wfp-price-seasonal', 'wfp-inflation-seasonal'
+            'wfp-price-seasonal', 'wfp-inflation-seasonal',
+            'ndvi-vim-seasonal', 'ndvi-viq-seasonal',
+            'gdelt-events-seasonal', 'gdelt-tone-seasonal'
         ];
         keys.forEach(k => {
             const el = document.getElementById(`chart-${k}`);
@@ -1719,6 +2068,41 @@ function renderRadarCharts(trends) {
     
     const years = Object.keys(seasonalByYear).sort();
     const categories = ['Q1 (Gen-Mar)', 'Q2 (Apr-Giu)', 'Q3 (Lug-Set)', 'Q4 (Ott-Dic)'];
+    
+    // Programmatic year color gradient (cool blue to warm orange/red)
+    const colors = years.map((y, idx) => {
+        const hue = 220 - (idx / (years.length - 1 || 1)) * 205;
+        return `hsl(${hue}, 85%, 60%)`;
+    });
+    
+    // Populate the common year legend
+    const commonLegend = document.getElementById("seasonal-common-legend");
+    if (commonLegend) {
+        commonLegend.innerHTML = "";
+        years.forEach((year, idx) => {
+            const color = colors[idx];
+            const pill = document.createElement("button");
+            pill.id = `seasonal-legend-pill-${year}`;
+            pill.style.cssText = `
+                background: rgba(255, 255, 255, 0.04);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: #e2e8f0;
+                padding: 0.35rem 0.75rem;
+                border-radius: 20px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                transition: all 0.2s ease;
+                outline: none;
+            `;
+            pill.innerHTML = `<span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; display: inline-block;"></span> ${year}`;
+            pill.onclick = () => toggleSeasonalYear(year);
+            commonLegend.appendChild(pill);
+        });
+    }
     
     function getAvg(arr, key) {
         const vals = arr.map(x => x[key]).filter(v => v !== null && v !== undefined);
@@ -1829,17 +2213,7 @@ function renderRadarCharts(trends) {
                 },
                 legendClick: function(chartContext, seriesIndex, opts) {
                     const seriesName = opts.config.series[seriesIndex].name;
-                    const currentChartId = opts.config.chart.id;
-                    const chartIds = [
-                        'chart-ipc-seasonal', 'chart-acled-events-seasonal', 'chart-acled-fatalities-seasonal', 
-                        'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
-                        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal'
-                    ];
-                    chartIds.forEach(id => {
-                        if (id !== currentChartId) {
-                            ApexCharts.exec(id, 'toggleSeries', seriesName);
-                        }
-                    });
+                    toggleSeasonalYear(seriesName);
                 },
                 mouseMove: function(event, chartContext, config) {
                     const qIndex = config.dataPointIndex;
@@ -1858,9 +2232,7 @@ function renderRadarCharts(trends) {
             enabled: true
         },
         legend: {
-            position: 'top',
-            fontFamily: 'Inter',
-            fontSize: '11px'
+            show: false
         }
     };
     
@@ -1897,18 +2269,34 @@ function renderRadarCharts(trends) {
         const val = getAvg(qArr, 'wfp_inflation');
         return val !== null ? val * 100 : null;
     });
-
+ 
+    // 9. NDVI Vim
+    const ndviVimSeries = buildSeries(qArr => getAvg(qArr, 'ndvi_vim'));
+    
+    // 10. NDVI Viq
+    const ndviViqSeries = buildSeries(qArr => getAvg(qArr, 'ndvi_viq'));
+    
+    // 11. GDELT Events
+    const gdeltEventsSeries = buildSeries(qArr => getAvg(qArr, 'gdelt_material_conflict_events'));
+    
+    // 12. GDELT Tone
+    const gdeltToneSeries = buildSeries(qArr => getAvg(qArr, 'gdelt_material_conflict_tone'));
+ 
     const chartsToRender = [
-        { key: 'ipc_seasonal', containerId: 'chart-ipc-seasonal', series: ipcSeries, height: 320 },
-        { key: 'acled_events_seasonal', containerId: 'chart-acled-events-seasonal', series: acledEventsSeries, height: 220 },
-        { key: 'acled_fatalities_seasonal', containerId: 'chart-acled-fatalities-seasonal', series: acledFatalitiesSeries, height: 220 },
-        { key: 'idp_seasonal', containerId: 'chart-idp-seasonal', series: idpSeries, height: 460 },
-        { key: 'rainfall_rain_seasonal', containerId: 'chart-rainfall-rain-seasonal', series: rainSeries, height: 220 },
-        { key: 'rainfall_anomaly_seasonal', containerId: 'chart-rainfall-anomaly-seasonal', series: rainAnomalySeries, height: 220 },
-        { key: 'wfp_price_seasonal', containerId: 'chart-wfp-price-seasonal', series: wfpPriceSeries, height: 220 },
-        { key: 'wfp_inflation_seasonal', containerId: 'chart-wfp-inflation-seasonal', series: wfpInflationSeries, height: 220 }
+        { key: 'ipc_seasonal', containerId: 'chart-ipc-seasonal', series: ipcSeries, height: 300 },
+        { key: 'acled_events_seasonal', containerId: 'chart-acled-events-seasonal', series: acledEventsSeries, height: 300 },
+        { key: 'acled_fatalities_seasonal', containerId: 'chart-acled-fatalities-seasonal', series: acledFatalitiesSeries, height: 300 },
+        { key: 'idp_seasonal', containerId: 'chart-idp-seasonal', series: idpSeries, height: 300 },
+        { key: 'rainfall_rain_seasonal', containerId: 'chart-rainfall-rain-seasonal', series: rainSeries, height: 300 },
+        { key: 'rainfall_anomaly_seasonal', containerId: 'chart-rainfall-anomaly-seasonal', series: rainAnomalySeries, height: 300 },
+        { key: 'wfp_price_seasonal', containerId: 'chart-wfp-price-seasonal', series: wfpPriceSeries, height: 300 },
+        { key: 'wfp_inflation_seasonal', containerId: 'chart-wfp-inflation-seasonal', series: wfpInflationSeries, height: 300 },
+        { key: 'ndvi_vim_seasonal', containerId: 'chart-ndvi-vim-seasonal', series: ndviVimSeries, height: 300 },
+        { key: 'ndvi_viq_seasonal', containerId: 'chart-ndvi-viq-seasonal', series: ndviViqSeries, height: 300 },
+        { key: 'gdelt_events_seasonal', containerId: 'chart-gdelt-events-seasonal', series: gdeltEventsSeries, height: 300 },
+        { key: 'gdelt_tone_seasonal', containerId: 'chart-gdelt-tone-seasonal', series: gdeltToneSeries, height: 300 }
     ];
-
+ 
     chartsToRender.forEach(c => {
         destroyChart(c.key);
         const container = document.getElementById(c.containerId);
@@ -1921,6 +2309,7 @@ function renderRadarCharts(trends) {
             }
             const options = {
                 ...seasonalCommonOptions,
+                colors: colors,
                 series: c.series,
                 chart: {
                     ...seasonalCommonOptions.chart,
@@ -1932,6 +2321,38 @@ function renderRadarCharts(trends) {
             countryCharts[c.key].render();
         }
     });
+}
+
+// Global helper to toggle seasonal series on all charts simultaneously
+function toggleSeasonalYear(year) {
+    const chartIds = [
+        'chart-ipc-seasonal', 'chart-acled-events-seasonal', 'chart-acled-fatalities-seasonal', 
+        'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
+        'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal',
+        'chart-ndvi-vim-seasonal', 'chart-ndvi-viq-seasonal',
+        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal'
+    ];
+    
+    chartIds.forEach(id => {
+        const key = id.replace('chart-', '').replace(/-/g, '_');
+        if (countryCharts[key]) {
+            countryCharts[key].toggleSeries(year);
+        }
+    });
+    
+    const pill = document.getElementById(`seasonal-legend-pill-${year}`);
+    if (pill) {
+        pill.classList.toggle('inactive');
+        if (pill.classList.contains('inactive')) {
+            pill.style.opacity = '0.35';
+            pill.style.background = 'transparent';
+            pill.style.borderColor = 'rgba(255,255,255,0.04)';
+        } else {
+            pill.style.opacity = '1';
+            pill.style.background = 'rgba(255, 255, 255, 0.04)';
+            pill.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        }
+    }
 }
 
 // Update sidebar panel on seasonal radar hover (Circular/Seasonal view)
@@ -1956,6 +2377,12 @@ function updateHoverSeasonalPanel(seasonalAverages, qIndex) {
     const wfpPrice = data.wfp_price !== null ? data.wfp_price.toFixed(2) : "N/A";
     const wfpInf = data.wfp_inflation !== null ? data.wfp_inflation.toFixed(1) + "%" : "N/A";
     const wfpMethod = data.wfp_mapping_method || "N/A";
+
+    const ndviVim = data.ndvi_vim !== null && data.ndvi_vim !== undefined ? data.ndvi_vim.toFixed(3) : "N/A";
+    const ndviViq = data.ndvi_viq !== null && data.ndvi_viq !== undefined ? data.ndvi_viq.toFixed(1) + "%" : "N/A";
+
+    const gdeltMConf = data.gdelt_material_conflict_events !== null && data.gdelt_material_conflict_events !== undefined ? Math.round(data.gdelt_material_conflict_events) : "N/A";
+    const gdeltTone = data.gdelt_material_conflict_tone !== null && data.gdelt_material_conflict_tone !== undefined ? data.gdelt_material_conflict_tone.toFixed(2) : "N/A";
 
     const content = `
         <div style="margin-bottom: 1.25rem;">
@@ -2085,6 +2512,36 @@ function updateHoverSeasonalPanel(seasonalAverages, qIndex) {
                 <span class="detail-value">${wfpInf}</span>
             </div>
         </div>
+
+        <!-- NDVI VEGETATION -->
+        <div class="detail-section">
+            <div class="detail-section-title" style="color: #10b981;">
+                <i class="fa-solid fa-seedling"></i> Vegetazione NDVI (Media)
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Media NDVI VIM:</span>
+                <span class="detail-value">${ndviVim}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Media NDVI VIQ:</span>
+                <span class="detail-value">${ndviViq}</span>
+            </div>
+        </div>
+
+        <!-- GDELT MEDIA -->
+        <div class="detail-section">
+            <div class="detail-section-title" style="color: #a855f7;">
+                <i class="fa-solid fa-globe"></i> Instabilità GDELT (Media)
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Media Conflitti Mat.:</span>
+                <span class="detail-value">${gdeltMConf}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Tono Conflitti Mat.:</span>
+                <span class="detail-value">${gdeltTone}</span>
+            </div>
+        </div>
     `;
     
     document.getElementById("detail-sidebar-content").innerHTML = content;
@@ -2113,7 +2570,7 @@ function populateCountryTabTable(trends) {
     if (subLabel) subLabel.innerText = `Area: ${areaName}`;
     
     if (!trends || trends.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 2rem; color: var(--text-muted);">Nessun dato storico disponibile</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 2rem; color: var(--text-muted);">Nessun dato storico disponibile</td></tr>`;
         return;
     }
     
@@ -2135,6 +2592,10 @@ function populateCountryTabTable(trends) {
         const rainAnom = t.rain_anomaly_1m !== null && t.rain_anomaly_1m !== undefined ? `${t.rain_anomaly_1m >= 0 ? '+' : ''}${Math.round(t.rain_anomaly_1m)}%` : '-';
         const wfpPrice = t.wfp_price !== null && t.wfp_price !== undefined ? t.wfp_price.toFixed(2) : '-';
         const wfpInf = t.wfp_inflation !== null && t.wfp_inflation !== undefined ? `${(t.wfp_inflation * 100).toFixed(1)}%` : '-';
+        const ndviVim = t.ndvi_vim !== null && t.ndvi_vim !== undefined ? t.ndvi_vim.toFixed(3) : '-';
+        const ndviViq = t.ndvi_viq !== null && t.ndvi_viq !== undefined ? `${t.ndvi_viq.toFixed(1)}%` : '-';
+        const gdeltMConf = t.gdelt_material_conflict_events !== null && t.gdelt_material_conflict_events !== undefined ? Math.round(t.gdelt_material_conflict_events) : '-';
+        const gdeltTone = t.gdelt_material_conflict_tone !== null && t.gdelt_material_conflict_tone !== undefined ? t.gdelt_material_conflict_tone.toFixed(2) : '-';
         
         tr.innerHTML = `
             <td style="text-align: left; font-weight: 600; color: #a5b4fc; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${t.from}</td>
@@ -2146,6 +2607,10 @@ function populateCountryTabTable(trends) {
             <td style="text-align: right; color: #3b82f6; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${rainAnom}</td>
             <td style="text-align: right; color: #818cf8; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${wfpPrice}</td>
             <td style="text-align: right; color: #4f46e5; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${wfpInf}</td>
+            <td style="text-align: right; color: #10b981; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${ndviVim}</td>
+            <td style="text-align: right; color: #fbbf24; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${ndviViq}</td>
+            <td style="text-align: right; color: #f87171; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${gdeltMConf}</td>
+            <td style="text-align: right; color: #a855f7; padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">${gdeltTone}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -2208,6 +2673,12 @@ function getMetricValFromTrend(t, metricKey) {
     if (metricKey === 'wfp') {
         return t.wfp_price !== undefined && t.wfp_price !== null ? t.wfp_price : null;
     }
+    if (metricKey === 'ndvi') {
+        return t.ndvi_vim !== undefined && t.ndvi_vim !== null ? t.ndvi_vim : null;
+    }
+    if (metricKey === 'gdelt') {
+        return t.gdelt_material_conflict_events !== undefined && t.gdelt_material_conflict_events !== null ? t.gdelt_material_conflict_events : null;
+    }
     return null;
 }
 
@@ -2227,7 +2698,7 @@ function drawSubregionMap(containerId, geojson, countryData) {
     }
     
     // Store globally for toggle layer switches
-    if (containerId === "sidebar-country-map-container") {
+    if (containerId === "sidebar-country-map-container" || containerId === "country-tab-map-container") {
         activeSubregionMapData = { geojson, countryData };
     }
     
@@ -2292,7 +2763,7 @@ function drawSubregionMap(containerId, geojson, countryData) {
     
     // Determine metric for coloring
     const metricSelector = document.getElementById("map-color-metric");
-    const metricKey = (containerId === "sidebar-country-map-container" && metricSelector) 
+    const metricKey = ((containerId === "sidebar-country-map-container" || containerId === "country-tab-map-container") && metricSelector) 
         ? metricSelector.value 
         : "completeness";
         
@@ -2321,7 +2792,9 @@ function drawSubregionMap(containerId, geojson, countryData) {
                         t.acled_total_events !== undefined && t.acled_total_events !== null,
                         t.idp_population !== undefined && t.idp_population !== null,
                         t.rain_1m !== undefined && t.rain_1m !== null,
-                        t.wfp_price !== undefined && t.wfp_price !== null
+                        t.wfp_price !== undefined && t.wfp_price !== null,
+                        t.ndvi_vim !== undefined && t.ndvi_vim !== null,
+                        t.gdelt_verbal_coop_events !== undefined && t.gdelt_verbal_coop_events !== null
                     ];
                     validFields += indicators.filter(Boolean).length;
                     totalFields += indicators.length;
@@ -2367,6 +2840,8 @@ function drawSubregionMap(containerId, geojson, countryData) {
     else if (metricKey === 'idp') colorMax = '#fbbf24'; // Amber
     else if (metricKey === 'rainfall') colorMax = '#3b82f6'; // Blue
     else if (metricKey === 'wfp') colorMax = '#818cf8'; // Indigo
+    else if (metricKey === 'ndvi') colorMax = '#10b981'; // Emerald
+    else if (metricKey === 'gdelt') colorMax = '#a855f7'; // Purple
     
     // Generate paths for subregions
     geojson.features.forEach(f => {
@@ -2503,7 +2978,7 @@ function drawSubregionMap(containerId, geojson, countryData) {
     
     // Draw markets overlay dots
     const toggleMarkets = document.getElementById("toggle-markets-layer");
-    const showMarkets = (containerId === "sidebar-country-map-container" && toggleMarkets)
+    const showMarkets = ((containerId === "sidebar-country-map-container" || containerId === "country-tab-map-container") && toggleMarkets)
         ? toggleMarkets.checked
         : true; // Always show in modal geo audit
         
@@ -2578,13 +3053,13 @@ function drawSubregionMap(containerId, geojson, countryData) {
 
 function toggleMarketsLayer() {
     if (activeSubregionMapData) {
-        drawSubregionMap("sidebar-country-map-container", activeSubregionMapData.geojson, activeSubregionMapData.countryData);
+        drawSubregionMap("country-tab-map-container", activeSubregionMapData.geojson, activeSubregionMapData.countryData);
     }
 }
 
 function onMapColorMetricChange() {
     if (activeSubregionMapData) {
-        drawSubregionMap("sidebar-country-map-container", activeSubregionMapData.geojson, activeSubregionMapData.countryData);
+        drawSubregionMap("country-tab-map-container", activeSubregionMapData.geojson, activeSubregionMapData.countryData);
     }
 }
 
@@ -2829,8 +3304,31 @@ function renderCompareTags() {
     });
 }
 
+const compareRawCache = {}; // Cache for raw comparison data: { country_feature: data }
+
+async function getOrFetchCompareRaw(code, feature) {
+    const cacheKey = `${code}_${feature}`;
+    if (compareRawCache[cacheKey]) return compareRawCache[cacheKey];
+    
+    const res = await fetch(`data/countries/${code}_raw_${feature}.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+    compareRawCache[cacheKey] = data;
+    return data;
+}
+
+function getRawMetricVal(t, metricKey) {
+    if (metricKey === 'ipc') return t.phase_3plus_percentage;
+    if (metricKey === 'acled') return t.total_events;
+    if (metricKey === 'idp') return t.population;
+    if (metricKey === 'rainfall') return t.rain_1m;
+    if (metricKey === 'ndvi') return t.vim;
+    return null;
+}
+
 async function onCompareCountriesChange() {
     const metricKey = document.getElementById("compare-metric").value;
+    let dataType = document.getElementById("compare-data-type") ? document.getElementById("compare-data-type").value : 'aggregated';
     
     if (!state.compareCountries || state.compareCountries.length === 0) {
         document.getElementById("chart-compare").innerHTML = `
@@ -2842,13 +3340,34 @@ async function onCompareCountriesChange() {
         return;
     }
     
+    // Warning banner check
+    const warningEl = document.getElementById("compare-raw-warning");
+    if (dataType === 'raw' && ['wfp', 'gdelt'].includes(metricKey)) {
+        if (warningEl) {
+            warningEl.style.display = "block";
+            warningEl.innerText = "Nota: I dati originali (Raw) non sono disponibili per questo indicatore. Viene mostrato il dato aggregato.";
+        }
+        dataType = 'aggregated';
+    } else {
+        if (warningEl) warningEl.style.display = "none";
+    }
+    
     try {
-        // Fetch data for all selected countries in parallel
-        const promises = state.compareCountries.map(code => getOrFetchCountry(code));
-        const countriesData = await Promise.all(promises);
+        let countriesData = [];
+        if (dataType === 'raw') {
+            const promises = state.compareCountries.map(code => getOrFetchCompareRaw(code, metricKey));
+            countriesData = await Promise.all(promises);
+        } else {
+            const promises = state.compareCountries.map(code => getOrFetchCountry(code));
+            countriesData = await Promise.all(promises);
+        }
         
-        renderComparativeChart(countriesData, metricKey);
-        renderComparativeDetails(countriesData);
+        renderComparativeChart(countriesData, metricKey, dataType);
+        
+        // Always render comparative details using the main aggregated country data
+        const aggPromises = state.compareCountries.map(code => getOrFetchCountry(code));
+        const aggCountriesData = await Promise.all(aggPromises);
+        renderComparativeDetails(aggCountriesData);
         
     } catch (err) {
         console.error("Comparison load error:", err);
@@ -2863,29 +3382,49 @@ async function getOrFetchCountry(code) {
     return data;
 }
 
-function renderComparativeChart(countriesData, metricKey) {
-    // Find all unique dates from all selected countries
-    const datesSet = new Set();
-    countriesData.forEach(data => {
-        const trends = data.trends.adm1.length > 0 ? data.trends.adm1 : data.trends.adm2;
-        trends.forEach(t => datesSet.add(t.from));
-    });
-    const sortedDates = Array.from(datesSet).sort();
-    
-    // Pre-defined color palette for countries in comparison
-    const colors = ['#6366f1', '#a855f7', '#fbbf24', '#10b981', '#f43f5e', '#06b6d4', '#ea580c', '#ec4899'];
+function renderComparativeChart(countriesData, metricKey, dataType = 'aggregated') {
+    // Pre-defined color palette for countries in comparison (Okabe-Ito colorblind friendly)
+    const colors = ['#56B4E9', '#E69F00', '#009E73', '#CC79A7', '#D55E00', '#0072B2', '#F0E442', '#94A3B8'];
     
     const series = countriesData.map((data, idx) => {
-        const trends = data.trends.adm1.length > 0 ? data.trends.adm1 : data.trends.adm2;
-        const valMap = {};
+        let trends = [];
+        let countryName = "";
+        
+        if (dataType === 'raw') {
+            trends = data.national || [];
+            const cObj = globalData.countries.find(c => c.code === state.compareCountries[idx]);
+            countryName = cObj ? cObj.name : state.compareCountries[idx];
+        } else {
+            trends = data.trends.adm1.length > 0 ? data.trends.adm1 : data.trends.adm2;
+            countryName = data.name;
+        }
+        
+        const points = [];
         trends.forEach(t => {
-            const val = getMetricValFromTrend(t, metricKey);
-            valMap[t.from] = val !== undefined && val !== null ? parseFloat(val.toFixed(1)) : null;
+            let val = null;
+            if (dataType === 'raw') {
+                val = getRawMetricVal(t, metricKey);
+            } else {
+                val = getMetricValFromTrend(t, metricKey);
+            }
+            
+            if (val !== undefined && val !== null) {
+                const dateStr = t.from || t.date;
+                if (dateStr) {
+                    points.push({
+                        x: new Date(dateStr).getTime(),
+                        y: parseFloat(val.toFixed(2))
+                    });
+                }
+            }
         });
         
+        // Sort chronologically
+        points.sort((a, b) => a.x - b.x);
+        
         return {
-            name: data.name,
-            data: sortedDates.map(d => valMap[d] !== undefined ? valMap[d] : null),
+            name: countryName,
+            data: points,
             color: colors[idx % colors.length]
         };
     });
@@ -2902,18 +3441,18 @@ function renderComparativeChart(countriesData, metricKey) {
         theme: { mode: 'dark' },
         stroke: {
             width: countriesData.map(() => 3),
-            curve: 'straight',
+            curve: 'smooth',
             connectNulls: true
         },
         xaxis: {
-            categories: sortedDates,
-            tickAmount: Math.min(sortedDates.length, 10),
+            type: 'datetime',
             labels: {
+                datetimeUTC: false,
                 style: { fontSize: '10px' }
             }
         },
         yaxis: {
-            title: { text: getMetricLabel(metricKey) },
+            title: { text: getMetricLabel(metricKey) + (dataType === 'raw' ? ' (Dato Originale)' : ' (Dato Aggregato)') },
             labels: {
                 formatter: function(val) {
                     return val !== null ? formatNumber(val) : "";
@@ -2929,7 +3468,10 @@ function renderComparativeChart(countriesData, metricKey) {
         tooltip: {
             enabled: true,
             shared: true,
-            intersect: false
+            intersect: false,
+            x: {
+                format: 'yyyy-MM-dd'
+            }
         },
         legend: {
             position: 'top',
@@ -2951,6 +3493,8 @@ function getMetricLabel(key) {
     if (key === 'idp') return 'Popolazione IDP';
     if (key === 'rainfall') return 'Precipitazioni (mm)';
     if (key === 'wfp') return 'Indice dei Prezzi Alimentari';
+    if (key === 'ndvi') return 'Indice NDVI (VIM)';
+    if (key === 'gdelt') return 'Conflitti (GDELT)';
     return '';
 }
 
@@ -2979,6 +3523,8 @@ function renderComparativeDetails(countriesData) {
         const avgIdp = getAvgField('idp_population');
         const avgRain = getAvgField('rain_1m');
         const avgPrice = getAvgField('wfp_price');
+        const avgNdvi = getAvgField('ndvi_vim');
+        const avgGdelt = getAvgField('gdelt_material_conflict_events');
         const flag = getFlagEmoji(ISO3_TO_ISO2[data.code]);
         
         const content = `
@@ -3019,6 +3565,14 @@ function renderComparativeDetails(countriesData) {
                 <div class="detail-row" style="background: rgba(255,255,255,0.01); padding: 0.4rem 0.6rem; border-radius: 6px;">
                     <span class="detail-label">Indice Prezzi Alimentari WFP (Media):</span>
                     <span class="detail-value" style="color: #818cf8; font-weight:700;">${avgPrice !== null ? avgPrice.toFixed(2) : "N/A"}</span>
+                </div>
+                <div class="detail-row" style="background: rgba(255,255,255,0.01); padding: 0.4rem 0.6rem; border-radius: 6px;">
+                    <span class="detail-label">Vegetazione NDVI (VIM Media):</span>
+                    <span class="detail-value" style="color: #10b981; font-weight:700;">${avgNdvi !== null ? avgNdvi.toFixed(3) : "N/A"}</span>
+                </div>
+                <div class="detail-row" style="background: rgba(255,255,255,0.01); padding: 0.4rem 0.6rem; border-radius: 6px;">
+                    <span class="detail-label">GDELT Eventi (Conflitti Materiali Media):</span>
+                    <span class="detail-value" style="color: #a855f7; font-weight:700;">${avgGdelt !== null ? avgGdelt.toFixed(1) : "N/A"}</span>
                 </div>
             </div>
         `;
@@ -3156,6 +3710,16 @@ function renderTemporalMap() {
         metricFormat = "{0}";
         colorMax = "#818cf8";
         maxVal = 3.0;
+    } else if (theme === 'ndvi') {
+        metricName = "Indice NDVI (VIM)";
+        metricFormat = "{0}";
+        colorMax = "#10b981";
+        maxVal = 1.0;
+    } else if (theme === 'gdelt') {
+        metricName = "Conflitti (GDELT)";
+        metricFormat = "{0}";
+        colorMax = "#a855f7";
+        maxVal = 1000;
     }
     
     heatmapData.y_codes.forEach((iso3, idx) => {
@@ -3528,6 +4092,8 @@ function getWorldMapTooltipContent(iso2, iso3) {
     else if (state.heatmapTheme === 'idp') themeName = "Sfollati Interni (IDP)";
     else if (state.heatmapTheme === 'rainfall') themeName = "Precipitazioni (CHIRPS)";
     else if (state.heatmapTheme === 'wfp') themeName = "Prezzi Alimentari (WFP)";
+    else if (state.heatmapTheme === 'ndvi') themeName = "Vegetazione (NDVI)";
+    else if (state.heatmapTheme === 'gdelt') themeName = "Copertura News (GDELT)";
     
     const flag = getFlagEmoji(iso2);
     const valStr = (val !== null && val !== undefined) ? `${val.toFixed(1)}%` : "Nessun dato";
@@ -3601,33 +4167,69 @@ function switchCountrySubView(subViewName) {
     const btnMarkets = document.getElementById('btn-country-tab-markets');
     const btnCharts = document.getElementById('btn-country-tab-charts');
     const btnTable = document.getElementById('btn-country-tab-table');
+    const btnGdelt = document.getElementById('btn-country-tab-gdelt');
+    const btnIpc = document.getElementById('btn-country-tab-ipc');
+    const btnAcled = document.getElementById('btn-country-tab-acled');
+    const btnIdp = document.getElementById('btn-country-tab-idp');
+    const btnRainfall = document.getElementById('btn-country-tab-rainfall');
+    const btnNdvi = document.getElementById('btn-country-tab-ndvi');
     
     if (btnMap) btnMap.classList.toggle('active', subViewName === 'map');
     if (btnMarkets) btnMarkets.classList.toggle('active', subViewName === 'markets');
     if (btnCharts) btnCharts.classList.toggle('active', subViewName === 'charts');
     if (btnTable) btnTable.classList.toggle('active', subViewName === 'table');
+    if (btnGdelt) btnGdelt.classList.toggle('active', subViewName === 'gdelt');
+    if (btnIpc) btnIpc.classList.toggle('active', subViewName === 'ipc');
+    if (btnAcled) btnAcled.classList.toggle('active', subViewName === 'acled');
+    if (btnIdp) btnIdp.classList.toggle('active', subViewName === 'idp');
+    if (btnRainfall) btnRainfall.classList.toggle('active', subViewName === 'rainfall');
+    if (btnNdvi) btnNdvi.classList.toggle('active', subViewName === 'ndvi');
     
     // Toggle active sidebar sub-menu items
     const navMap = document.getElementById('nav-country-map');
     const navMarkets = document.getElementById('nav-country-markets');
     const navCharts = document.getElementById('nav-country-charts');
     const navTable = document.getElementById('nav-country-table');
+    const navGdelt = document.getElementById('nav-country-gdelt');
+    const navIpc = document.getElementById('nav-country-ipc');
+    const navAcled = document.getElementById('nav-country-acled');
+    const navIdp = document.getElementById('nav-country-idp');
+    const navRainfall = document.getElementById('nav-country-rainfall');
+    const navNdvi = document.getElementById('nav-country-ndvi');
     
     if (navMap) navMap.classList.toggle('active', subViewName === 'map');
     if (navMarkets) navMarkets.classList.toggle('active', subViewName === 'markets');
     if (navCharts) navCharts.classList.toggle('active', subViewName === 'charts');
     if (navTable) navTable.classList.toggle('active', subViewName === 'table');
+    if (navGdelt) navGdelt.classList.toggle('active', subViewName === 'gdelt');
+    if (navIpc) navIpc.classList.toggle('active', subViewName === 'ipc');
+    if (navAcled) navAcled.classList.toggle('active', subViewName === 'acled');
+    if (navIdp) navIdp.classList.toggle('active', subViewName === 'idp');
+    if (navRainfall) navRainfall.classList.toggle('active', subViewName === 'rainfall');
+    if (navNdvi) navNdvi.classList.toggle('active', subViewName === 'ndvi');
     
     // Toggle active sub-panels
     const panelMap = document.getElementById('country-sub-panel-map');
     const panelMarkets = document.getElementById('country-sub-panel-markets');
     const panelCharts = document.getElementById('country-sub-panel-charts');
     const panelTable = document.getElementById('country-sub-panel-table');
+    const panelGdelt = document.getElementById('country-sub-panel-gdelt');
+    const panelIpc = document.getElementById('country-sub-panel-ipc');
+    const panelAcled = document.getElementById('country-sub-panel-acled');
+    const panelIdp = document.getElementById('country-sub-panel-idp');
+    const panelRainfall = document.getElementById('country-sub-panel-rainfall');
+    const panelNdvi = document.getElementById('country-sub-panel-ndvi');
     
     if (panelMap) panelMap.style.display = subViewName === 'map' ? 'block' : 'none';
     if (panelMarkets) panelMarkets.style.display = subViewName === 'markets' ? 'block' : 'none';
     if (panelCharts) panelCharts.style.display = subViewName === 'charts' ? 'block' : 'none';
     if (panelTable) panelTable.style.display = subViewName === 'table' ? 'block' : 'none';
+    if (panelGdelt) panelGdelt.style.display = subViewName === 'gdelt' ? 'block' : 'none';
+    if (panelIpc) panelIpc.style.display = subViewName === 'ipc' ? 'block' : 'none';
+    if (panelAcled) panelAcled.style.display = subViewName === 'acled' ? 'block' : 'none';
+    if (panelIdp) panelIdp.style.display = subViewName === 'idp' ? 'block' : 'none';
+    if (panelRainfall) panelRainfall.style.display = subViewName === 'rainfall' ? 'block' : 'none';
+    if (panelNdvi) panelNdvi.style.display = subViewName === 'ndvi' ? 'block' : 'none';
     
     // Manage chart toggles visibility (only visible in charts sub-view)
     const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
@@ -3662,10 +4264,25 @@ function switchCountrySubView(subViewName) {
         }
     } else if (subViewName === 'charts') {
         setTimeout(() => {
-            for (let key in countryCharts) {
-                if (countryCharts[key]) countryCharts[key].windowResizeHandler();
+            updateCountryDashboard();
+        }, 50);
+    } else if (subViewName === 'gdelt') {
+        const code = state.selectedCountry;
+        const data = countryCache[code];
+        if (data) {
+            let activeTrends = [];
+            if (state.subregion === 'national') {
+                activeTrends = (data.trends.adm1 && data.trends.adm1.length > 0) ? data.trends.adm1 : data.trends.adm2;
+            } else {
+                const parts = state.subregion.split('_');
+                const level = parts[0];
+                const pcode = parts[1];
+                activeTrends = data.regions[level][pcode] || [];
             }
-        }, 100);
+            renderGdeltTab(activeTrends);
+        }
+    } else if (['ipc', 'acled', 'idp', 'rainfall', 'ndvi'].includes(subViewName)) {
+        loadAndRenderRawTab(state.selectedCountry, subViewName);
     }
 }
 
@@ -3885,6 +4502,13 @@ function drawMarketsOnlyMap(containerId, geojson, countryData) {
         svg.appendChild(path);
     });
     
+    // Extract subregion PCode if active
+    let subregPcode = null;
+    if (state.subregion !== 'national') {
+        const parts = state.subregion.split('_');
+        subregPcode = parts[1];
+    }
+
     // Draw markets overlay dots
     if (countryData.markets && countryData.markets.length > 0) {
         countryData.markets.forEach(m => {
@@ -3904,6 +4528,13 @@ function drawMarketsOnlyMap(containerId, geojson, countryData) {
             circle.style.strokeWidth = "1.5px";
             circle.style.cursor = "pointer";
             circle.style.filter = "drop-shadow(0 0 4px rgba(99, 102, 241, 0.8))";
+            
+            // Subregion filter opacity
+            const isMatch = !subregPcode || (m.adm1_pcode === subregPcode || m.adm2_pcode === subregPcode);
+            if (!isMatch) {
+                circle.style.opacity = "0.15";
+                circle.style.pointerEvents = "none";
+            }
             
             circle.addEventListener("mouseover", (e) => {
                 circle.setAttribute("r", "7");
@@ -3956,7 +4587,24 @@ function populateCountryTabMarketsList(countryData) {
         return;
     }
     
-    const sortedMarkets = [...countryData.markets].sort((a, b) => a.name.localeCompare(b.name));
+    // Filter markets by active subregion
+    let filteredMarkets = [...countryData.markets];
+    if (state.subregion !== 'national') {
+        const parts = state.subregion.split('_');
+        const pcode = parts[1];
+        filteredMarkets = filteredMarkets.filter(m => m.adm1_pcode === pcode || m.adm2_pcode === pcode);
+    }
+    
+    if (filteredMarkets.length === 0) {
+        container.innerHTML = `
+            <div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.75rem;">
+                Nessun mercato censito in questa sotto-regione.
+            </div>
+        `;
+        return;
+    }
+    
+    const sortedMarkets = filteredMarkets.sort((a, b) => a.name.localeCompare(b.name));
     
     sortedMarkets.forEach(m => {
         const item = document.createElement("div");
@@ -3985,6 +4633,9 @@ function populateCountryTabMarketsList(countryData) {
             // Toggle active list items classes
             document.querySelectorAll(".market-list-item").forEach(el => el.classList.remove("selected-market-item"));
             item.classList.add("selected-market-item");
+            
+            // Load and render price trend charts for this market
+            loadAndRenderMarketDetail(m.name, m.lat, m.lon);
         };
         
         item.innerHTML = `
@@ -3998,6 +4649,160 @@ function populateCountryTabMarketsList(countryData) {
         `;
         container.appendChild(item);
     });
+}
+
+// Lazy load and render WFP market detailed charts
+async function loadAndRenderMarketDetail(marketName, lat, lon) {
+    const code = state.selectedCountry;
+    if (!code) return;
+    
+    const detailsSection = document.getElementById("country-market-details-section");
+    if (!detailsSection) return;
+    
+    // Update titles and coords
+    document.getElementById("selected-market-title").innerText = `Dettaglio Mercato: ${marketName}`;
+    document.getElementById("selected-market-coords").innerText = `Lat: ${lat.toFixed(3)} Lon: ${lon.toFixed(3)}`;
+    detailsSection.style.display = "block";
+    
+    // Show loading spinners in chart placeholders
+    showRawSpinner("chart-market-price-index", "Caricamento prezzi alimentari...");
+    showRawSpinner("chart-market-inflation", "Caricamento inflazione locale...");
+    
+    try {
+        let data = wfpMarketsCache[code];
+        if (!data) {
+            const res = await fetch(`data/countries/${code}_raw_markets.json?t=${Date.now()}`);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            data = await res.json();
+            wfpMarketsCache[code] = data;
+        }
+        
+        const mktSeries = data.markets[marketName] || [];
+        renderMarketCharts(mktSeries);
+    } catch (err) {
+        console.error("Failed to load WFP raw market prices:", err);
+        const errMessage = `<div style="height: 250px; display: flex; align-items: center; justify-content: center; color: var(--color-danger); font-size: 0.8rem; gap: 0.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Nessun dato storico sui prezzi disponibile per questo mercato.</div>`;
+        document.getElementById("chart-market-price-index").innerHTML = errMessage;
+        document.getElementById("chart-market-inflation").innerHTML = errMessage;
+    }
+}
+
+// Render WFP market charts using ApexCharts
+function renderMarketCharts(mktSeries) {
+    if (wfpMarketCharts.priceIndex) { wfpMarketCharts.priceIndex.destroy(); wfpMarketCharts.priceIndex = null; }
+    if (wfpMarketCharts.inflation) { wfpMarketCharts.inflation.destroy(); wfpMarketCharts.inflation = null; }
+    
+    const containerPrice = document.getElementById("chart-market-price-index");
+    const containerInflation = document.getElementById("chart-market-inflation");
+    
+    if (!containerPrice || !containerInflation) return;
+    containerPrice.innerHTML = "";
+    containerInflation.innerHTML = "";
+    
+    if (!mktSeries || mktSeries.length === 0) {
+        const noData = `<div style="height: 250px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun record sui prezzi trovato per questo mercato</div>`;
+        containerPrice.innerHTML = noData;
+        containerInflation.innerHTML = noData;
+        return;
+    }
+    
+    // Sort chronological
+    mktSeries.sort((a, b) => a.date.localeCompare(b.date));
+    
+    const priceData = [];
+    const inflationData = [];
+    
+    mktSeries.forEach(s => {
+        const ts = new Date(s.date).getTime();
+        if (s.price_index !== null && s.price_index !== undefined) {
+            priceData.push({ x: ts, y: s.price_index });
+        }
+        if (s.inflation !== null && s.inflation !== undefined) {
+            inflationData.push({ x: ts, y: parseFloat((s.inflation * 100).toFixed(1)) });
+        }
+    });
+    
+    // Price Index Line Chart
+    const priceOptions = {
+        series: [{ name: 'Indice Prezzi Alimentari', data: priceData }],
+        chart: {
+            height: 280,
+            type: 'line',
+            group: 'raw-wfp-market',
+            id: 'chart-market-price-index-detail',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        colors: ['#818cf8'],
+        stroke: { width: 3, curve: 'smooth', connectNulls: true },
+        markers: { size: 4, hover: { size: 6 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Indice Prezzi' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        }
+    };
+    
+    wfpMarketCharts.priceIndex = new ApexCharts(containerPrice, priceOptions);
+    wfpMarketCharts.priceIndex.render();
+    
+    // Inflation Column Chart
+    const inflationOptions = {
+        series: [{ name: 'Tasso di Inflazione Mensile (%)', data: inflationData }],
+        chart: {
+            height: 280,
+            type: 'bar',
+            group: 'raw-wfp-market',
+            id: 'chart-market-inflation-detail',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        dataLabels: { enabled: false },
+        colors: ['#f87171'],
+        plotOptions: {
+            bar: {
+                colors: {
+                    ranges: [
+                        { from: -100, to: 0, color: '#34d399' },
+                        { from: 0.01, to: 1000, color: '#f87171' }
+                    ]
+                },
+                columnWidth: '60%'
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Inflazione (%)' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) + "%" : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        }
+    };
+    
+    wfpMarketCharts.inflation = new ApexCharts(containerInflation, inflationOptions);
+    wfpMarketCharts.inflation.render();
 }
 
 function highlightMarketInList(mktName) {
@@ -4015,6 +4820,806 @@ function highlightMarketInList(mktName) {
         targetItem.click();
         targetItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+}
+
+// Render GDELT Sub-Panel Media & News
+function renderGdeltTab(trends) {
+    // Determine fallback trends if adm2 is selected
+    const warningBanner = document.getElementById("gdelt-adm2-warning");
+    let displayTrends = trends;
+    
+    if (state.subregion && state.subregion.startsWith("adm2")) {
+        if (warningBanner) warningBanner.style.display = "flex";
+        const code = state.selectedCountry;
+        const data = countryCache[code];
+        if (data) {
+            let parentPcode = null;
+            if (trends && trends.length > 0 && trends[0].adm1_pcode) {
+                parentPcode = trends[0].adm1_pcode;
+            }
+            if (parentPcode && data.regions.adm1[parentPcode]) {
+                displayTrends = data.regions.adm1[parentPcode];
+            } else {
+                displayTrends = data.trends.adm1 && data.trends.adm1.length > 0 ? data.trends.adm1 : data.trends.adm2;
+            }
+        }
+    } else {
+        if (warningBanner) warningBanner.style.display = "none";
+    }
+    
+    // Destroy previous charts in the tab
+    if (gdeltTabCharts.tone) {
+        gdeltTabCharts.tone.destroy();
+        gdeltTabCharts.tone = null;
+    }
+    if (gdeltTabCharts.salience) {
+        gdeltTabCharts.salience.destroy();
+        gdeltTabCharts.salience = null;
+    }
+    
+    const containerTone = document.getElementById("chart-gdelt-tab-tone");
+    const containerSalience = document.getElementById("chart-gdelt-tab-salience");
+    
+    if (!containerTone || !containerSalience) return;
+    containerTone.innerHTML = "";
+    containerSalience.innerHTML = "";
+    
+    const hasData = displayTrends && displayTrends.some(t => t.gdelt_material_conflict_events !== null && t.gdelt_material_conflict_events !== undefined);
+    if (!displayTrends || displayTrends.length === 0 || !hasData) {
+        const noDataHtml = `<div style="height: 380px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato di copertura informativa GDELT disponibile</div>`;
+        containerTone.innerHTML = noDataHtml;
+        containerSalience.innerHTML = noDataHtml;
+        return;
+    }
+    
+    const toneSeries = [
+        { name: 'Coop. Verbale (Tono)', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_coop_tone })), color: '#34d399' },
+        { name: 'Coop. Materiale (Tono)', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_coop_tone })), color: '#60a5fa' },
+        { name: 'Conflitto Verbale (Tono)', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_conflict_tone })), color: '#fbbf24' },
+        { name: 'Conflitto Materiale (Tono)', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_conflict_tone })), color: '#f87171' }
+    ];
+    
+    // 1. TONE CHART OPTIONS
+    const toneOptions = {
+        series: toneSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            group: 'raw-gdelt',
+            id: 'chart-gdelt-tab-tone',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: { width: 3, curve: 'smooth', connectNulls: true },
+        markers: { size: 4, hover: { size: 6 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '10px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Tono Medio (-10 a +10)' },
+            min: -10,
+            max: 10,
+            labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    gdeltTabCharts.tone = new ApexCharts(containerTone, toneOptions);
+    gdeltTabCharts.tone.render();
+    
+    const salienceSeries = [
+        { name: 'Coop. Verbale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_coop_mentions ? Math.round(t.gdelt_verbal_coop_mentions) : 0 })), color: '#34d399' },
+        { name: 'Coop. Materiale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_coop_mentions ? Math.round(t.gdelt_material_coop_mentions) : 0 })), color: '#60a5fa' },
+        { name: 'Conflitto Verbale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_conflict_mentions ? Math.round(t.gdelt_verbal_conflict_mentions) : 0 })), color: '#fbbf24' },
+        { name: 'Conflitto Materiale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_conflict_mentions ? Math.round(t.gdelt_material_conflict_mentions) : 0 })), color: '#f87171' },
+        { name: 'Eventi Conflitto Materiale', type: 'line', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_conflict_events ? Math.round(t.gdelt_material_conflict_events) : 0 })), color: '#a855f7' }
+    ];
+    
+    // 2. SALIENCE/MENTIONS CHART OPTIONS
+    const salienceOptions = {
+        series: salienceSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            stacked: true,
+            group: 'raw-gdelt',
+            id: 'chart-gdelt-tab-salience',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: {
+            width: [0, 0, 0, 0, 3],
+            curve: 'smooth',
+            connectNulls: true
+        },
+        markers: {
+            size: [0, 0, 0, 0, 5],
+            hover: { size: 7 }
+        },
+        plotOptions: {
+            bar: {
+                columnWidth: '55%',
+                opacity: 0.85
+            }
+        },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '10px' }
+            }
+        },
+        yaxis: [
+            {
+                title: { text: 'Menzioni Totali nei Media' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+            },
+            {
+                opposite: true,
+                title: { text: 'Numero Eventi Reali' },
+                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+            }
+        ],
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    gdeltTabCharts.salience = new ApexCharts(containerSalience, salienceOptions);
+    gdeltTabCharts.salience.render();
+}
+
+// ── RAW DATA HIGH-RESOLUTION TABS LOGIC ──
+
+// Helper to destroy raw charts safely
+function destroyRawChart(key) {
+    if (rawCharts[key]) {
+        rawCharts[key].destroy();
+        rawCharts[key] = null;
+    }
+}
+
+// Helper to show a loading spinner inside a container
+function showRawSpinner(containerId, message = "Caricamento dati nativi...") {
+    const el = document.getElementById(containerId);
+    if (el) {
+        el.innerHTML = `
+            <div style="height: 100%; min-height: 250px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem; flex-direction: column; gap: 0.5rem;">
+                <i class="fa-solid fa-spinner fa-spin fa-xl text-indigo-400"></i>
+                <span>${message}</span>
+            </div>
+        `;
+    }
+}
+
+// Main coordinator for loading and rendering raw tabs
+async function loadAndRenderRawTab(countryCode, feature) {
+    if (!countryCode) return;
+    
+    // Initialize cache structures
+    rawCache[countryCode] = rawCache[countryCode] || {};
+    
+    // Show spinner if not cached yet
+    if (!rawCache[countryCode][feature]) {
+        if (feature === 'ipc') {
+            showRawSpinner('chart-raw-ipc-time');
+        } else if (feature === 'acled') {
+            showRawSpinner('chart-raw-acled-events');
+            showRawSpinner('chart-raw-acled-fatalities');
+        } else if (feature === 'idp') {
+            showRawSpinner('chart-raw-idp-time');
+        } else if (feature === 'rainfall') {
+            showRawSpinner('chart-raw-rainfall-real');
+            showRawSpinner('chart-raw-rainfall-anom');
+        } else if (feature === 'ndvi') {
+            showRawSpinner('chart-raw-ndvi-vim');
+            showRawSpinner('chart-raw-ndvi-viq');
+        }
+    }
+    
+    try {
+        let data = rawCache[countryCode][feature];
+        if (!data) {
+            const res = await fetch(`data/countries/${countryCode}_raw_${feature}.json?t=${Date.now()}`);
+            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+            data = await res.json();
+            rawCache[countryCode][feature] = data;
+        }
+        
+        // Extract subset based on selected subregion
+        let trends = [];
+        if (state.subregion === 'national') {
+            trends = data.national || [];
+        } else {
+            const parts = state.subregion.split('_');
+            const level = parts[0];
+            const pcode = parts[1];
+            trends = (data.regions && data.regions[level]) ? (data.regions[level][pcode] || []) : [];
+        }
+        
+        // Route to specific renderer
+        if (feature === 'ipc') {
+            renderIpcTab(trends);
+        } else if (feature === 'acled') {
+            renderAcledTab(trends);
+        } else if (feature === 'idp') {
+            renderIdpTab(trends);
+        } else if (feature === 'rainfall') {
+            renderRainfallTab(trends);
+        } else if (feature === 'ndvi') {
+            renderNdviTab(trends);
+        }
+    } catch (err) {
+        console.error(`Failed to load raw data for ${countryCode} / ${feature}:`, err);
+        const errMessage = `<div style="height: 100%; min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-danger); font-size: 0.8rem; gap: 0.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Impossibile caricare i dati nativi per questa area.</div>`;
+        
+        if (feature === 'ipc') {
+            document.getElementById('chart-raw-ipc-time').innerHTML = errMessage;
+        } else if (feature === 'acled') {
+            document.getElementById('chart-raw-acled-events').innerHTML = errMessage;
+            document.getElementById('chart-raw-acled-fatalities').innerHTML = errMessage;
+        } else if (feature === 'idp') {
+            document.getElementById('chart-raw-idp-time').innerHTML = errMessage;
+        } else if (feature === 'rainfall') {
+            document.getElementById('chart-raw-rainfall-real').innerHTML = errMessage;
+            document.getElementById('chart-raw-rainfall-anom').innerHTML = errMessage;
+        } else if (feature === 'ndvi') {
+            document.getElementById('chart-raw-ndvi-vim').innerHTML = errMessage;
+            document.getElementById('chart-raw-ndvi-viq').innerHTML = errMessage;
+        }
+    }
+}
+
+// 1. IPC RAW RENDERER
+function renderIpcTab(trends) {
+    destroyRawChart('ipc');
+    const container = document.getElementById("chart-raw-ipc-time");
+    const tbody = document.querySelector("#table-raw-ipc tbody");
+    
+    if (tbody) tbody.innerHTML = "";
+    if (!container) return;
+    container.innerHTML = "";
+    
+    if (!trends || trends.length === 0) {
+        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato IPC nativo disponibile per questa area</div>`;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nessun record trovato</td></tr>`;
+        }
+        return;
+    }
+    
+    // Sort and populate table
+    trends.forEach(t => {
+        if (!tbody) return;
+        const tr = document.createElement("tr");
+        const rangeText = `${t.from.substring(0, 10)} a ${t.to.substring(0, 10)}`;
+        tr.innerHTML = `
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${rangeText}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-transform: capitalize;">${t.type}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${formatNumber(t.phase_1)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${formatNumber(t.phase_2)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${formatNumber(t.phase_3)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${formatNumber(t.phase_4)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${formatNumber(t.phase_5)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-danger); font-weight: 600;">${formatNumber(t.phase_3plus)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-danger); font-weight: 600;">${t.phase_3plus_percentage.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Render Dual Axis Chart (Phase 3+ Pop vs Phase 3+ %)
+    const categories = trends.map(t => `${t.from.substring(0, 7)} (${t.type === 'current' ? 'Corr' : 'Proj'})`);
+    const pop = trends.map(t => t.phase_3plus);
+    const pct = trends.map(t => parseFloat(t.phase_3plus_percentage.toFixed(1)));
+    
+    const options = {
+        series: [
+            { name: 'Popolazione in Fase 3+ (Persone)', type: 'column', data: pop, color: '#f59e0b' },
+            { name: 'Popolazione in Fase 3+ (%)', type: 'line', data: pct, color: '#ef4444' }
+        ],
+        chart: {
+            height: 380,
+            type: 'line',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: {
+            width: [0, 4],
+            curve: 'smooth'
+        },
+        markers: {
+            size: [0, 5],
+            hover: { size: 7 }
+        },
+        xaxis: {
+            categories: categories,
+            labels: { style: { fontSize: '9px' } }
+        },
+        yaxis: [
+            {
+                title: { text: 'Popolazione Fase 3+', style: { color: '#f59e0b' } },
+                labels: {
+                    style: { colors: '#f59e0b' },
+                    formatter: val => formatNumber(val)
+                }
+            },
+            {
+                opposite: true,
+                title: { text: 'Popolazione Fase 3+ (%)', style: { color: '#ef4444' } },
+                labels: {
+                    style: { colors: '#ef4444' },
+                    formatter: val => val !== null ? val + "%" : ""
+                }
+            }
+        ],
+        tooltip: { shared: true, intersect: false },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.ipc = new ApexCharts(container, options);
+    rawCharts.ipc.render();
+}
+
+// 2. ACLED RAW RENDERER
+function renderAcledTab(trends) {
+    destroyRawChart('acledEvents');
+    destroyRawChart('acledFatalities');
+    const containerEvents = document.getElementById("chart-raw-acled-events");
+    const containerFatal = document.getElementById("chart-raw-acled-fatalities");
+    const tbody = document.querySelector("#table-raw-acled tbody");
+    
+    if (tbody) tbody.innerHTML = "";
+    if (!containerEvents || !containerFatal) return;
+    containerEvents.innerHTML = "";
+    containerFatal.innerHTML = "";
+    
+    if (!trends || trends.length === 0) {
+        const nodata = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato conflitti nativo disponibile per questa area</div>`;
+        containerEvents.innerHTML = nodata;
+        containerFatal.innerHTML = nodata;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nessun record trovato</td></tr>`;
+        }
+        return;
+    }
+    
+    // Sort chronological and populate table
+    trends.forEach(t => {
+        if (!tbody) return;
+        const tr = document.createElement("tr");
+        const monthLabel = t.from.substring(0, 7);
+        tr.innerHTML = `
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 600;">${monthLabel}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${t.political_violence_events}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-danger);">${Math.round(t.political_violence_fatalities)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${t.civilian_targeting_events}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-danger);">${Math.round(t.civilian_targeting_fatalities)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${t.demonstrations_events}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-danger);">${Math.round(t.demonstrations_fatalities)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; font-weight: 700;">${t.total_events}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; font-weight: 700; color: var(--color-danger);">${Math.round(t.total_fatalities)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Event series formatted for datetime axis
+    const eventSeries = [
+        { name: 'Violenza Politica', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: t.political_violence_events })), color: '#ef4444' },
+        { name: 'Targeting Civili', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: t.civilian_targeting_events })), color: '#f59e0b' },
+        { name: 'Dimostrazioni/Proteste', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: t.demonstrations_events })), color: '#3b82f6' }
+    ];
+    
+    // Stacked column of event categories
+    const eventOptions = {
+        series: eventSeries,
+        chart: {
+            height: 380,
+            type: 'bar',
+            stacked: true,
+            group: 'raw-acled',
+            id: 'chart-raw-acled-events',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        dataLabels: { enabled: false },
+        plotOptions: { bar: { columnWidth: '60%' } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: { title: { text: 'Numero Eventi' } },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.acledEvents = new ApexCharts(containerEvents, eventOptions);
+    rawCharts.acledEvents.render();
+    
+    // Fatalities series formatted for datetime axis
+    const fatalSeries = [
+        { name: 'Violenza Politica', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: Math.round(t.political_violence_fatalities) })), color: '#b91c1c' },
+        { name: 'Targeting Civili', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: Math.round(t.civilian_targeting_fatalities) })), color: '#d97706' },
+        { name: 'Dimostrazioni/Proteste', data: trends.map(t => ({ x: new Date(t.from).getTime(), y: Math.round(t.demonstrations_fatalities) })), color: '#1d4ed8' }
+    ];
+    
+    // Stacked column of fatalities
+    const fatalOptions = {
+        series: fatalSeries,
+        chart: {
+            height: 380,
+            type: 'bar',
+            stacked: true,
+            group: 'raw-acled',
+            id: 'chart-raw-acled-fatalities',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        dataLabels: { enabled: false },
+        plotOptions: { bar: { columnWidth: '60%' } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: { title: { text: 'Stima Vittime' } },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.acledFatalities = new ApexCharts(containerFatal, fatalOptions);
+    rawCharts.acledFatalities.render();
+}
+
+// 3. IDP RAW RENDERER
+function renderIdpTab(trends) {
+    destroyRawChart('idp');
+    const container = document.getElementById("chart-raw-idp-time");
+    const tbody = document.querySelector("#table-raw-idp tbody");
+    
+    if (tbody) tbody.innerHTML = "";
+    if (!container) return;
+    container.innerHTML = "";
+    
+    if (!trends || trends.length === 0) {
+        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato IDP nativo disponibile per questa area</div>`;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nessun record trovato</td></tr>`;
+        }
+        return;
+    }
+    
+    // Sort chronological and populate table
+    trends.forEach(t => {
+        if (!tbody) return;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${t.from.substring(0, 10)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 700;">Round ${t.round}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-transform: uppercase;">${t.type}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-info); font-weight: 600;">${formatNumber(t.population)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    const categories = trends.map(t => `${t.from.substring(0, 10)} (R${t.round})`);
+    const pop = trends.map(t => t.population);
+    
+    const options = {
+        series: [
+            { name: 'Popolazione Sfollata Interna', data: pop }
+        ],
+        chart: {
+            height: 380,
+            type: 'area',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        colors: ['#60a5fa'],
+        fill: {
+            type: 'gradient',
+            gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 }
+        },
+        stroke: { width: 3, curve: 'smooth' },
+        markers: { size: 5, hover: { size: 7 } },
+        xaxis: {
+            categories: categories,
+            tickAmount: Math.min(categories.length, 12),
+            labels: { style: { fontSize: '9px' } }
+        },
+        yaxis: {
+            title: { text: 'Popolazione IDP' },
+            labels: { formatter: val => formatNumber(val) }
+        },
+        tooltip: { shared: true, intersect: false }
+    };
+    
+    rawCharts.idp = new ApexCharts(container, options);
+    rawCharts.idp.render();
+}
+
+// 4. RAINFALL RAW RENDERER
+function renderRainfallTab(trends) {
+    destroyRawChart('rainfallReal');
+    destroyRawChart('rainfallAnom');
+    const containerReal = document.getElementById("chart-raw-rainfall-real");
+    const containerAnom = document.getElementById("chart-raw-rainfall-anom");
+    const tbody = document.querySelector("#table-raw-rainfall tbody");
+    
+    if (tbody) tbody.innerHTML = "";
+    if (!containerReal || !containerAnom) return;
+    containerReal.innerHTML = "";
+    containerAnom.innerHTML = "";
+    
+    if (!trends || trends.length === 0) {
+        const nodata = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato precipitazioni nativo disponibile per questa area</div>`;
+        containerReal.innerHTML = nodata;
+        containerAnom.innerHTML = nodata;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nessun record trovato</td></tr>`;
+        }
+        return;
+    }
+    
+    // Sort and populate table
+    trends.forEach(t => {
+        if (!tbody) return;
+        const tr = document.createElement("tr");
+        const rain1m = t.rain_1m !== null ? t.rain_1m.toFixed(1) : '-';
+        const rain3m = t.rain_3m !== null ? t.rain_3m.toFixed(1) : '-';
+        const anom1m = t.rain_anomaly_1m !== null ? t.rain_anomaly_1m.toFixed(1) : '-';
+        const anom3m = t.rain_anomaly_3m !== null ? t.rain_anomaly_3m.toFixed(1) : '-';
+        
+        tr.innerHTML = `
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${t.date.substring(0, 7)}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${rain1m} mm</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right;">${rain3m} mm</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: ${t.rain_anomaly_1m >= 0 ? '#34d399' : '#f87171'}">${anom1m} mm</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: ${t.rain_anomaly_3m >= 0 ? '#34d399' : '#f87171'}">${anom3m} mm</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    const realSeries = [
+        { name: 'Pioggia Mensile Cumulata (1M)', data: trends.map(t => ({ x: new Date(t.date).getTime(), y: t.rain_1m !== null ? parseFloat(t.rain_1m.toFixed(1)) : null })), color: '#38bdf8' },
+        { name: 'Pioggia Cumulata 3 Mesi (3M)', data: trends.map(t => ({ x: new Date(t.date).getTime(), y: t.rain_3m !== null ? parseFloat(t.rain_3m.toFixed(1)) : null })), color: '#1d4ed8' }
+    ];
+    
+    // Real cumulative rain chart
+    const realOptions = {
+        series: realSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            group: 'raw-rainfall',
+            id: 'chart-raw-rainfall-real',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: { width: 3, curve: 'smooth', connectNulls: true },
+        markers: { size: 4, hover: { size: 6 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Precipitazioni (mm)' },
+            labels: { formatter: val => val !== null ? val.toFixed(0) + " mm" : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.rainfallReal = new ApexCharts(containerReal, realOptions);
+    rawCharts.rainfallReal.render();
+    
+    const anomSeries = [
+        { name: 'Anomalia Pioggia 1 Mese', data: trends.map(t => ({ x: new Date(t.date).getTime(), y: t.rain_anomaly_1m !== null ? parseFloat(t.rain_anomaly_1m.toFixed(1)) : null })), color: '#a78bfa' },
+        { name: 'Anomalia Pioggia 3 Mesi', data: trends.map(t => ({ x: new Date(t.date).getTime(), y: t.rain_anomaly_3m !== null ? parseFloat(t.rain_anomaly_3m.toFixed(1)) : null })), color: '#db2777' }
+    ];
+    
+    // Anomalies chart
+    const anomOptions = {
+        series: anomSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            group: 'raw-rainfall',
+            id: 'chart-raw-rainfall-anom',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: { width: 3, curve: 'smooth', connectNulls: true },
+        markers: { size: 4, hover: { size: 6 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Deviazione dalla Norma (mm)' },
+            labels: { formatter: val => val !== null ? (val > 0 ? "+" : "") + val.toFixed(0) + " mm" : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.rainfallAnom = new ApexCharts(containerAnom, anomOptions);
+    rawCharts.rainfallAnom.render();
+}
+
+// 5. NDVI RAW RENDERER
+function renderNdviTab(trends) {
+    destroyRawChart('ndviVim');
+    destroyRawChart('ndviViq');
+    const containerVim = document.getElementById("chart-raw-ndvi-vim");
+    const containerViq = document.getElementById("chart-raw-ndvi-viq");
+    const tbody = document.querySelector("#table-raw-ndvi tbody");
+    
+    if (tbody) tbody.innerHTML = "";
+    if (!containerVim || !containerViq) return;
+    containerVim.innerHTML = "";
+    containerViq.innerHTML = "";
+    
+    if (!trends || trends.length === 0) {
+        const nodata = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato NDVI nativo disponibile per questa area</div>`;
+        containerVim.innerHTML = nodata;
+        containerViq.innerHTML = nodata;
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Nessun record trovato</td></tr>`;
+        }
+        return;
+    }
+    
+    // Sort and populate table
+    trends.forEach(t => {
+        if (!tbody) return;
+        const tr = document.createElement("tr");
+        const vim = t.vim !== null ? t.vim.toFixed(3) : '-';
+        const vim_avg = t.vim_avg !== null ? t.vim_avg.toFixed(3) : '-';
+        const viq = t.viq !== null ? t.viq.toFixed(1) + '%' : '-';
+        
+        tr.innerHTML = `
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 500;">${t.date}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-success); font-weight: 600;">${vim}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--text-muted);">${vim_avg}</td>
+            <td style="padding: 0.65rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: right; color: var(--color-warning); font-weight: 600;">${viq}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    // Sample dekads to avoid chart clutter (max 100 points, or show all if smaller)
+    let chartTrends = trends;
+    if (trends.length > 120) {
+        const step = Math.ceil(trends.length / 100);
+        chartTrends = trends.filter((_, idx) => idx % step === 0);
+    }
+    
+    const vimSeries = [
+        { name: 'NDVI VIM Corrente', data: chartTrends.map(t => ({ x: new Date(t.date).getTime(), y: t.vim !== null ? parseFloat(t.vim.toFixed(3)) : null })), color: '#10b981' },
+        { name: 'NDVI VIM Storico Medio', data: chartTrends.map(t => ({ x: new Date(t.date).getTime(), y: t.vim_avg !== null ? parseFloat(t.vim_avg.toFixed(3)) : null })), color: '#6b7280' }
+    ];
+    
+    // NDVI VIM real vs average
+    const vimOptions = {
+        series: vimSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            group: 'raw-ndvi',
+            id: 'chart-raw-ndvi-vim',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        stroke: { width: [3, 2], curve: 'smooth', dashArray: [0, 4], connectNulls: true },
+        markers: { size: [3, 0], hover: { size: 5 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'Indice Greenness (NDVI)' },
+            labels: { formatter: val => val !== null ? val.toFixed(2) : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        },
+        legend: { position: 'top', fontFamily: 'Inter', fontSize: '11px' }
+    };
+    
+    rawCharts.ndviVim = new ApexCharts(containerVim, vimOptions);
+    rawCharts.ndviVim.render();
+    
+    const viqSeries = [
+        { name: 'Vegetation Condition Index (NDVI VIQ)', data: chartTrends.map(t => ({ x: new Date(t.date).getTime(), y: t.viq !== null ? parseFloat(t.viq.toFixed(1)) : null })) }
+    ];
+    
+    // NDVI VIQ Ratio chart
+    const viqOptions = {
+        series: viqSeries,
+        chart: {
+            height: 380,
+            type: 'line',
+            group: 'raw-ndvi',
+            id: 'chart-raw-ndvi-viq',
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        theme: { mode: 'dark' },
+        colors: ['#fbbf24'],
+        stroke: { width: 3, curve: 'smooth', connectNulls: true },
+        markers: { size: 3, hover: { size: 5 } },
+        xaxis: {
+            type: 'datetime',
+            labels: {
+                datetimeUTC: false,
+                style: { fontSize: '9px' }
+            }
+        },
+        yaxis: {
+            title: { text: 'VCI Ratio (%)' },
+            labels: { formatter: val => val !== null ? val.toFixed(0) + "%" : "" }
+        },
+        tooltip: {
+            shared: true,
+            intersect: false,
+            x: { format: 'yyyy-MM-dd' }
+        }
+    };
+    
+    rawCharts.ndviViq = new ApexCharts(containerViq, viqOptions);
+    rawCharts.ndviViq.render();
 }
 
 

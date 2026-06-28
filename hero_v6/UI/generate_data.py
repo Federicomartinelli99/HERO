@@ -90,10 +90,12 @@ def compute_completeness(df, country_col, period_col, level_name):
     df['has_idp'] = df['idp_population'].notnull().astype(int)
     df['has_rainfall'] = df['rain_1m'].notnull().astype(int)
     df['has_wfp'] = df['wfp_price'].notnull().astype(int)
+    df['has_ndvi'] = df['ndvi_vim'].notnull().astype(int) if 'ndvi_vim' in df.columns else 0
+    df['has_gdelt'] = df['gdelt_verbal_coop_events'].notnull().astype(int) if 'gdelt_verbal_coop_events' in df.columns else 0
     df['has_geojson'] = ((df['adm1_pcode'] != "") | (df['adm2_pcode'] != "")).astype(int)
 
     # Overall score (simple average of keys)
-    indicators = ['has_ipc', 'has_acled', 'has_idp', 'has_rainfall', 'has_wfp']
+    indicators = ['has_ipc', 'has_acled', 'has_idp', 'has_rainfall', 'has_wfp', 'has_ndvi', 'has_gdelt']
     df['avail_score'] = df[indicators].mean(axis=1) * 100
 
     # Group by Country and Year-Quarter to get averages
@@ -130,7 +132,9 @@ metrics_map = {
     "acled": "has_acled",
     "idp": "has_idp",
     "rainfall": "has_rainfall",
-    "wfp": "has_wfp"
+    "wfp": "has_wfp",
+    "ndvi": "has_ndvi",
+    "gdelt": "has_gdelt"
 }
 
 for lvl, df_comp in [("adm1", comp_adm1), ("adm2", comp_adm2)]:
@@ -158,7 +162,9 @@ value_metrics = {
     "acled": ("acled_total_events", "sum"),
     "idp": ("idp_population", "sum"),
     "rainfall": ("rain_1m", "mean"),
-    "wfp": ("wfp_price", "mean")
+    "wfp": ("wfp_price", "mean"),
+    "ndvi": ("ndvi_vim", "mean"),
+    "gdelt": ("gdelt_material_conflict_events", "sum")
 }
 value_heatmaps = {}
 for m_key, (col, agg_fn) in value_metrics.items():
@@ -220,7 +226,9 @@ global_stats = {
     "avg_completeness_acled": float(df_adm1['has_acled'].mean() * 100),
     "avg_completeness_idp": float(df_adm1['has_idp'].mean() * 100),
     "avg_completeness_rainfall": float(df_adm1['has_rainfall'].mean() * 100),
-    "avg_completeness_wfp": float(df_adm1['has_wfp'].mean() * 100)
+    "avg_completeness_wfp": float(df_adm1['has_wfp'].mean() * 100),
+    "avg_completeness_ndvi": float(df_adm1['has_ndvi'].mean() * 100) if 'has_ndvi' in df_adm1.columns else 0.0,
+    "avg_completeness_gdelt": float(df_adm1['has_gdelt'].mean() * 100) if 'has_gdelt' in df_adm1.columns else 0.0
 }
 
 # Write global summary JSON
@@ -236,6 +244,15 @@ global_summary = clean_val(global_summary)
 with open(DATA_OUT_DIR / "global_summary.json", "w", encoding="utf-8") as f:
     json.dump(global_summary, f, ensure_ascii=False, indent=2)
 print("Saved global_summary.json")
+
+# Load raw datasets for high-resolution country-specific tabs
+print("Loading raw datasets for high-resolution exports...")
+df_raw_ipc = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "ipc.parquet") if (HERO_V6_DIR / "data" / "raw" / "ipc.parquet").exists() else None
+df_raw_acled = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "acled.parquet") if (HERO_V6_DIR / "data" / "raw" / "acled.parquet").exists() else None
+df_raw_idp = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "idp.parquet") if (HERO_V6_DIR / "data" / "raw" / "idp.parquet").exists() else None
+df_raw_rainfall = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "rainfall.parquet") if (HERO_V6_DIR / "data" / "raw" / "rainfall.parquet").exists() else None
+df_raw_ndvi = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "wfp_ndvi.parquet") if (HERO_V6_DIR / "data" / "raw" / "wfp_ndvi.parquet").exists() else None
+df_raw_wfp_prices = pd.read_parquet(HERO_V6_DIR / "data" / "raw" / "wfp_consolidated_single_market.parquet") if (HERO_V6_DIR / "data" / "raw" / "wfp_consolidated_single_market.parquet").exists() else None
 
 # Write country-level JSON files
 print("Generating country-specific JSON files...")
@@ -266,10 +283,18 @@ for code in all_countries:
             'acled_civilian_targeting_events', 'acled_demonstration_events', 'acled_political_violence_events',
             'acled_civilian_targeting_fatalities', 'acled_demonstration_fatalities', 'acled_political_violence_fatalities'
         ]
+        gdelt_quads = ['verbal_coop', 'material_coop', 'verbal_conflict', 'material_conflict']
+        for q in gdelt_quads:
+            other_sums.append(f'gdelt_{q}_events')
+            other_sums.append(f'gdelt_{q}_mentions')
+            
         means = [
             'rain_1m_sum', 'rain_1m', 'rain_3m', 'rain_anomaly_1m', 'rain_anomaly_3m', 
-            'wfp_price', 'wfp_inflation', 'wfp_obs_count', 'idp_staleness_days'
+            'wfp_price', 'wfp_inflation', 'wfp_obs_count', 'idp_staleness_days',
+            'ndvi_vim', 'ndvi_viq'
         ]
+        for q in gdelt_quads:
+            means.append(f'gdelt_{q}_tone')
         
         grouped = df.groupby(group_col)
         
@@ -362,5 +387,206 @@ for code in all_countries:
     
     with open(COUNTRIES_OUT_DIR / f"{code}.json", "w", encoding="utf-8") as f:
         json.dump(country_data, f, ensure_ascii=False)
+
+    # ── GENERATE RAW HIGH-RESOLUTION DATASETS ──
+    # 1. IPC Raw
+    if df_raw_ipc is not None:
+        ipc_c = df_raw_ipc[df_raw_ipc['location_code'] == code].copy()
+        raw_ipc_data = {"national": [], "regions": {"adm1": {}, "adm2": {}}}
+        if not ipc_c.empty:
+            def process_ipc_group(df_g, spatial_key=None):
+                grp_cols = ['reference_period_start', 'reference_period_end', 'ipc_type']
+                if spatial_key:
+                    grp_cols.append(spatial_key)
+                grouped = df_g.groupby(grp_cols)
+                res = []
+                for keys, g in grouped:
+                    if spatial_key:
+                        p_start, p_end, i_type, sp_val = keys
+                    else:
+                        p_start, p_end, i_type = keys
+                    
+                    row = {
+                        "from": str(p_start),
+                        "to": str(p_end),
+                        "type": str(i_type)
+                    }
+                    total_pop = 0
+                    p3plus = 0
+                    for p in ['1', '2', '3', '4', '5']:
+                        val = g[g['ipc_phase'] == p]['population_in_phase'].sum()
+                        row[f"phase_{p}"] = float(val) if pd.notna(val) else 0.0
+                        total_pop += val
+                        if p in ['3', '4', '5']:
+                            p3plus += val
+                    
+                    row["phase_3plus"] = float(p3plus)
+                    row["phase_all"] = float(total_pop)
+                    row["phase_3plus_percentage"] = float((p3plus / total_pop) * 100) if total_pop > 0 else 0.0
+                    res.append(row)
+                return sorted(res, key=lambda x: x["from"])
+
+            raw_ipc_data["national"] = process_ipc_group(ipc_c)
+            for pcode, g_pcode in ipc_c.groupby('admin1_code'):
+                if pcode:
+                    raw_ipc_data["regions"]["adm1"][pcode] = process_ipc_group(g_pcode, 'admin1_code')
+            for pcode, g_pcode in ipc_c.groupby('admin2_code'):
+                if pcode:
+                    raw_ipc_data["regions"]["adm2"][pcode] = process_ipc_group(g_pcode, 'admin2_code')
+
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_ipc.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_ipc_data), f, ensure_ascii=False)
+
+    # 2. ACLED Raw
+    if df_raw_acled is not None:
+        acled_c = df_raw_acled[df_raw_acled['location_code'] == code].copy()
+        raw_acled_data = {"national": [], "regions": {"adm1": {}, "adm2": {}}}
+        if not acled_c.empty:
+            def process_acled_group(df_g, spatial_key=None):
+                grp_cols = ['reference_period_start', 'reference_period_end']
+                if spatial_key:
+                    grp_cols.append(spatial_key)
+                grouped = df_g.groupby(grp_cols)
+                res = []
+                for keys, g in grouped:
+                    if spatial_key:
+                        p_start, p_end, sp_val = keys
+                    else:
+                        p_start, p_end = keys
+                    
+                    row = {
+                        "from": str(p_start),
+                        "to": str(p_end),
+                        "total_events": int(g['events'].sum()),
+                        "total_fatalities": float(g['fatalities'].sum())
+                    }
+                    for et in ['civilian_targeting', 'demonstrations', 'political_violence']:
+                        et_g = g[g['event_type'] == et]
+                        row[f"{et}_events"] = int(et_g['events'].sum())
+                        row[f"{et}_fatalities"] = float(et_g['fatalities'].sum())
+                    res.append(row)
+                return sorted(res, key=lambda x: x["from"])
+
+            raw_acled_data["national"] = process_acled_group(acled_c)
+            for pcode, g_pcode in acled_c.groupby('admin1_code'):
+                if pcode:
+                    raw_acled_data["regions"]["adm1"][pcode] = process_acled_group(g_pcode, 'admin1_code')
+            for pcode, g_pcode in acled_c.groupby('admin2_code'):
+                if pcode:
+                    raw_acled_data["regions"]["adm2"][pcode] = process_acled_group(g_pcode, 'admin2_code')
+
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_acled.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_acled_data), f, ensure_ascii=False)
+
+    # 3. IDP Raw
+    if df_raw_idp is not None:
+        idp_c = df_raw_idp[df_raw_idp['location_code'] == code].copy()
+        raw_idp_data = {"national": [], "regions": {"adm1": {}, "adm2": {}}}
+        if not idp_c.empty:
+            def process_idp_group(df_g, spatial_key=None):
+                grp_cols = ['reference_period_start', 'reference_period_end', 'reporting_round', 'assessment_type']
+                if spatial_key:
+                    grp_cols.append(spatial_key)
+                grouped = df_g.groupby(grp_cols)
+                res = []
+                for keys, g in grouped:
+                    if spatial_key:
+                        p_start, p_end, r_round, a_type, sp_val = keys
+                    else:
+                        p_start, p_end, r_round, a_type = keys
+                    
+                    res.append({
+                        "from": str(p_start),
+                        "to": str(p_end),
+                        "round": int(r_round),
+                        "type": str(a_type),
+                        "population": float(g['population'].sum())
+                    })
+                return sorted(res, key=lambda x: x["from"])
+
+            raw_idp_data["national"] = process_idp_group(idp_c)
+            for pcode, g_pcode in idp_c.groupby('admin1_code'):
+                if pcode:
+                    raw_idp_data["regions"]["adm1"][pcode] = process_idp_group(g_pcode, 'admin1_code')
+            for pcode, g_pcode in idp_c.groupby('admin2_code'):
+                if pcode:
+                    raw_idp_data["regions"]["adm2"][pcode] = process_idp_group(g_pcode, 'admin2_code')
+
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_idp.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_idp_data), f, ensure_ascii=False)
+
+    # 4. Rainfall Raw (CHIRPS)
+    if df_raw_rainfall is not None:
+        rain_c = df_raw_rainfall[df_raw_rainfall['ISO3'] == code].copy()
+        raw_rain_data = {"national": [], "regions": {"adm1": {}, "adm2": {}}}
+        if not rain_c.empty:
+            def process_rain_group(df_g):
+                grouped = df_g.groupby('date')
+                res = []
+                for date, g in grouped:
+                    res.append({
+                        "date": str(date.date()) if hasattr(date, 'date') else str(date)[:10],
+                        "rain_1m": float(g['rain_1m'].mean()) if pd.notna(g['rain_1m'].mean()) else None,
+                        "rain_3m": float(g['rain_3m'].mean()) if pd.notna(g['rain_3m'].mean()) else None,
+                        "rain_anomaly_1m": float(g['rain_anomaly_1m'].mean()) if pd.notna(g['rain_anomaly_1m'].mean()) else None,
+                        "rain_anomaly_3m": float(g['rain_anomaly_3m'].mean()) if pd.notna(g['rain_anomaly_3m'].mean()) else None
+                    })
+                return sorted(res, key=lambda x: x["date"])
+
+            raw_rain_data["national"] = process_rain_group(rain_c)
+            for pcode, g_pcode in rain_c.groupby('PCODE'):
+                if pcode:
+                    adm_lvl = int(g_pcode['adm_level'].iloc[0])
+                    lvl_key = "adm1" if adm_lvl == 1 else "adm2"
+                    raw_rain_data["regions"][lvl_key][pcode] = process_rain_group(g_pcode)
+
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_rainfall.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_rain_data), f, ensure_ascii=False)
+
+    # 5. NDVI Raw
+    if df_raw_ndvi is not None:
+        ndvi_c = df_raw_ndvi[df_raw_ndvi['country_iso3'] == code].copy()
+        raw_ndvi_data = {"national": [], "regions": {"adm1": {}, "adm2": {}}}
+        if not ndvi_c.empty:
+            def process_ndvi_group(df_g):
+                grouped = df_g.groupby('date')
+                res = []
+                for date, g in grouped:
+                    res.append({
+                        "date": str(date.date()) if hasattr(date, 'date') else str(date)[:10],
+                        "vim": float(g['vim'].mean()) if pd.notna(g['vim'].mean()) else None,
+                        "vim_avg": float(g['vim_avg'].mean()) if pd.notna(g['vim_avg'].mean()) else None,
+                        "viq": float(g['viq'].mean()) if pd.notna(g['viq'].mean()) else None
+                    })
+                return sorted(res, key=lambda x: x["date"])
+
+            raw_ndvi_data["national"] = process_ndvi_group(ndvi_c)
+            for pcode, g_pcode in ndvi_c.groupby('PCODE'):
+                if pcode:
+                    adm_lvl = int(g_pcode['adm_level'].iloc[0])
+                    lvl_key = "adm1" if adm_lvl == 1 else "adm2"
+                    raw_ndvi_data["regions"][lvl_key][pcode] = process_ndvi_group(g_pcode)
+
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_ndvi.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_ndvi_data), f, ensure_ascii=False)
+
+        # 6. WFP Raw Markets Prices
+        raw_wfp_data = {"markets": {}}
+        if df_raw_wfp_prices is not None:
+            wfp_c = df_raw_wfp_prices[df_raw_wfp_prices['ISO3'] == code].copy()
+            if not wfp_c.empty:
+                for mkt_name, g_mkt in wfp_c.groupby('mkt_name'):
+                    if mkt_name:
+                        g_mkt = g_mkt.sort_values('DATES')
+                        raw_wfp_data["markets"][mkt_name] = [
+                            {
+                                "date": str(row['DATES'])[:10],
+                                "price_index": float(row['o_food_price_index']) if pd.notna(row['o_food_price_index']) else None,
+                                "inflation": float(row['inflation_food_price_index']) if pd.notna(row['inflation_food_price_index']) else None
+                            }
+                            for _, row in g_mkt.iterrows()
+                        ]
+        with open(COUNTRIES_OUT_DIR / f"{code}_raw_markets.json", "w", encoding="utf-8") as f:
+            json.dump(clean_val(raw_wfp_data), f, ensure_ascii=False)
 
 print(f"All country JSON files generated successfully inside {COUNTRIES_OUT_DIR}!")

@@ -141,21 +141,51 @@
                         </a>
                     </li>
                     <li>
-                        <a class="nav-item sub-nav-item" id="nav-country-markets" onclick="switchCountrySubViewFromSidebar('markets')">
-                            <i class="fa-solid fa-store" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Mercati (WFP)</span>
-                        </a>
-                    </li>
-                    <li>
                         <a class="nav-item sub-nav-item" id="nav-country-charts" onclick="switchCountrySubViewFromSidebar('charts')">
                             <i class="fa-solid fa-chart-line" style="font-size: 0.8rem; width: 1rem;"></i>
                             <span style="font-size: 0.75rem;">Grafici e Trend</span>
                         </a>
                     </li>
                     <li>
-                        <a class="nav-item sub-nav-item" id="nav-country-table" onclick="switchCountrySubViewFromSidebar('table')">
-                            <i class="fa-solid fa-table" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Tabella Dati</span>
+                        <a class="nav-item sub-nav-item" id="nav-country-markets" onclick="switchCountrySubViewFromSidebar('markets')">
+                            <i class="fa-solid fa-store" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Mercati (WFP)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-gdelt" onclick="switchCountrySubViewFromSidebar('gdelt')">
+                            <i class="fa-solid fa-globe" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Media & News (GDELT)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-ipc" onclick="switchCountrySubViewFromSidebar('ipc')">
+                            <i class="fa-solid fa-wheat-awn" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Sicurezza Alimentare (IPC)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-acled" onclick="switchCountrySubViewFromSidebar('acled')">
+                            <i class="fa-solid fa-burst" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Conflitti (ACLED)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-idp" onclick="switchCountrySubViewFromSidebar('idp')">
+                            <i class="fa-solid fa-people-roof" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Sfollati Interni (IDP)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-rainfall" onclick="switchCountrySubViewFromSidebar('rainfall')">
+                            <i class="fa-solid fa-cloud-showers-water" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Precipitazioni (CHIRPS)</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-item sub-nav-item" id="nav-country-ndvi" onclick="switchCountrySubViewFromSidebar('ndvi')">
+                            <i class="fa-solid fa-leaf" style="font-size: 0.8rem; width: 1rem;"></i>
+                            <span style="font-size: 0.75rem;">Vegetazione (NDVI)</span>
                         </a>
                     </li>
                 </ul>
@@ -222,6 +252,11 @@
                             <option value="">Seleziona Paese...</option>
                         </select>
                     </div>
+                    <div class="select-wrapper" id="subregion-selector-wrapper" style="display: none;">
+                        <select id="subregion-selector" onchange="onSubregionSelectorChange()" style="width: 240px;">
+                            <option value="national">Nazionale (Tutte le Aree)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </header>
@@ -274,6 +309,8 @@
                             <option value="idp">Sfollati Interni (IDP) (%)</option>
                             <option value="rainfall">Precipitazioni (CHIRPS) (%)</option>
                             <option value="wfp">Prezzi Alimentari (WFP) (%)</option>
+                            <option value="ndvi">Indice Vegetazione (NDVI) (%)</option>
+                            <option value="gdelt">Media ed Instabilità (GDELT) (%)</option>
                         </select>
                     </div>
                 </div>
@@ -290,17 +327,35 @@
         <!-- COUNTRY PANEL VIEW -->
         <section class="view-panel" id="panel-country">
             
-            <!-- Country Sub-tabs Navigation -->
-            <div style="display: flex; align-items: center; justify-content: flex-start; margin-top: -1rem; margin-bottom: 1.25rem; width: 100%;">
-                <div class="sub-tabs-wrapper">
+            <!-- Country Sub-tabs Navigation (Hidden since sidebar navigation is available) -->
+            <div style="display: none;">
+                <div class="sub-tabs-wrapper" style="display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; width: 100%;">
                     <button class="sub-tab-btn active" id="btn-country-tab-map" onclick="switchCountrySubView('map')">
                         <i class="fa-solid fa-map-location-dot"></i> Mappa & Sotto-Regioni
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-charts" onclick="switchCountrySubView('charts')">
+                        <i class="fa-solid fa-chart-line"></i> Grafici e Trend
                     </button>
                     <button class="sub-tab-btn" id="btn-country-tab-markets" onclick="switchCountrySubView('markets')">
                         <i class="fa-solid fa-store"></i> Mercati (WFP)
                     </button>
-                    <button class="sub-tab-btn" id="btn-country-tab-charts" onclick="switchCountrySubView('charts')">
-                        <i class="fa-solid fa-chart-line"></i> Grafici e Trend
+                    <button class="sub-tab-btn" id="btn-country-tab-gdelt" onclick="switchCountrySubView('gdelt')">
+                        <i class="fa-solid fa-globe"></i> Media & News (GDELT)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-ipc" onclick="switchCountrySubView('ipc')">
+                        <i class="fa-solid fa-wheat-awn"></i> Sicurezza Alimentare (IPC)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-acled" onclick="switchCountrySubView('acled')">
+                        <i class="fa-solid fa-burst"></i> Conflitti (ACLED)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-idp" onclick="switchCountrySubView('idp')">
+                        <i class="fa-solid fa-people-roof"></i> Sfollati Interni (IDP)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-rainfall" onclick="switchCountrySubView('rainfall')">
+                        <i class="fa-solid fa-cloud-showers-water"></i> Precipitazioni (CHIRPS)
+                    </button>
+                    <button class="sub-tab-btn" id="btn-country-tab-ndvi" onclick="switchCountrySubView('ndvi')">
+                        <i class="fa-solid fa-leaf"></i> Vegetazione (NDVI)
                     </button>
                     <button class="sub-tab-btn" id="btn-country-tab-table" onclick="switchCountrySubView('table')">
                         <i class="fa-solid fa-table"></i> Tabella Dati
@@ -326,6 +381,8 @@
                                         <option value="idp">Sfollati Interni (IDP)</option>
                                         <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
                                         <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                                        <option value="ndvi">Indice Vegetazione (NDVI VIM)</option>
+                                        <option value="gdelt">Instabilità Media (GDELT Conflitti Materiali)</option>
                                     </select>
                                 </div>
                             </div>
@@ -374,7 +431,30 @@
                             <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Lista dei Mercati Censiti</span>
                             <div class="modal-subregions-list" id="country-tab-markets-list" style="max-height: 100%; height: 100%; overflow-y: auto; padding-right: 0.25rem; display: flex; flex-direction: column; gap: 0.4rem;">
                                 <!-- Dynamically populated markets list -->
-                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- Closes WFP markets glass-card -->
+            
+            <!-- Selected Market Details & Price Trend Section -->
+                <div id="country-market-details-section" class="glass-card" style="display: none; margin-top: 1rem; padding: 1.25rem 1.5rem; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                            <span id="selected-market-title" style="font-weight: 700; color: white; font-size: 1rem;">Dettaglio Mercato: Seleziona un mercato</span>
+                        </div>
+                        <span id="selected-market-coords" style="font-size: 0.75rem; color: var(--text-muted);">Lat: - Lon: -</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%;">
+                        <!-- Price Index Chart -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 0;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Indice Originale dei Prezzi Alimentari</span>
+                            <div class="chart-container" id="chart-market-price-index" style="height: 280px; width: 100%;"></div>
+                        </div>
+                        <!-- Price Inflation Chart -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 0;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Tasso di Inflazione Locale (WFP)</span>
+                            <div class="chart-container" id="chart-market-inflation" style="height: 280px; width: 100%;"></div>
                         </div>
                     </div>
                 </div>
@@ -382,16 +462,8 @@
 
             <!-- SUB-PANEL 3: GRAFICI E TREND -->
             <div class="country-sub-panel" id="country-sub-panel-charts" style="display: none; width: 100%;">
-                <!-- Sub-region Selectors and info header (Compacted) -->
+                <!-- Active Subregion Badges -->
                 <div class="glass-card" style="padding: 0.65rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.5rem; width: 100%;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 0.05em;">Sotto-Regione:</span>
-                        <div class="select-wrapper">
-                            <select id="subregion-selector" onchange="onSubregionSelectorChange()" style="width: 240px; font-size: 0.8rem; padding: 0.45rem 1rem;">
-                                <option value="national">Nazionale (Tutte le Aree)</option>
-                            </select>
-                        </div>
-                    </div>
                     <div id="country-active-badges" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
                         <!-- Dynamically injected badges -->
                     </div>
@@ -454,38 +526,53 @@
                             </div>
                             <div class="chart-container" id="chart-wfp"></div>
                         </div>
+
+                        <!-- NDVI Vegetation Signal -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-seedling text-emerald-400"></i>
+                                    <span id="chart-ndvi-title">Indice Vegetazione NDVI (VIM & VIQ)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-ndvi"></div>
+                        </div>
+
+                        <!-- GDELT Media Instability -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-globe text-purple-400"></i>
+                                    <span id="chart-gdelt-title">Instabilità Media (GDELT CAMEO QuadClass)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-gdelt"></div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Seasonal/Radar Charts Wrapper -->
                 <div id="country-seasonal-container" style="display: none; width: 100%;">
+                    <!-- Common Year Legend -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; width: 100%; align-items: center;">
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">Legenda Anni (Clicca per filtrare i trend temporali)</span>
+                        <div id="seasonal-common-legend" style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.55rem 1.25rem; background: rgba(15, 23, 42, 0.4); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); min-height: 42px; align-items: center; backdrop-filter: blur(10px);">
+                            <!-- Dynamically populated year pills -->
+                        </div>
+                    </div>
+
                     <div class="country-charts-grid" style="width: 100%;">
-                        <!-- IPC Card -->
-                        <div class="glass-card chart-card-double">
+                        <!-- IPC Card (1 Column) -->
+                        <div class="glass-card">
                             <div class="card-title">
                                 <div class="card-title-text">
                                     <i class="fa-solid fa-wheat-awn text-emerald-400"></i>
                                     <span id="chart-ipc-seasonal-title">Profilo Stagionale Fasi IPC (Media Fase 3+ %)</span>
                                 </div>
                             </div>
-                            <div class="chart-container" id="chart-ipc-seasonal" style="height: 320px;"></div>
+                            <div class="chart-container" id="chart-ipc-seasonal" style="height: 300px; min-height: 300px;"></div>
                         </div>
 
-                        <!-- ACLED Card (2 charts stacked vertically) -->
-                        <div class="glass-card">
-                            <div class="card-title">
-                                <div class="card-title-text">
-                                    <i class="fa-solid fa-burst text-rose-500"></i>
-                                    <span>Profilo Stagionale Conflitti (ACLED: Eventi & Vittime)</span>
-                                </div>
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div class="chart-container" id="chart-acled-events-seasonal" style="height: 220px; min-height: 220px;"></div>
-                                <div class="chart-container" id="chart-acled-fatalities-seasonal" style="height: 220px; min-height: 220px;"></div>
-                            </div>
-                        </div>
-
-                        <!-- IDP Card -->
+                        <!-- IDP Card (1 Column) -->
                         <div class="glass-card">
                             <div class="card-title">
                                 <div class="card-title-text">
@@ -493,34 +580,76 @@
                                     <span id="chart-idp-seasonal-title">Profilo Stagionale Sfollati Interni (IDP)</span>
                                 </div>
                             </div>
-                            <div class="chart-container" id="chart-idp-seasonal" style="height: 460px; min-height: 460px;"></div>
+                            <div class="chart-container" id="chart-idp-seasonal" style="height: 300px; min-height: 300px;"></div>
                         </div>
 
-                        <!-- Rainfall Card (2 charts stacked vertically) -->
-                        <div class="glass-card">
+                        <!-- ACLED Card (2 Columns side-by-side) -->
+                        <div class="glass-card chart-card-double">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-burst text-rose-500"></i>
+                                    <span>Profilo Stagionale Conflitti (ACLED: Eventi & Vittime)</span>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-acled-events-seasonal" style="height: 300px; min-height: 300px;"></div>
+                                <div class="chart-container" id="chart-acled-fatalities-seasonal" style="height: 300px; min-height: 300px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Rainfall Card (2 Columns side-by-side) -->
+                        <div class="glass-card chart-card-double">
                             <div class="card-title">
                                 <div class="card-title-text">
                                     <i class="fa-solid fa-cloud-showers-water text-blue-400"></i>
                                     <span>Profilo Stagionale Precipitazioni & Anomalia CHIRPS</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div class="chart-container" id="chart-rainfall-rain-seasonal" style="height: 220px; min-height: 220px;"></div>
-                                <div class="chart-container" id="chart-rainfall-anomaly-seasonal" style="height: 220px; min-height: 220px;"></div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-rainfall-rain-seasonal" style="height: 300px; min-height: 300px;"></div>
+                                <div class="chart-container" id="chart-rainfall-anomaly-seasonal" style="height: 300px; min-height: 300px;"></div>
                             </div>
                         </div>
 
-                        <!-- WFP Card (2 charts stacked vertically) -->
-                        <div class="glass-card">
+                        <!-- WFP Card (2 Columns side-by-side) -->
+                        <div class="glass-card chart-card-double">
                             <div class="card-title">
                                 <div class="card-title-text">
                                     <i class="fa-solid fa-store text-indigo-400"></i>
                                     <span>Profilo Stagionale Prezzi & Inflazione (WFP)</span>
                                 </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                                <div class="chart-container" id="chart-wfp-price-seasonal" style="height: 220px; min-height: 220px;"></div>
-                                <div class="chart-container" id="chart-wfp-inflation-seasonal" style="height: 220px; min-height: 220px;"></div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-wfp-price-seasonal" style="height: 300px; min-height: 300px;"></div>
+                                <div class="chart-container" id="chart-wfp-inflation-seasonal" style="height: 300px; min-height: 300px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- NDVI Seasonal Card (2 Columns side-by-side) -->
+                        <div class="glass-card chart-card-double">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-seedling text-emerald-400"></i>
+                                    <span>Profilo Stagionale Vegetazione (NDVI VIM & VIQ)</span>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-ndvi-vim-seasonal" style="height: 300px; min-height: 300px;"></div>
+                                <div class="chart-container" id="chart-ndvi-viq-seasonal" style="height: 300px; min-height: 300px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- GDELT Seasonal Card (2 Columns side-by-side) -->
+                        <div class="glass-card chart-card-double">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-globe text-purple-400"></i>
+                                    <span>Profilo Stagionale Instabilità (GDELT: Conflitti Materiali & Tono)</span>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; width: 100%;">
+                                <div class="chart-container" id="chart-gdelt-events-seasonal" style="height: 300px; min-height: 300px;"></div>
+                                <div class="chart-container" id="chart-gdelt-tone-seasonal" style="height: 300px; min-height: 300px;"></div>
                             </div>
                         </div>
                     </div>
@@ -552,6 +681,10 @@
                                     <th style="text-align: right;">Anomalia Pioggia</th>
                                     <th style="text-align: right;">Prezzi (Indice)</th>
                                     <th style="text-align: right;">Inflazione</th>
+                                    <th style="text-align: right;">NDVI VIM</th>
+                                    <th style="text-align: right;">NDVI VIQ (%)</th>
+                                    <th style="text-align: right;">GDELT Eventi (Mat. Conf.)</th>
+                                    <th style="text-align: right;">GDELT Tono (Mat. Conf.)</th>
                                 </tr>
                             </thead>
                             <tbody id="country-tab-table-body">
@@ -562,6 +695,385 @@
                 </div>
             </div>
 
+            <!-- SUB-PANEL GDELT: ANALISI MEDIA & NEWS -->
+            <div class="country-sub-panel" id="country-sub-panel-gdelt" style="display: none; width: 100%;">
+                <!-- Warning banner for Admin 2 level -->
+                <div class="glass-card" id="gdelt-adm2-warning" style="display: none; padding: 1rem; border: 1px solid rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.05); border-radius: 8px; margin-bottom: 1.5rem; align-items: center; gap: 0.75rem;">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 fa-lg"></i>
+                    <div style="font-size: 0.85rem; color: #f59e0b;">
+                        <strong>Nota sulla granularità:</strong> I dati GDELT non sono disponibili a livello di singoli Distretti (Admin 2). Vengono mostrati i dati aggregati per Province (Admin 1) o a livello Nazionale.
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <!-- Intro Card -->
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-circle-info text-indigo-500 mr-2"></i>Analisi Avanzata della Copertura Informativa (GDELT CAMEO)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            I dati GDELT (Global Database of Events, Language, and Tone) estraggono in tempo reale eventi da notizie pubblicate a livello globale.
+                            In questa sezione sono visualizzati l'andamento del <strong>sentiment/tono medio</strong> delle notizie (cooperazione vs conflitto) e la <strong>salienza mediatica</strong> (volume totale di menzioni per QuadClass CAMEO).
+                            Questo consente di rilevare segnali di tensione sociale ed instabilità geopolitica che spesso precedono o acuiscono le crisi di insicurezza alimentare.
+                        </p>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;" class="country-charts-grid">
+                        <!-- Chart 1: Sentiment/Tone -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-face-meh text-purple-400"></i>
+                                    <span>Tono Medio della Copertura (Sentiment per QuadClass)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-gdelt-tab-tone" style="height: 380px;"></div>
+                        </div>
+
+                        <!-- Chart 2: Salience/Mentions -->
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-volume-high text-cyan-400"></i>
+                                    <span>Salienza Mediatica (Menzioni Totali vs Volume Eventi)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-gdelt-tab-salience" style="height: 380px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Cameo Explanatory Card -->
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                            <div class="card-title-text" style="font-size: 0.95rem; font-weight:700;">
+                                <i class="fa-solid fa-list-check text-emerald-400"></i>Legenda ed Interpretazione delle QuadClass CAMEO
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.75rem; line-height: 1.4;">
+                            <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">
+                                <strong style="color: #34d399; font-size: 0.8rem; display: block; margin-bottom: 0.25rem;">Verbal Cooperation (01 - 05)</strong>
+                                Dichiarazioni pubbliche, consultazioni diplomatiche, appelli e annunci di cooperazione verbale.
+                            </div>
+                            <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">
+                                <strong style="color: #60a5fa; font-size: 0.8rem; display: block; margin-bottom: 0.25rem;">Material Cooperation (06 - 07)</strong>
+                                Fornitura di aiuti economici/umanitari, accordi di cooperazione materiale e progetti congiunti.
+                            </div>
+                            <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">
+                                <strong style="color: #fbbf24; font-size: 0.8rem; display: block; margin-bottom: 0.25rem;">Verbal Conflict (08 - 16)</strong>
+                                Disapprovazioni politiche, proteste, denunce, minacce, sanzioni verbali ed interruzione formale delle relazioni.
+                            </div>
+                            <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.02);">
+                                <strong style="color: #f87171; font-size: 0.8rem; display: block; margin-bottom: 0.25rem;">Material Conflict (17 - 20)</strong>
+                                Azioni coercitive, scontri fisici, combattimenti, attacchi armati ed uso della forza/violenza non convenzionale.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL IPC: SICUREZZA ALIMENTARE (RAW) -->
+            <div class="country-sub-panel" id="country-sub-panel-ipc" style="display: none; width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-wheat-awn text-emerald-400 mr-2"></i>Dati Nativi IPC (Classificazione per Fasi della Sicurezza Alimentare)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            Visualizzazione dei dati originali IPC prima del processo di interpolazione e merge. Mostra l'evoluzione temporale della popolazione nelle varie fasi (da Fase 1 a Fase 5) basata sui periodi reali delle analisi condotte sul campo (solitamente semestrali).
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="country-charts-grid">
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-chart-area text-emerald-400"></i>
+                                    <span>Evoluzione Temporale delle Fasi IPC (Popolazione in Fase 3+)</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-ipc-time" style="height: 380px;"></div>
+                        </div>
+                        <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                            <div class="card-title" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                                <div class="card-title-text" style="font-size: 0.95rem; font-weight:700;">
+                                    <i class="fa-solid fa-heart-pulse text-rose-500"></i>Legenda Fasi IPC
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.75rem; line-height: 1.4;">
+                                <div style="background: rgba(16, 185, 129, 0.1); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                    <strong style="color: #10b981;">Fase 1 (Minima)</strong> Sicurezza alimentare stabile, assenza di stress significativo.
+                                </div>
+                                <div style="background: rgba(245, 158, 11, 0.1); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                                    <strong style="color: #f59e0b;">Fase 2 (Stressata)</strong> Consumo alimentare minimamente adeguato, vulnerabilità elevata.
+                                </div>
+                                <div style="background: rgba(239, 68, 68, 0.1); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                                    <strong style="color: #ef4444;">Fase 3 (Crisi)</strong> Deficit acuto di consumo alimentare, tassi elevati di malnutrizione.
+                                </div>
+                                <div style="background: rgba(185, 28, 28, 0.1); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid rgba(185, 28, 28, 0.2);">
+                                    <strong style="color: #b91c1c;">Fase 4 (Emergenza)</strong> Deficit grave di cibo, tassi critici di malnutrizione acuta.
+                                </div>
+                                <div style="background: rgba(127, 29, 29, 0.1); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid rgba(127, 29, 29, 0.2);">
+                                    <strong style="color: #7f1d1d;">Fase 5 (Catastrofe/Famine)</strong> Mancanza estrema di cibo, indigenza diffusa, morte da fame.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-list text-indigo-400"></i>Storico delle Analisi Realizzate
+                            </div>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; margin-top: 0.75rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem;" id="table-raw-ipc">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 700;">
+                                        <th style="padding: 0.65rem 0.5rem;">Periodo di Analisi</th>
+                                        <th style="padding: 0.65rem 0.5rem;">Tipologia</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right;">Fase 1</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right;">Fase 2</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right;">Fase 3</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right;">Fase 4</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right;">Fase 5</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-danger);">Fase 3+ Pop.</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-danger);">Fase 3+ (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL ACLED: CONFLITTI (RAW) -->
+            <div class="country-sub-panel" id="country-sub-panel-acled" style="display: none; width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-burst text-amber-500 mr-2"></i>Dati Nativi ACLED (Disordini e Violenza Politica)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            Analisi dei dati originali di violenza politica a <strong>risoluzione mensile</strong>. Mostra la distribuzione temporale degli eventi conflittuali e delle vittime suddivisi per le categorie principali: target dei civili (<em>civilian targeting</em>), violenza politica (<em>political violence</em>) e proteste/dimostrazioni (<em>demonstrations</em>).
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;" class="country-charts-grid">
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-chart-column text-amber-400"></i>
+                                    <span>Frequenza Mensile degli Eventi per Categoria</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-acled-events" style="height: 380px;"></div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-skull-crossbones text-rose-500"></i>
+                                    <span>Vittime (Fatalities) Mensili per Categoria</span>
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-acled-fatalities" style="height: 380px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-list text-indigo-400"></i>Storico Mensile Eventi ACLED
+                            </div>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; margin-top: 0.75rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem;" id="table-raw-acled">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 700;">
+                                        <th style="padding: 0.65rem 0.5rem;">Mese</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-warning);">Violenza Politica (Eventi)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-danger);">Violenza Politica (Vittime)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-warning);">Target Civili (Eventi)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-danger);">Target Civili (Vittime)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-warning);">Dimostrazioni (Eventi)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-danger);">Dimostrazioni (Vittime)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; font-weight: 700;">Totale Eventi</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; font-weight: 700;">Totale Vittime</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL IDP: SFOLLATI (RAW) -->
+            <div class="country-sub-panel" id="country-sub-panel-idp" style="display: none; width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-people-roof text-blue-400 mr-2"></i>Dati Nativi IDP (Popolazione Sfollata Interna)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            I dati storici sui flussi di sfollati interni visualizzati alla risoluzione originaria dei <strong>singoli round di valutazione</strong> (<em>survey assessment rounds</em>). Permette di rilevare i picchi e le tendenze degli sfollamenti indotti da shock bellici o climatici.
+                        </p>
+                    </div>
+
+                    <div class="glass-card">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-chart-line text-blue-400"></i>
+                                <span>Andamento Popolazione Sfollata per Assessment Round</span>
+                            </div>
+                        </div>
+                        <div class="chart-container" id="chart-raw-idp-time" style="height: 380px;"></div>
+                    </div>
+
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-list text-indigo-400"></i>Storico Round di Rilevamento IDP
+                            </div>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; margin-top: 0.75rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem;" id="table-raw-idp">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 700;">
+                                        <th style="padding: 0.65rem 0.5rem;">Data Rilevazione</th>
+                                        <th style="padding: 0.65rem 0.5rem;">Round Rilevamento</th>
+                                        <th style="padding: 0.65rem 0.5rem;">Tipologia Valutazione</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-info);">Popolazione Sfollata</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL RAINFALL: PRECIPITAZIONI (RAW) -->
+            <div class="country-sub-panel" id="country-sub-panel-rainfall" style="display: none; width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-cloud-showers-water text-cyan-400 mr-2"></i>Dati Nativi CHIRPS (Precipitazioni Mensili e Anomalie)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            Visualizzazione delle precipitazioni stimate da satellite CHIRPS a <strong>risoluzione mensile</strong>. Mostra la quantità di pioggia mensile cumulata (1 mese e 3 mesi) insieme alle anomalie storiche riferite alla baseline climatica, consentendo di identificare siccità o piogge alluvionali anomale.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;" class="country-charts-grid">
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-cloud-sun text-cyan-400"></i>Precipitazioni Cumulate Reali (CHIRPS)
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-rainfall-real" style="height: 380px;"></div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-triangle-exclamation text-purple-400"></i>Anomalie Rispetto alla Baseline
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-rainfall-anom" style="height: 380px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-list text-indigo-400"></i>Storico Mensile Precipitazioni CHIRPS
+                            </div>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; margin-top: 0.75rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem;" id="table-raw-rainfall">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 700;">
+                                        <th style="padding: 0.65rem 0.5rem;">Mese</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-info);">Pioggia Cumulata 1M (mm)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-info);">Pioggia Cumulata 3M (mm)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: #a855f7;">Anomalia Pioggia 1M (mm)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: #a855f7;">Anomalia Pioggia 3M (mm)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-PANEL NDVI: VEGETAZIONE (RAW) -->
+            <div class="country-sub-panel" id="country-sub-panel-ndvi" style="display: none; width: 100%;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-leaf text-emerald-400 mr-2"></i>Dati Nativi NDVI (Indice Vegetazione Decadale - 10 Giorni)
+                            </div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.5rem;">
+                            Indici satellitari MODIS di salute vegetazionale caricati alla loro <strong>massima risoluzione temporale (10 giorni)</strong>. Consente di tracciare l'inizio e la fine dei cicli stagionali agricoli e monitorare la presenza di siccità localizzate prima che abbiano un impatto sulle forniture alimentari locali.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;" class="country-charts-grid">
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-seedling text-emerald-400"></i>Indice NDVI VIM (Real vs Average)
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-ndvi-vim" style="height: 380px;"></div>
+                        </div>
+                        <div class="glass-card">
+                            <div class="card-title">
+                                <div class="card-title-text">
+                                    <i class="fa-solid fa-chart-line text-amber-400"></i>NDVI VIQ (Rapporto Condizione %)
+                                </div>
+                            </div>
+                            <div class="chart-container" id="chart-raw-ndvi-viq" style="height: 380px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card" style="padding: 1.25rem 1.5rem;">
+                        <div class="card-title">
+                            <div class="card-title-text">
+                                <i class="fa-solid fa-list text-indigo-400"></i>Storico Decadale NDVI
+                            </div>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; margin-top: 0.75rem;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.75rem;" id="table-raw-ndvi">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted); font-weight: 700;">
+                                        <th style="padding: 0.65rem 0.5rem;">Decade Rilevamento</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-success);">NDVI VIM (Valore Reale)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-muted);">NDVI VIM (Media Storica)</th>
+                                        <th style="padding: 0.65rem 0.5rem; text-align: right; color: var(--color-warning);">NDVI VIQ (Rapporto Condizione %)</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- COUNTRY COMPARISON PANEL -->
@@ -581,6 +1093,19 @@
                                     <option value="idp">Popolazione Sfollata (IDP)</option>
                                     <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
                                     <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                                    <option value="ndvi">Indice Vegetazione (NDVI VIM)</option>
+                                    <option value="gdelt">Instabilità Media (GDELT Conflitti Materiali)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Data Type Selector (Aggregated vs Raw) -->
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Tipo Dati</span>
+                            <div class="select-wrapper">
+                                <select id="compare-data-type" onchange="onCompareCountriesChange()" style="width: 200px;">
+                                    <option value="aggregated">Dati Aggregati (Merged)</option>
+                                    <option value="raw">(Recommended) Dati Originali (Raw)</option>
                                 </select>
                             </div>
                         </div>
@@ -612,6 +1137,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Raw Mode Warning -->
+            <div id="compare-raw-warning" style="display: none; padding: 0.75rem 1rem; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; font-size: 0.8rem; color: #fb923c; margin-bottom: 1rem; text-align: center; font-weight: 600;"></div>
 
             <!-- Comparison Chart -->
             <div class="glass-card">
@@ -646,6 +1174,8 @@
                                 <option value="idp">Sfollati Interni (IDP)</option>
                                 <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
                                 <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
+                                <option value="ndvi">Indice Vegetazione (NDVI VIM)</option>
+                                <option value="gdelt">Instabilità Media (GDELT Conflitti Materiali)</option>
                             </select>
                         </div>
                     </div>
