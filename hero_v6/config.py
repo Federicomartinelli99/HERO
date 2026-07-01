@@ -58,9 +58,10 @@ FINAL_FILE_ADM2_WIDE = os.path.join(FINAL_DIR, "merged_adm2_wide.parquet")
 # (PIP + intentional elastic buffer for coastal markets); see README.md.
 WFP_WITH_PCODES = os.path.join(RAW_DIR, "wfp_with_pcodes.parquet")
 
-# GDELT media-based conflict signals: admin1-only monthly panel, pre-pivoted to wide
-# (3 metrics x 20 CAMEO root codes). Explicit path because the filename isn't gdelt.parquet.
-GDELT_FILE = os.path.join(RAW_DIR, "df_gdelt_pivot.parquet")
+# GDELT media-based conflict signals: monthly panel pre-aggregated into 4 CAMEO QuadClasses
+# (3 metrics x 4 QuadClasses). Separate files for ADM1 and ADM2.
+GDELT_FILE_ADM1 = os.path.join(RAW_DIR, "df_gdelt4_adm1.parquet")
+GDELT_FILE_ADM2 = os.path.join(RAW_DIR, "df_gdelt4_adm2.parquet")
 
 # NDVI vegetation signals (WFP/HDX): dekadal, both admin levels, keyed on PCODE + adm_level.
 # Explicit path because the filename isn't ndvi.parquet.
