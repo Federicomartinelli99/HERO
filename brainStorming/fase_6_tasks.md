@@ -9,8 +9,8 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 ### `[ ]` Task 6.1: Network Analysis Classica dei Mercati Alimentari (NetworkX)
 * **Descrizione**: Rappresentare il sistema dei prezzi alimentari come una rete e calcolare le metriche di trasmissione degli shock.
 * **Sotto-task**:
-  * `[ ]` Filtrare i dati dei mercati WFP e calcolare i prezzi mensili per provincia/mercato.
-  * `[ ]` Calcolare la matrice di correlazione temporale dei prezzi tra tutte le coppie di mercati.
+  * `[ ]` Filtrare i dati dei mercati WFP mantenendo la **risoluzione temporale nativa non aggregata** (es. settimanale o data transazione originale), evitando la contrazione a livello mensile `MS` per preservare i lag rapidi.
+  * `[ ]` Calcolare la matrice di correlazione temporale dei prezzi tra tutte le coppie di mercati usando le serie storiche ad alta frequenza.
   * `[ ]` Costruire il grafo: i mercati sono i nodi; inserire un arco tra due nodi solo se il valore di correlazione supera una soglia definita (es. $r > 0.7$).
   * `[ ]` Utilizzare `NetworkX` per calcolare:
     * `[ ]` **Degree Centrality**: identificare i mercati più connessi.

@@ -5,7 +5,8 @@
 ## 1. Network Analysis Classica (NetworkX) e Autocorrelazione Spaziale
 * **Rete di Integrazione dei Mercati (WFP)**:
   * **Concetto**: Rappresentare il sistema di scambio e distribuzione alimentare come una rete in cui i nodi sono i mercati fisici (o le province) e gli archi rappresentano la correlazione temporale dei prezzi dei beni alimentari di base.
-  * **Applicazione**: Utilizzo della libreria `NetworkX` per calcolare metriche di centralità (*Degree Centrality*, *Betweenness Centrality*). Questo consente di individuare empiricamente i mercati "hub" o di transito critici che, se colpiti da uno shock sui prezzi, propagano l'inflazione alle aree adiacenti.
+  * **Granularità Temporale**: Al fine di studiare l'integrazione e la propagazione degli shock con massima fedeltà e catturare i tempi di reazione (lags) rapidi dei mercati, **l'analisi di rete viene eseguita mantenendo la risoluzione temporale nativa non aggregata dei prezzi WFP** (es. frequenza settimanale o giornaliera originale), senza forzarli alla risoluzione mensile del target IPC.
+  * **Applicazione**: Utilizzo della libreria `NetworkX` per calcolare metriche di centralità (*Degree Centrality*, *Betweenness Centrality*). Questo consente di individuare empiricamente i mercati "hub" o di transito precisi che, se colpiti da uno shock sui prezzi, propagano l'inflazione alle aree adiacenti.
 * **Autocorrelazione Spaziale (Moran's I & LISA)**:
   * **Concetto**: Verificare quantitativamente se la gravità dell'insicurezza alimentare di una provincia sia influenzata dalla vicinanza geografica con province colpite da crisi (effetto contagio).
   * **Applicazione**: Calcolo dell'indice di Moran globale (*Moran's I*) per validare la presenza di autocorrelazione spaziale dell'IPC3+, e della mappa LISA (*Local Indicators of Spatial Association*) per identificare cluster spaziali di insicurezza (aree High-High o Low-Low).

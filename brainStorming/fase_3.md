@@ -48,10 +48,15 @@ Le osservazioni vengono trattate come sequenze temporali ordinate: $X_i = \langl
 ---
 
 ## 📊 Grafici e Visualizzazioni per la FASE 3
-* **Decomposizione STL (Observed, Trend, Seasonal, Residuals)**: Plot a 4 pannelli per illustrare visivamente la scomposizione della serie storica IPC.
+* **Decomposizione STL (`01_Statistical_Decomposition_STL.png`)**: Plot a 4 pannelli (Observed, Trend, Seasonal, Residuals) per illustrare la scomposizione delle serie temporali.
 * **Grafico ACF e PACF Comparativo (`02b_Compare_Series_Autocorrelation.png`)**: Pannello doppio che confronta i correlogrammi prima e dopo il processo di stazionarizzazione (differenziazione) per confermare la rimozione di trend e stagionalità.
 * **Cross-Correlation Function Plot (`02c_Cross_Correlation_with_Target.png`)**: Grafico che traccia la correlazione per lag (da -12 a +12). Evidenzia visivamente a quale lag temporale si trova la massima correlazione (early-warning signal).
-* **Allineamento Time Series + Matrix Profile**: Grafico a due pannelli sovrapposti. Il pannello superiore mostra la serie storica originale (es. prezzi del cibo) con gli shock evidenziati in rosso; il pannello inferiore mostra la curva del Matrix Profile con i minimi locali (Motifs) e i picchi massimi (Discords/Anomalie) chiaramente marcati.
+* **Allineamento Time Series + Matrix Profile (`04_Matrix_Profile_Anomalies_Discords.png`)**: Grafico a due pannelli sovrapposti. Il pannello superiore mostra la serie storica originale con gli shock evidenziati in rosso; il pannello inferiore mostra la curva del Matrix Profile con i minimi locali (Motifs) e i picchi massimi (Discords/Anomalie) chiaramente marcati.
 * **Shapelet Alignment Plot**: Grafico a linee che mostra la serie temporale del driver esogeno con evidenziata in grassetto colorato la sezione in cui si è allineata la Shapelet predittiva, illustrando visivamente il "pattern precursore".
-* **Dendrogramma Comparativo (DTW vs tsfresh)**: Due dendrogrammi affiancati (tanglegram) per confrontare visivamente come cambia il raggruppamento delle province se effettuato su base geometrica deformabile (DTW) o su feature strutturali (tsfresh).
-* **Heatmap della Matrice di Distanza DTW**: Matrice simmetrica $N \times N$ colorata con scala divergente (viridis/inferno) che mostra la distanza di allineamento temporale tra tutte le coppie di province.
+* **Dendrogrammi di Clustering Provinciale/Regionale Globale**:
+  * **Feature-Based Dendrogram (`global_regions_dendrogram.png` / `Hierarchical_Dendrogram_Features.png`)**: Dendrogramma basato su feature tsfresh ed algoritmo di legame Ward.
+  * **Shape-Based Dendrogram (`global_national_dendrogram_shape.png` / `Hierarchical_Dendrogram_Shape.png`)**: Dendrogramma basato su allineamento dinamico DTW.
+* **PCA Scatter Plot dei Cluster Spaziotemporali**:
+  * **Global PCA Scatter (`global_regions_pca_scatter.png` / `Feature_Based_PCA_Scatter.png`)**: Dispersione bidimensionale dei cluster di province proiettati su spazio PCA.
+* **Mappe Choropleth dei Cluster Nazionali e Regionali (`global_national_map.png` / `global_regions_map.png`)**: Rappresentazione spaziotemporale geografica dei cluster funzionali per verificare la contiguità spaziale dei profili dinamici estratti.
+* **Heatmap delle Distanze di Forma DTW (`{country_code}_dtw_heatmap.png` / `global_national_dtw_heatmap.png`)**: Matrice simmetrica $N \times N$ colorata con scala divergente (viridis) che mostra la distanza di allineamento temporale tra tutte le coppie di province.

@@ -29,7 +29,7 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
     * `[ ]` **ARIMA/SARIMAX** (selezionando automaticamente i parametri $p, d, q$ tramite AIC/BIC).
     * `[ ]` **Exponential Smoothing (Holt-Winters)**.
   * `[ ]` Generare le previsioni out-of-sample per un orizzonte temporale $h=3$ e $h=6$ mesi.
-  * `[ ]` Salvare gli errori di previsione (MAE, RMSE) per il confronto finale.
+  * `[ ]` Salvare gli errori di previsione (MAE, RMSE) per il confronto finale ed esportare il grafico di confronto multimodello (`05_MultiModel_Forecast_Comparison.png`).
 
 ---
 

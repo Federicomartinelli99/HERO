@@ -11,8 +11,8 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 * **Sotto-task**:
   * `[ ]` Implementare il test **Augmented Dickey-Fuller (ADF)** per la serie target (`phase_3plus_percentage`) e i driver esogeni a livello di provincia.
   * `[ ]` Sviluppare una routine di differenziazione automatica: applicare la differenza prima ($d=1$) o seconda ($d=2$) se il p-value del test ADF è $\ge 0.05$.
-  * `[ ]` Applicare la decomposizione **STL (Seasonal-Trend Decomposition using LOESS)** per isolare trend, stagionalità e residui per ciascuna provincia.
-  * `[ ]` Plottare e salvare i correlogrammi ACF/PACF prima e dopo la stazionarizzazione.
+  * `[ ]` Applicare la decomposizione **STL (Seasonal-Trend Decomposition using LOESS)** per isolare trend, stagionalità e residui per ciascuna provincia. Salvare come `01_Statistical_Decomposition_STL.png`.
+  * `[ ]` Plottare e salvare i correlogrammi ACF/PACF prima e dopo la stazionarizzazione. Salvare come `02b_Compare_Series_Autocorrelation.png`.
 
 ---
 
@@ -30,7 +30,7 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 * **Sotto-task**:
   * `[ ]` Installare/importare librerie per il calcolo del Matrix Profile (es. `stumpy` o implementazione custom z-normalizzata).
   * `[ ]` Configurare una finestra temporale di $m = 12$ mesi.
-  * `[ ]` Calcolare il Matrix Profile sui prezzi WFP e anomalie CHIRPS, individuando i Discords principali (shock di prezzo o climatici).
+  * `[ ]` Calcolare il Matrix Profile sui prezzi WFP e anomalie CHIRPS, individuando i Discords principali (shock di prezzo o climatici). Salvare come `04_Matrix_Profile_Anomalies_Discords.png`.
   * `[ ]` Tracciare i residui dell'anomalia rispetto alla soglia $Z > 2.0$.
 
 ---
@@ -56,7 +56,8 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 ### `[ ]` Task 3.6: Distanze Temporali e Clustering Dinamico (DTW & NCD)
 * **Descrizione**: Calcolare le matrici di dissimilarità dinamica e raggruppare le province in base alla forma o comprimibilità delle loro serie storiche.
 * **Sotto-task**:
-  * `[ ]` Sviluppare il calcolo della distanza **DTW (Dynamic Time Warping)** z-normalizzata tra le serie storiche provinciali.
+  * `[ ]` Sviluppare il calcolo della distanza **DTW (Dynamic Time Warping)** z-normalizzata tra le serie storiche provinciali. Esportare la heatmap delle distanze (`{country_code}_dtw_heatmap.png` o `global_national_dtw_heatmap.png`).
   * `[ ]` Sviluppare il calcolo della distanza di compressione **NCD (Normalized Compression Distance)** concatenando e comprimendo (es. con gzip) i vettori delle serie storiche.
-  * `[ ]` Eseguire il clustering gerarchico sulle matrici di distanza risultanti e generare i relativi dendrogrammi.
+  * `[ ]` Eseguire il clustering gerarchico sulle matrici di distanza risultanti. Salvare i dendrogrammi (`global_regions_dendrogram.png` / `global_national_dendrogram_shape.png`) e i grafici scatter di PCA (`global_regions_pca_scatter.png` / `Feature_Based_PCA_Scatter.png`).
+  * `[ ]` Mappare i cluster sulle province e salvare i plot geografici (`global_national_map.png` / `global_regions_map.png`).
   * `[ ]` Salvare tutti i risultati in `ML/results/time_series_exploration/`.

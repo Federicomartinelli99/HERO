@@ -18,8 +18,19 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 
 ---
 
-### `[ ]` Task 1.2: Imputazione Spaziotemporale KNN (Geo-Similarity)
-* **Descrizione**: Sviluppare e applicare la funzione di imputazione spaziale basata su KNN.
+### `[ ]` Task 1.2: Ricostruzione delle Serie Storiche IPC su Base Nazionale (Country-Bounded)
+* **Descrizione**: Ricostruire i valori temporali mancanti dell'IPC per una determinata provincia sfruttando le serie storiche delle province dello stesso paese.
+* **Sotto-task**:
+  * `[ ]` Raggruppare il dataset per nazione (`groupby('Country')`).
+  * `[ ]` Sviluppare una funzione che, per ogni provincia $P$ con dati IPC mancanti in un mese $t$, identifichi le altre province del medesimo paese che possiedono dati IPC validi nello stesso mese.
+  * `[ ]` Calcolare la matrice delle distanze geografiche (o correlazione storica delle variabili climatiche) tra la provincia $P$ e le province donatrici limitrofe.
+  * `[ ]` Ricostruire il valore IPC mancante al tempo $t$ come media pesata (inversa della distanza o proporzionale alla correlazione) dei valori delle province donatrici dello stesso paese.
+  * `[ ]` Validare la ricostruzione assicurando che i trend nazionali vengano rispettati e che non vi sia perdita di dinamica locale.
+
+---
+
+### `[ ]` Task 1.3: Imputazione Spaziotemporale KNN (Geo-Similarity)
+* **Descrizione**: Applicare la funzione di imputazione spaziale basata su KNN per i driver esogeni.
 * **Firma della Funzione**:
   ```python
   def impute_missing_knn_geo_similarity(df, target_columns, lat_col='latitude', lon_col='longitude', n_neighbors=5):
@@ -37,9 +48,9 @@ Questo documento contiene i dettagli implementativi e la checklist per la **Fase
 
 ---
 
-### `[ ]` Task 1.3: Diagnostica e Visualizzazione del Preprocessing
+### `[ ]` Task 1.4: Diagnostica e Visualizzazione del Preprocessing
 * **Descrizione**: Generare grafici di controllo per validare il comportamento dell'imputazione spaziale.
 * **Sotto-task**:
   * `[ ]` Generare e salvare la **Missingness Heatmap** prima e dopo l'imputazione.
-  * `[ ]` Tracciare i **KDE Plot** (Kernel Density Estimate) per ciascun driver per confrontare la distribuzione dei dati originali rispetto a quelli imputati (verificando che il KNN non abbia appiattito la varianza o alterato la forma della distribuzione).
+  * `[ ]` Tracciare i **KDE Plot** (Kernel Density Estimate) per ciascun driver per confrontare la distribuzione dei dati originali rispetto a quelli imputati.
   * `[ ]` Salvare tutti i grafici diagnostici nella cartella `ML/results/preprocessing/`.
