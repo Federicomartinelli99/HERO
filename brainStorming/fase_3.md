@@ -36,7 +36,8 @@ Le osservazioni vengono trattate come sequenze temporali ordinate: $X_i = \langl
 * **Logica**: I modelli temporali classici (ARIMA, VAR) richiedono che la serie storica sia stazionaria (media, varianza e struttura di autocorrelazione costanti nel tempo) per evitare regressioni spurie e stime errate.
 * **Metodologia**:
   * Applicazione del test **Augmented Dickey-Fuller (ADF)** per testare l'ipotesi nulla di non-stazionarietà.
-  * Se il test fallisce (p-value $\ge 0.05$), si applica in automatico la differenziazione temporale di primo ordine ($d=1$) o di secondo ordine ($d=2$).
+  * **Studio tramite ACF/PACF**: Analisi visiva dei correlogrammi per diagnosticare la presenza di trend o componenti stagionali (un decadimento molto lento dell'ACF indica non-stazionarietà/trend; la presenza di picchi periodici indica stagionalità).
+  * Se il test fallisce (p-value $\ge 0.05$) o l'analisi ACF conferma il trend, si applica in automatico la differenziazione temporale di primo ordine ($d=1$) o di secondo ordine ($d=2$).
   * Estrazione della componente stagionale, trend e residua mediante decomposizione **STL (Seasonal-Trend Decomposition using LOESS)**.
 
 ---
@@ -48,15 +49,17 @@ Le osservazioni vengono trattate come sequenze temporali ordinate: $X_i = \langl
 ---
 
 ## 📊 Grafici e Visualizzazioni per la FASE 3
+I grafici di questa fase devono essere archiviati nella directory **`ML/results/time_series_exploration/`** (con eventuali sotto-cartelle per provincia/paese):
+
 * **Decomposizione STL (`01_Statistical_Decomposition_STL.png`)**: Plot a 4 pannelli (Observed, Trend, Seasonal, Residuals) per illustrare la scomposizione delle serie temporali.
-* **Grafico ACF e PACF Comparativo (`02b_Compare_Series_Autocorrelation.png`)**: Pannello doppio che confronta i correlogrammi prima e dopo il processo di stazionarizzazione (differenziazione) per confermare la rimozione di trend e stagionalità.
+* **Grafico ACF e PACF Comparativo (`02b_Compare_Series_Autocorrelation.png`)**: Pannello doppio che confronta i correlogrammi prima e dopo il processo di stazionarizzazione (differenziazione) per confermare la rimozione di trend e stagionalità e studiare la stazionarietà.
 * **Cross-Correlation Function Plot (`02c_Cross_Correlation_with_Target.png`)**: Grafico che traccia la correlazione per lag (da -12 a +12). Evidenzia visivamente a quale lag temporale si trova la massima correlazione (early-warning signal).
 * **Allineamento Time Series + Matrix Profile (`04_Matrix_Profile_Anomalies_Discords.png`)**: Grafico a due pannelli sovrapposti. Il pannello superiore mostra la serie storica originale con gli shock evidenziati in rosso; il pannello inferiore mostra la curva del Matrix Profile con i minimi locali (Motifs) e i picchi massimi (Discords/Anomalie) chiaramente marcati.
-* **Shapelet Alignment Plot**: Grafico a linee che mostra la serie temporale del driver esogeno con evidenziata in grassetto colorato la sezione in cui si è allineata la Shapelet predittiva, illustrando visivamente il "pattern precursore".
+* **Shapelet Alignment Plot (`shapelet_alignments/`)**: Grafico a linee che mostra la serie temporale del driver esogeno con evidenziata in grassetto colorato la sezione in cui si è allineata la Shapelet predittiva, illustrando visivamente il "pattern precursore".
 * **Dendrogrammi di Clustering Provinciale/Regionale Globale**:
-  * **Feature-Based Dendrogram (`global_regions_dendrogram.png` / `Hierarchical_Dendrogram_Features.png`)**: Dendrogramma basato su feature tsfresh ed algoritmo di legame Ward.
-  * **Shape-Based Dendrogram (`global_national_dendrogram_shape.png` / `Hierarchical_Dendrogram_Shape.png`)**: Dendrogramma basato su allineamento dinamico DTW.
+  * **Feature-Based Dendrogram (`dendrograms/global_regions_dendrogram_features.png`)**: Dendrogramma basato su feature tsfresh ed algoritmo di legame Ward.
+  * **Shape-Based Dendrogram (`dendrograms/global_national_dendrogram_shape.png`)**: Dendrogramma basato su allineamento dinamico DTW.
 * **PCA Scatter Plot dei Cluster Spaziotemporali**:
-  * **Global PCA Scatter (`global_regions_pca_scatter.png` / `Feature_Based_PCA_Scatter.png`)**: Dispersione bidimensionale dei cluster di province proiettati su spazio PCA.
-* **Mappe Choropleth dei Cluster Nazionali e Regionali (`global_national_map.png` / `global_regions_map.png`)**: Rappresentazione spaziotemporale geografica dei cluster funzionali per verificare la contiguità spaziale dei profili dinamici estratti.
-* **Heatmap delle Distanze di Forma DTW (`{country_code}_dtw_heatmap.png` / `global_national_dtw_heatmap.png`)**: Matrice simmetrica $N \times N$ colorata con scala divergente (viridis) che mostra la distanza di allineamento temporale tra tutte le coppie di province.
+  * **Global PCA Scatter (`clustering/global_regions_pca_scatter.png`)**: Dispersione bidimensionale dei cluster di province proiettati su spazio PCA.
+* **Mappe Choropleth dei Cluster Nazionali e Regionali (`maps/global_national_map.png` / `maps/global_regions_map.png`)**: Rappresentazione spaziotemporale geografica dei cluster funzionali per verificare la contiguità spaziale dei profili dinamici estratti.
+* **Heatmap delle Distanze di Forma DTW (`heatmaps/global_national_dtw_heatmap.png`)**: Matrice simmetrica $N \times N$ colorata con scala divergente (viridis) che mostra la distanza di allineamento temporale tra tutte le coppie di province.
