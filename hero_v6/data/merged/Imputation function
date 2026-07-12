@@ -1,0 +1,167 @@
+
+Imputation
+
+Spatial / Geographic Imputation
+This function introduces a completely different strategy: it uses geographic proximity (Latitude and Longitude) to guide the algorithm in deciding which rows are "similar." The underlying logic is that entities close to each other on a map (e.g., neighboring states, regions, or cities) likely share similar socio-economic or environmental patterns.
+
+The whereabouts are defined on the admin1 location, in case of missing coordinates, we will use a general coordinate defined on the country.
+
+What it does, step-by-step:
+Coordinate Filtering: It looks at the latitude and longitude columns. If any rows are missing these coordinates, it temporarily drops them because it cannot place them in a geographic space.
+Empty Column Check: Just like the first function, it excludes any target columns that are 100% NaN for that subset.
+Feature Merging (The Key Trick): It combines the geographic coordinates (latitude and longitude) together with the target columns you want to impute.
+Neighbor Adaptation: It reduces the n_neighbors count if the available rows are fewer than your target setting.
+Joint Scaling: It scales everything together—including latitude and longitude. This converts geographic degrees into a standardized scale compatible with your other variables, allowing the algorithm to calculate a "distance" that balances physical distance with data similarity.
+Geo-Guided Imputation: The KNN fills the missing gaps using data from the closest "neighbors" on the map.
+Index Mapping: Since it filtered out rows missing coordinates at the start, it uses Pandas index matching to map the imputed values exactly back to the right rows in the original dataframe, without altering the actual latitude and longitude values.
+
+
+def impute_missing_knn_geo_similarity(df, target_columns, lat_col='latitude', lon_col='longitude', n_neighbors=5):
+    """
+    Imputes missing values in specified columns using KNN Imputation,
+    using Latitude and Longitude to guide the distance/clustering metric.
+
+    Parameters:
+    df (pd.DataFrame): The input dataframe.
+    target_columns (list): List of column names to impute.
+    lat_col (str): Name of the latitude column.
+    lon_col (str): Name of the longitude column.
+    n_neighbors (int): Number of neighboring samples to use for imputation.
+
+    Returns:
+    pd.DataFrame: A copy of the dataframe with missing values filled.
+    """
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.impute import KNNImputer
+    import pandas as pd
+    import numpy as np
+
+    df_clean = df.copy()
+
+    if df_clean.empty:
+        return df_clean
+
+    # 1. Sicurezza Coordinate: Rimuove le righe dove mancano lat/lon, poiché non possono fare da guida geometrica
+    # (Opzionale: se preferisci tenerle, il KNN proverà a imputare anche le coordinate, ma ridurrà la precisione geografica)
+    coord_cols = [lat_col, lon_col]
+    df_geo_valid = df_clean.dropna(subset=coord_cols)
+
+    if df_geo_valid.empty:
+        # Se non ci sono coordinate valide in questo subset/gruppo, fall-back sulle sole colonne target
+        # o ritorna il df originale senza modifiche geografiche
+        coord_cols = []
+        df_geo_valid = df_clean
+
+    # 2. Identifica le colonne target che non sono interamente composte da NaN
+    data_to_impute = df_geo_valid[target_columns]
+    cols_with_all_nan = data_to_impute.columns[data_to_impute.isna().all()].tolist()
+    cols_to_impute = [c for c in target_columns if c not in cols_with_all_nan]
+
+    # Se non c'è nulla da imputare, ritorna
+    if not cols_to_impute:
+        return df_clean
+
+    # 3. Uniamo le coordinate spaziali alle colonne da imputare per il calcolo delle distanze
+    features_for_knn = coord_cols + cols_to_impute
+    data_subset = df_geo_valid[features_for_knn]
+
+    # 4. Adatta il numero di vicini alle righe disponibili
+    available_rows = len(data_subset)
+    current_neighbors = min(n_neighbors, available_rows)
+
+    if current_neighbors < 1:
+        return df_clean
+
+    # 5. Scaling di tutte le feature (inclusi Lat e Lon, così i gradi geografici sono standardizzati insieme ai dati)
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data_subset)
+
+    # 6. KNN Imputer
+    imputer = KNNImputer(n_neighbors=current_neighbors, weights='distance')
+    scaled_imputed = imputer.fit_transform(scaled_data)
+
+    # 7. Inverse transform per tornare alla scala originale
+    final_data = scaler.inverse_transform(scaled_imputed)
+
+    # Creiamo un dataframe temporaneo per mappare i risultati sulle righe corrette
+    df_imputed_mapped = pd.DataFrame(final_data, columns=features_for_knn, index=df_geo_valid.index)
+
+    # 8. Riportiamo nel dataframe originale solo le colonne TARGET imputate (escludendo lat/lon)
+    df_clean.loc[df_geo_valid.index, cols_to_impute] = df_imputed_mapped[cols_to_impute]
+
+    return df_clean
+
+
+
+
+Standard & Safe Imputation
+This function is designed to perform data imputation based solely on the values of the columns you want to fill. It is built to be highly robust, meaning it won't crash if you use it inside a groupby operation (for instance, when processing your data country by country or group by group).
+What it does, step-by-step:
+Data Isolation: It creates a copy of the dataset to avoid modifying your original data and extracts only the columns you specified for filling (target_columns).
+Column Safety Check: If a column in a specific subgroup (e.g., a small country) is entirely empty (contains only NaN), the function temporarily excludes it. KNN cannot compute distances based on entirely empty columns.
+Row Safety Check: It checks how many rows are available. If you set n_neighbors=5, but that specific group only has 3 rows of data, the function automatically drops the neighbor count to 3 to prevent a crash.
+Standardization (Scaling): It scales the data to a common range (mean of 0 and variance of 1). This is crucial for KNN; it prevents variables with large numbers (like GDP) from completely overwhelming variables with small numbers.
+Calculation & Imputation: It identifies the most similar rows, giving more weight to closer neighbors (weights='distance'), and fills in the blanks.
+Inverse Transformation: It converts the standardized numbers back to their original scale  and inserts the newly imputed values into the final dataframe.
+
+
+def impute_missing_knn(df, target_columns, n_neighbors=5):
+    """
+    Imputes missing values in specified columns using KNN Imputation.
+    Automatically handles scaling and un-scaling of data.
+    Safe for groupby operations (handles all-NaN columns and low row counts).
+
+    Parameters:
+    df (pd.DataFrame): The input dataframe.
+    target_columns (list): List of column names to include in the imputation process.
+    n_neighbors (int): Number of neighboring samples to use for imputation.
+
+    Returns:
+    pd.DataFrame: A copy of the dataframe with missing values filled.
+    """
+    # IMPORT INTERNI: Prevengono il NameError indipendentemente da dove viene chiamata la funzione
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.impute import KNNImputer
+    import pandas as pd
+
+    # 1. Create a copy to avoid modifying the original dataframe
+    df_clean = df.copy()
+
+    # Se il dataframe (o il sotto-gruppo del paese) è vuoto, ritorna subito
+    if df_clean.empty:
+        return df_clean
+
+    # 2. Extract only the columns needed for imputation
+    data_to_impute = df_clean[target_columns]
+
+    # SICUREZZA 1: Rimuove le colonne che hanno SOLO NaN per questo specifico gruppo/paese.
+    # Il KNN fallirebbe se provasse a calcolare le distanze su colonne interamente vuote.
+    cols_with_all_nan = data_to_impute.columns[data_to_impute.isna().all()].tolist()
+    cols_to_impute = [c for c in target_columns if c not in cols_with_all_nan]
+
+    # Se tutte le colonne target sono completamente vuote per questo paese, non possiamo fare il KNN.
+    if not cols_to_impute:
+        return df_clean
+
+    data_subset = data_to_impute[cols_to_impute]
+
+    # SICUREZZA 2: Adatta il numero di vicini alle righe disponibili.
+    # Se un paese ha 3 righe, non puoi cercare 5 vicini (n_neighbors=5).
+    available_rows = len(data_subset)
+    current_neighbors = min(n_neighbors, available_rows)
+
+    # 3. Scale the data (Crucial for distance-based algorithms)
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data_subset)
+
+    # 4. Initialize and fit the KNN Imputer
+    imputer = KNNImputer(n_neighbors=current_neighbors, weights='distance')
+    scaled_imputed = imputer.fit_transform(scaled_data)
+
+    # 5. Inverse transform back to the original data scale
+    final_data = scaler.inverse_transform(scaled_imputed)
+
+    # 6. Put the imputed values back into the dataframe
+    df_clean[cols_to_impute] = final_data
+
+    return df_clean
