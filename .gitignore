@@ -12,7 +12,5 @@ hero_v2/*
 hero_v3/*
 hero_v4/*
 hero_v5/*
-
-
 !hero_v6/data/merged/*.parquet
 !hero_v6/data/raw/*.parquet
