@@ -32,3 +32,9 @@ La ricostruzione dei dati mancanti, in particolare per la serie storica dell'IPC
 * **Missingness Heatmap (Prima vs Dopo)**: Mappa di calore bidimensionale (regioni vs feature) che mostra graficamente in nero i dati mancanti prima del preprocessing e in bianco il dataset completamente popolato dopo il KNN spaziale.
 * **Density plots di Controllo (Originale vs Imputato)**: Grafici a curve di densità sovrapposte (KDE Plot) per ciascun driver (es. piogge, inflazione). Consente di verificare visivamente che la distribuzione probabilistica del dato imputato con KNN non presenti distorsioni o shift sistematici rispetto alla distribuzione dei dati reali osservati.
 * **Mappa Spaziale delle Imputazioni**: Mappa geografica con marker colorati per evidenziare le regioni in cui è stato necessario ricorrere all'imputazione (e l'intensità/percentuale dei dati ricostruiti).
+
+---
+### C.Definzione algoritmo per la gestione dei dati mancanti
+
+Usare diverse metriche per la scelta dell'agoritmo giusto.
+
