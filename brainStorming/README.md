@@ -40,6 +40,10 @@ Clicca sui link sottostanti per esplorare la documentazione dettagliata, le spec
 * **Descrizione**: Dashboard web Folium/GeoPandas, ApexCharts heatmap, trend lineari/radar e il simulatore interattivo di scenario "What-If".
 * 📝 **[Checklist Implementativa - Fase 8 Tasks](fase_8_tasks.md)**
 
+
+### 🖥️ [FASE 9: Intervista](fase_9.md)
+* **Descrizione**: Idee per la intervista.
+* 📝 **[Checklist Implementativa - Fase 9 Tasks](fase_9_tasks.md)**
 ---
 
 ## 📂 Alberatura di Archiviazione dei Risultati (Risultati & Plot)
