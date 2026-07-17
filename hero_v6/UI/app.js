@@ -231,6 +231,36 @@ function switchView(viewName) {
         
         initTimelineControls();
         renderTemporalMap();
+    } else if (viewName === 'spatiotemporal') {
+        document.getElementById('panel-spatiotemporal').classList.add('active');
+        document.getElementById('nav-spatiotemporal').classList.add('active');
+        
+        document.getElementById('view-title').innerText = "Mappe Spazio-Temporali dell'Andamento Variabili";
+        document.getElementById('view-subtitle').innerText = "Visualizza l'andamento spazio-temporale reale di ciascuna variabile nel tempo per nazione o provincia";
+        
+        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
+        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
+        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
+        document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
+        
+        renderGlobalSpatiotemporalHeatmap();
+    } else if (viewName === 'tsa-global') {
+        document.getElementById('panel-tsa-global').classList.add('active');
+        document.getElementById('nav-tsa-global').classList.add('active');
+        
+        document.getElementById('view-title').innerText = "TSA Clustering Globale";
+        document.getElementById('view-subtitle').innerText = "Analisi di clustering e confronto globale delle serie temporali nazionali e regionali";
+        
+        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
+        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
+        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
+        document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
+        
+        loadTsaGlobalPanel();
     }
 }
 
@@ -4173,6 +4203,7 @@ function switchCountrySubView(subViewName) {
     const btnIdp = document.getElementById('btn-country-tab-idp');
     const btnRainfall = document.getElementById('btn-country-tab-rainfall');
     const btnNdvi = document.getElementById('btn-country-tab-ndvi');
+    const btnTsa = document.getElementById('btn-country-tab-tsa');
     
     if (btnMap) btnMap.classList.toggle('active', subViewName === 'map');
     if (btnMarkets) btnMarkets.classList.toggle('active', subViewName === 'markets');
@@ -4184,6 +4215,7 @@ function switchCountrySubView(subViewName) {
     if (btnIdp) btnIdp.classList.toggle('active', subViewName === 'idp');
     if (btnRainfall) btnRainfall.classList.toggle('active', subViewName === 'rainfall');
     if (btnNdvi) btnNdvi.classList.toggle('active', subViewName === 'ndvi');
+    if (btnTsa) btnTsa.classList.toggle('active', subViewName === 'tsa');
     
     // Toggle active sidebar sub-menu items
     const navMap = document.getElementById('nav-country-map');
@@ -4196,6 +4228,8 @@ function switchCountrySubView(subViewName) {
     const navIdp = document.getElementById('nav-country-idp');
     const navRainfall = document.getElementById('nav-country-rainfall');
     const navNdvi = document.getElementById('nav-country-ndvi');
+    const navSpatiotemporal = document.getElementById('nav-country-spatiotemporal');
+    const navTsa = document.getElementById('nav-country-tsa');
     
     if (navMap) navMap.classList.toggle('active', subViewName === 'map');
     if (navMarkets) navMarkets.classList.toggle('active', subViewName === 'markets');
@@ -4207,6 +4241,8 @@ function switchCountrySubView(subViewName) {
     if (navIdp) navIdp.classList.toggle('active', subViewName === 'idp');
     if (navRainfall) navRainfall.classList.toggle('active', subViewName === 'rainfall');
     if (navNdvi) navNdvi.classList.toggle('active', subViewName === 'ndvi');
+    if (navSpatiotemporal) navSpatiotemporal.classList.toggle('active', subViewName === 'spatiotemporal');
+    if (navTsa) navTsa.classList.toggle('active', subViewName === 'tsa');
     
     // Toggle active sub-panels
     const panelMap = document.getElementById('country-sub-panel-map');
@@ -4219,6 +4255,8 @@ function switchCountrySubView(subViewName) {
     const panelIdp = document.getElementById('country-sub-panel-idp');
     const panelRainfall = document.getElementById('country-sub-panel-rainfall');
     const panelNdvi = document.getElementById('country-sub-panel-ndvi');
+    const panelSpatiotemporal = document.getElementById('country-sub-panel-spatiotemporal');
+    const panelTsa = document.getElementById('country-sub-panel-tsa');
     
     if (panelMap) panelMap.style.display = subViewName === 'map' ? 'block' : 'none';
     if (panelMarkets) panelMarkets.style.display = subViewName === 'markets' ? 'block' : 'none';
@@ -4230,6 +4268,8 @@ function switchCountrySubView(subViewName) {
     if (panelIdp) panelIdp.style.display = subViewName === 'idp' ? 'block' : 'none';
     if (panelRainfall) panelRainfall.style.display = subViewName === 'rainfall' ? 'block' : 'none';
     if (panelNdvi) panelNdvi.style.display = subViewName === 'ndvi' ? 'block' : 'none';
+    if (panelSpatiotemporal) panelSpatiotemporal.style.display = subViewName === 'spatiotemporal' ? 'block' : 'none';
+    if (panelTsa) panelTsa.style.display = subViewName === 'tsa' ? 'block' : 'none';
     
     // Manage chart toggles visibility (only visible in charts sub-view)
     const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
@@ -4281,6 +4321,14 @@ function switchCountrySubView(subViewName) {
             }
             renderGdeltTab(activeTrends);
         }
+    } else if (subViewName === 'spatiotemporal') {
+        setTimeout(() => {
+            renderCountrySpatiotemporalHeatmap();
+        }, 50);
+    } else if (subViewName === 'tsa') {
+        setTimeout(() => {
+            renderTsaDiagnostics();
+        }, 50);
     } else if (['ipc', 'acled', 'idp', 'rainfall', 'ndvi'].includes(subViewName)) {
         loadAndRenderRawTab(state.selectedCountry, subViewName);
     }
@@ -5622,4 +5670,688 @@ function renderNdviTab(trends) {
     rawCharts.ndviViq.render();
 }
 
+// ── SPATIOTEMPORAL HEATMAPS LOGIC ──
+
+// Main state handlers
+function onGlobalSpatiotemporalChange() {
+    state.spatiotemporalMetric = document.getElementById("spatiotemporal-metric-selector").value;
+    state.spatiotemporalLevel = document.getElementById("spatiotemporal-level-selector").value;
+    renderGlobalSpatiotemporalHeatmap();
+}
+
+function onCountrySpatiotemporalChange() {
+    state.countrySpatiotemporalMetric = document.getElementById("country-spatiotemporal-metric-selector").value;
+    renderCountrySpatiotemporalHeatmap();
+}
+
+// Dynamic range scaling helper for heatmaps
+function getHeatmapColorScale(metric, maxVal = 100) {
+    if (metric === 'ipc') {
+        return [
+            { from: 0, to: 5, name: 'Basso (<5%)', color: '#065f46' },
+            { from: 5, to: 15, name: 'Lieve (5-15%)', color: '#047857' },
+            { from: 15, to: 25, name: 'Moderato (15-25%)', color: '#fbbf24' },
+            { from: 25, to: 45, name: 'Elevato (25-45%)', color: '#f97316' },
+            { from: 45, to: 100, name: 'Critico (>45%)', color: '#dc2626' }
+        ];
+    } else if (metric === 'acled') {
+        return [
+            { from: 0, to: 0, name: 'Nessun Evento', color: '#1a1f2c' },
+            { from: 1, to: 5, name: 'Lieve (1-5)', color: '#fed7aa' },
+            { from: 5, to: 20, name: 'Moderato (5-20)', color: '#fb923c' },
+            { from: 20, to: 80, name: 'Frequente (20-80)', color: '#ea580c' },
+            { from: 80, to: 999999, name: 'Intenso (>80)', color: '#b91c1c' }
+        ];
+    } else if (metric === 'idp') {
+        return [
+            { from: 0, to: 0, name: 'Nessun IDP', color: '#1a1f2c' },
+            { from: 1, to: 5000, name: 'Basso (<5k)', color: '#a5f3fc' },
+            { from: 5000, to: 25000, name: 'Medio (5-25k)', color: '#22d3ee' },
+            { from: 25000, to: 100000, name: 'Alto (25-100k)', color: '#06b6d4' },
+            { from: 100000, to: 99999999, name: 'Critico (>100k)', color: '#0891b2' }
+        ];
+    } else if (metric === 'rainfall') {
+        return [
+            { from: 0, to: 15, name: 'Siccità (<15mm)', color: '#fef08a' },
+            { from: 15, to: 50, name: 'Scarse (15-50mm)', color: '#7dd3fc' },
+            { from: 50, to: 150, name: 'Medie (50-150mm)', color: '#38bdf8' },
+            { from: 150, to: 300, name: 'Abbondanti (150-300mm)', color: '#0284c7' },
+            { from: 300, to: 9999, name: 'Intense (>300mm)', color: '#0369a1' }
+        ];
+    } else if (metric === 'wfp') {
+        return [
+            { from: 0.0, to: 0.8, name: 'Sottocosto (<0.8)', color: '#a7f3d0' },
+            { from: 0.8, to: 1.2, name: 'Normale (0.8-1.2)', color: '#e2e8f0' },
+            { from: 1.2, to: 1.5, name: 'Allerta (1.2-1.5)', color: '#fef08a' },
+            { from: 1.5, to: 2.0, name: 'Caro (1.5-2.0)', color: '#c084fc' },
+            { from: 2.0, to: 99.0, name: 'Iper-inflazione (>2.0)', color: '#7e22ce' }
+        ];
+    } else if (metric === 'ndvi') {
+        return [
+            { from: 0.0, to: 0.15, name: 'Arido (<0.15)', color: '#fca5a5' },
+            { from: 0.15, to: 0.25, name: 'Scarso (0.15-0.25)', color: '#fef08a' },
+            { from: 0.25, to: 0.4, name: 'Medio (0.25-0.4)', color: '#86efac' },
+            { from: 0.4, to: 0.6, name: 'Buono (0.4-0.6)', color: '#22c55e' },
+            { from: 0.6, to: 2.0, name: 'Lussureggiante (>0.6)', color: '#15803d' }
+        ];
+    } else if (metric === 'gdelt') {
+        return [
+            { from: 0, to: 50, name: 'Calmo (<50)', color: '#1e293b' },
+            { from: 50, to: 500, name: 'Basso (50-500)', color: '#fda4af' },
+            { from: 500, to: 2500, name: 'Medio (500-2500)', color: '#f43f5e' },
+            { from: 2500, to: 10000, name: 'Alto (2500-10000)', color: '#e11d48' },
+            { from: 10000, to: 99999999, name: 'Critico (>10000)', color: '#9f1239' }
+        ];
+    }
+    return [
+        { from: 0, to: 30, name: 'Basso', color: '#312e81' },
+        { from: 31, to: 70, name: 'Medio', color: '#4338ca' },
+        { from: 71, to: 100, name: 'Alto', color: '#4f46e5' }
+    ];
+}
+
+// Render Global Heatmap
+function renderGlobalSpatiotemporalHeatmap() {
+    if (!globalData) return;
+    
+    const container = document.getElementById("spatiotemporal-chart-container");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const metric = state.spatiotemporalMetric || 'ipc';
+    const level = state.spatiotemporalLevel || 'national';
+    
+    // Choose correct dataset key
+    const datasetKey = level === 'national' ? 'value_heatmaps' : 'value_heatmaps_adm1';
+    if (!globalData[datasetKey] || !globalData[datasetKey][metric]) {
+        container.innerHTML = `<div style="height: 550px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">Danti non disponibili per questa combinazione.</div>`;
+        return;
+    }
+    
+    const heatmapData = globalData[datasetKey][metric];
+    
+    // Series formatting
+    let maxVal = 0;
+    const series = heatmapData.y.map((name, idx) => {
+        const yCode = heatmapData.y_codes[idx];
+        const zRow = heatmapData.z[idx];
+        
+        const dataPoints = heatmapData.x.map((quarter, qIdx) => {
+            const val = zRow[qIdx];
+            if (val !== null && val > maxVal) maxVal = val;
+            return {
+                x: quarter,
+                y: val !== null ? parseFloat(val.toFixed(2)) : null
+            };
+        });
+        
+        return {
+            name: `${name} (${yCode})`,
+            data: dataPoints
+        };
+    });
+    
+    // Height depends on number of rows (Y axis) to avoid squeezing
+    const chartHeight = level === 'national' ? 950 : 2500;
+    
+    const options = {
+        series: series,
+        chart: {
+            height: chartHeight,
+            type: 'heatmap',
+            toolbar: { show: true },
+            animations: { enabled: false },
+            background: 'transparent'
+        },
+        stroke: { width: 0 },
+        dataLabels: { enabled: false },
+        plotOptions: {
+            heatmap: {
+                radius: 0,
+                enableShades: true,
+                shadeIntensity: 0.6,
+                colorScale: {
+                    ranges: getHeatmapColorScale(metric, maxVal)
+                }
+            }
+        },
+        theme: { mode: 'dark' },
+        xaxis: {
+            type: 'category',
+            labels: {
+                rotate: -90,
+                rotateAlways: true,
+                style: { fontSize: '9px', fontFamily: 'Inter' }
+            }
+        },
+        yaxis: {
+            labels: {
+                style: { fontSize: '9px', fontFamily: 'Inter' }
+            }
+        },
+        tooltip: {
+            custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                const rowName = w.config.series[seriesIndex].name;
+                const timeLabel = w.globals.labels[dataPointIndex];
+                const value = w.config.series[seriesIndex].data[dataPointIndex].y;
+                const formattedVal = value !== null ? value : 'N/A';
+                return `
+                    <div style="padding: 8px 12px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: white; font-family: Inter; font-size: 11px;">
+                        <div style="font-weight: 700; font-family: Outfit; font-size: 12px; color: #a5b4fc; margin-bottom: 4px;">${rowName}</div>
+                        <div>Periodo: <span style="font-weight: 600;">${timeLabel}</span></div>
+                        <div>Valore: <span style="font-weight: 600; color: #10b981;">${formattedVal}</span></div>
+                    </div>
+                `;
+            }
+        }
+    };
+    
+    if (globalSpatiotemporalChart) {
+        globalSpatiotemporalChart.destroy();
+    }
+    globalSpatiotemporalChart = new ApexCharts(container, options);
+    globalSpatiotemporalChart.render();
+}
+
+// Render Local Country Heatmap
+function renderCountrySpatiotemporalHeatmap() {
+    const code = state.selectedCountry;
+    const data = countryCache[code];
+    if (!data) return;
+    
+    const container = document.getElementById("country-spatiotemporal-chart-container");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    const metric = state.countrySpatiotemporalMetric || 'ipc';
+    
+    // Metric property mapping in country JSON trends
+    const metricProps = {
+        ipc: 'phase_3plus_percentage',
+        acled: 'acled_total_events',
+        idp: 'idp_population',
+        rainfall: 'rain_1m',
+        wfp: 'wfp_price',
+        ndvi: 'ndvi_vim',
+        gdelt: 'gdelt_material_conflict_events'
+    };
+    const prop = metricProps[metric];
+    
+    // Extract unique dates/quarters from all regions
+    const datesSet = new Set();
+    if (data.regions && data.regions.adm1) {
+        Object.keys(data.regions.adm1).forEach(pcode => {
+            const list = data.regions.adm1[pcode] || [];
+            list.forEach(t => {
+                if (t.from) {
+                    datesSet.add(t.from.substring(0, 7));
+                }
+            });
+        });
+    }
+    
+    const sortedDates = sortedDatesList(Array.from(datesSet));
+    if (sortedDates.length === 0 || !data.adm1_units || data.adm1_units.length === 0) {
+        container.innerHTML = `<div style="height: 450px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">Nessun dato storico provinciale rilevato per questo paese.</div>`;
+        return;
+    }
+    
+    let maxVal = 0;
+    const series = data.adm1_units.map(unit => {
+        const pcodeTrends = (data.regions && data.regions.adm1) ? (data.regions.adm1[unit.pcode] || []) : [];
+        
+        // Map date to value
+        const valMap = {};
+        pcodeTrends.forEach(t => {
+            if (t.from && t[prop] !== undefined && t[prop] !== null) {
+                valMap[t.from.substring(0, 7)] = t[prop];
+            }
+        });
+        
+        const dataPoints = sortedDates.map(date => {
+            const val = valMap[date] !== undefined ? valMap[date] : null;
+            if (val !== null && val > maxVal) maxVal = val;
+            return {
+                x: date,
+                y: val !== null ? parseFloat(val.toFixed(2)) : null
+            };
+        });
+        
+        return {
+            name: `${unit.name} (${unit.pcode})`,
+            data: dataPoints
+        };
+    });
+    
+    // Dynamically adjust height depending on number of admin units
+    const chartHeight = Math.max(300, data.adm1_units.length * 28 + 60);
+    
+    const options = {
+        series: series,
+        chart: {
+            height: chartHeight,
+            type: 'heatmap',
+            toolbar: { show: true },
+            animations: { enabled: false },
+            background: 'transparent'
+        },
+        stroke: { width: 0 },
+        dataLabels: { enabled: false },
+        plotOptions: {
+            heatmap: {
+                radius: 0,
+                enableShades: true,
+                shadeIntensity: 0.6,
+                colorScale: {
+                    ranges: getHeatmapColorScale(metric, maxVal)
+                }
+            }
+        },
+        theme: { mode: 'dark' },
+        xaxis: {
+            type: 'category',
+            labels: {
+                rotate: -90,
+                rotateAlways: true,
+                style: { fontSize: '9px', fontFamily: 'Inter' }
+            }
+        },
+        yaxis: {
+            labels: {
+                style: { fontSize: '9px', fontFamily: 'Inter' }
+            }
+        },
+        tooltip: {
+            custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                const rowName = w.config.series[seriesIndex].name;
+                const timeLabel = w.globals.labels[dataPointIndex];
+                const value = w.config.series[seriesIndex].data[dataPointIndex].y;
+                const formattedVal = value !== null ? value : 'N/A';
+                return `
+                    <div style="padding: 8px 12px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; color: white; font-family: Inter; font-size: 11px;">
+                        <div style="font-weight: 700; font-family: Outfit; font-size: 12px; color: #a5b4fc; margin-bottom: 4px;">${rowName}</div>
+                        <div>Periodo: <span style="font-weight: 600;">${timeLabel}</span></div>
+                        <div>Valore: <span style="font-weight: 600; color: #10b981;">${formattedVal}</span></div>
+                    </div>
+                `;
+            }
+        }
+    };
+    
+    if (countrySpatiotemporalChart) {
+        countrySpatiotemporalChart.destroy();
+    }
+    countrySpatiotemporalChart = new ApexCharts(container, options);
+    countrySpatiotemporalChart.render();
+}
+
+// Chronological sorting for string dates
+function sortedDatesList(arr) {
+    return arr.sort((a, b) => {
+        return new Date(a + "-01") - new Date(b + "-01");
+    });
+}
+
+// Global chart references
+let globalSpatiotemporalChart = null;
+let countrySpatiotemporalChart = null;
+
+
+// ======================================================================
+// TSA DIAGNOSTICS INTEGRATION
+// ======================================================================
+
+const TSA_BASE_PATH = '../TSA/results';
+
+const TSA_DIAGNOSTIC_FILES = {
+    'stl': '01_Statistical_Decomposition_STL.png',
+    'acf': '02_Autocorrelation_ACF_PACF.png',
+    'acf_compare': '02b_Compare_Series_Autocorrelation.png',
+    'ccf': '02c_Cross_Correlation_with_Target.png',
+    'matrix_profile': '04_Matrix_Profile_Anomalies_Discords.png',
+    'forecast': '05_MultiModel_Forecast_Comparison.png',
+    'aic_bic': '05b_SARIMAX_AIC_BIC_Evaluation.png',
+    'residuals': '06_Model_Residuals_Diagnostics.png'
+};
+
+const TSA_DIAGNOSTIC_TITLES = {
+    'stl': 'Decomposizione Stagionale (STL) — Trend, Stagionalità e Residuo',
+    'acf': 'Funzione di Autocorrelazione (ACF) e Parziale (PACF)',
+    'acf_compare': 'Autocorrelazione Comparata di Tutte le Variabili',
+    'ccf': 'Cross-Correlazione dei Predittori con il Target IPC',
+    'matrix_profile': 'Anomalie e Pattern via Matrix Profile',
+    'forecast': 'Confronto Previsioni Multi-Modello',
+    'aic_bic': 'Valutazione Parametri SARIMAX (AIC/BIC)',
+    'residuals': 'Diagnostica dei Residui del Modello'
+};
+
+// Cache for TSA diagnostic directory listings per country
+const tsaDiagCache = {};
+
+function renderTsaDiagnostics() {
+    const code = state.selectedCountry;
+    if (!code) return;
+    
+    // Populate region selector
+    populateTsaRegionSelector(code);
+    
+    // Render selected diagnostic
+    renderTsaDiagnosticImage();
+    
+    // Load Granger causality table
+    loadTsaGrangerTable();
+    
+    // Load forecast metrics table
+    loadTsaMetricsTable();
+    
+    // Load clustering images
+    loadTsaClusteringImages();
+}
+
+function populateTsaRegionSelector(countryCode) {
+    const selector = document.getElementById('tsa-region-selector');
+    if (!selector) return;
+    
+    const currentVal = selector.value;
+    selector.innerHTML = '<option value="national">Nazionale (Aggregato)</option>';
+    
+    // Try to get region list from the country data cache
+    const data = countryCache[countryCode];
+    if (data && data.regions && data.regions.adm1) {
+        const pcodes = Object.keys(data.regions.adm1).sort();
+        pcodes.forEach(pcode => {
+            // Try to find the region name from trends
+            let name = pcode;
+            const adm1Trends = data.regions.adm1[pcode];
+            if (adm1Trends && adm1Trends.length > 0 && adm1Trends[0].adm1_name) {
+                name = adm1Trends[0].adm1_name;
+            }
+            const opt = document.createElement('option');
+            opt.value = pcode;
+            opt.textContent = `${name} (${pcode})`;
+            selector.appendChild(opt);
+        });
+    }
+    
+    // Restore previous selection if valid
+    if (currentVal) {
+        const exists = Array.from(selector.options).some(o => o.value === currentVal);
+        if (exists) selector.value = currentVal;
+    }
+}
+
+function getTsaDiagnosticPath(countryCode, regionValue, diagnosticKey) {
+    const filename = TSA_DIAGNOSTIC_FILES[diagnosticKey];
+    if (!filename) return null;
+    
+    if (regionValue === 'national') {
+        return `${TSA_BASE_PATH}/${countryCode}/national/${filename}`;
+    } else {
+        // Need to find the diagnostics subfolder name for this pcode
+        // Convention: {COUNTRY}_{RegionName}_{PCode}
+        // We'll search by pcode suffix
+        return `${TSA_BASE_PATH}/${countryCode}/diagnostics/${regionValue}/${filename}`;
+    }
+}
+
+function renderTsaDiagnosticImage() {
+    const container = document.getElementById('tsa-diagnostic-image-container');
+    if (!container) return;
+    
+    const code = state.selectedCountry;
+    const regionSelector = document.getElementById('tsa-region-selector');
+    const diagSelector = document.getElementById('tsa-diagnostic-selector');
+    if (!code || !regionSelector || !diagSelector) return;
+    
+    const regionValue = regionSelector.value;
+    const diagKey = diagSelector.value;
+    const title = TSA_DIAGNOSTIC_TITLES[diagKey] || '';
+    
+    // For regional diagnostics, we need to find the folder name
+    // The folder name pattern: {COUNTRY}_{RegionName}_{PCode}
+    // We must scan via an approach that works in browser
+    let imgPath;
+    if (regionValue === 'national') {
+        imgPath = `${TSA_BASE_PATH}/${code}/national/${TSA_DIAGNOSTIC_FILES[diagKey]}`;
+    } else {
+        // Use a cached folder name or try to discover it
+        const folderName = findTsaDiagFolder(code, regionValue);
+        if (folderName) {
+            imgPath = `${TSA_BASE_PATH}/${code}/diagnostics/${folderName}/${TSA_DIAGNOSTIC_FILES[diagKey]}`;
+        } else {
+            imgPath = `${TSA_BASE_PATH}/${code}/diagnostics/${code}_${regionValue}/${TSA_DIAGNOSTIC_FILES[diagKey]}`;
+        }
+    }
+    
+    container.innerHTML = `
+        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; text-align: center;">
+            ${title}
+        </div>
+        <img src="${imgPath}" alt="${title}" 
+             style="width: 100%; max-width: 1000px; border-radius: 8px; border: 1px solid var(--border-color);" 
+             loading="lazy"
+             onerror="this.parentElement.innerHTML='<div style=\'color: var(--text-muted); padding: 2rem; text-align: center;\'><i class=\'fa-solid fa-triangle-exclamation\' style=\'font-size: 2rem; margin-bottom: 0.5rem; display: block; opacity: 0.4;\'></i>Diagnostica non disponibile per questa regione.<br><span style=\'font-size: 0.72rem; opacity: 0.6;\'>Eseguire prima la pipeline TSA su questo paese.</span></div>'">
+    `;
+}
+
+function findTsaDiagFolder(countryCode, pcode) {
+    // Check cache
+    if (tsaDiagCache[countryCode]) {
+        const folders = tsaDiagCache[countryCode];
+        const match = folders.find(f => f.endsWith('_' + pcode) || f.includes('_' + pcode));
+        return match || null;
+    }
+    
+    // Try to discover by attempting common naming conventions
+    // The data cache might have region names
+    const data = countryCache[countryCode];
+    if (data && data.regions && data.regions.adm1 && data.regions.adm1[pcode]) {
+        const trends = data.regions.adm1[pcode];
+        if (trends.length > 0 && trends[0].adm1_name) {
+            const regionName = trends[0].adm1_name.replace(/[\s/]+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+            return `${countryCode}_${regionName}_${pcode}`;
+        }
+    }
+    return null;
+}
+
+function onTsaRegionChange() {
+    renderTsaDiagnosticImage();
+    loadTsaGrangerTable();
+    loadTsaMetricsTable();
+}
+
+function onTsaDiagnosticChange() {
+    renderTsaDiagnosticImage();
+}
+
+function loadTsaGrangerTable() {
+    const container = document.getElementById('tsa-granger-table-container');
+    if (!container) return;
+    
+    const code = state.selectedCountry;
+    const regionSelector = document.getElementById('tsa-region-selector');
+    if (!code || !regionSelector) return;
+    
+    const regionValue = regionSelector.value;
+    let csvPath;
+    if (regionValue === 'national') {
+        csvPath = `${TSA_BASE_PATH}/${code}/national/03_Multivariate_Granger_Causality.csv`;
+    } else {
+        const folderName = findTsaDiagFolder(code, regionValue);
+        csvPath = `${TSA_BASE_PATH}/${code}/diagnostics/${folderName || (code + '_' + regionValue)}/03_Multivariate_Granger_Causality.csv`;
+    }
+    
+    fetch(csvPath)
+        .then(res => {
+            if (!res.ok) throw new Error('Not found');
+            return res.text();
+        })
+        .then(csv => {
+            const rows = csv.trim().split('\n').map(r => r.split(','));
+            if (rows.length < 2) {
+                container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center; font-size: 0.8rem;">Nessun dato causalità disponibile</div>';
+                return;
+            }
+            const headers = rows[0];
+            let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">';
+            html += '<thead><tr>';
+            headers.forEach(h => {
+                html += `<th style="padding: 0.5rem 0.75rem; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">${h.trim()}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i];
+                const pVal = parseFloat(cells[1]);
+                const isSignificant = pVal < 0.05;
+                const rowBg = isSignificant ? 'rgba(16, 185, 129, 0.08)' : 'transparent';
+                html += `<tr style="background: ${rowBg}; border-bottom: 1px solid var(--border-color);">`;
+                cells.forEach((c, idx) => {
+                    let cellStyle = 'padding: 0.5rem 0.75rem; color: white;';
+                    if (idx === 1) {
+                        cellStyle += isSignificant ? ' color: #10b981; font-weight: 700;' : ' color: #ef4444;';
+                    }
+                    html += `<td style="${cellStyle}">${c.trim()}</td>`;
+                });
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(() => {
+            container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center; font-size: 0.8rem;">Nessun dato causalità disponibile per questa regione</div>';
+        });
+}
+
+function loadTsaMetricsTable() {
+    const container = document.getElementById('tsa-metrics-table-container');
+    if (!container) return;
+    
+    const code = state.selectedCountry;
+    const regionSelector = document.getElementById('tsa-region-selector');
+    if (!code || !regionSelector) return;
+    
+    const regionValue = regionSelector.value;
+    let csvPath;
+    if (regionValue === 'national') {
+        csvPath = `${TSA_BASE_PATH}/${code}/national/05_MultiModel_Forecast_Comparison.csv`;
+    } else {
+        const folderName = findTsaDiagFolder(code, regionValue);
+        csvPath = `${TSA_BASE_PATH}/${code}/diagnostics/${folderName || (code + '_' + regionValue)}/05_MultiModel_Forecast_Comparison.csv`;
+    }
+    
+    fetch(csvPath)
+        .then(res => {
+            if (!res.ok) throw new Error('Not found');
+            return res.text();
+        })
+        .then(csv => {
+            const rows = csv.trim().split('\n').map(r => r.split(','));
+            if (rows.length < 2) {
+                container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center; font-size: 0.8rem;">Nessun dato metriche disponibile</div>';
+                return;
+            }
+            const headers = rows[0];
+            let html = '<table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">';
+            html += '<thead><tr>';
+            headers.forEach(h => {
+                html += `<th style="padding: 0.5rem 0.75rem; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">${h.trim()}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // Find best model (lowest MAE)
+            let bestIdx = 1;
+            let bestMae = Infinity;
+            for (let i = 1; i < rows.length; i++) {
+                const mae = parseFloat(rows[i][1]);
+                if (!isNaN(mae) && mae < bestMae) {
+                    bestMae = mae;
+                    bestIdx = i;
+                }
+            }
+            
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i];
+                const isBest = i === bestIdx;
+                const rowBg = isBest ? 'rgba(99, 102, 241, 0.12)' : 'transparent';
+                html += `<tr style="background: ${rowBg}; border-bottom: 1px solid var(--border-color);">`;
+                cells.forEach((c, idx) => {
+                    let cellStyle = 'padding: 0.5rem 0.75rem; color: white;';
+                    if (isBest && idx === 0) cellStyle += ' font-weight: 700; color: #818cf8;';
+                    const val = c.trim();
+                    const numVal = parseFloat(val);
+                    const displayVal = (!isNaN(numVal) && idx > 0) ? numVal.toFixed(4) : val;
+                    html += `<td style="${cellStyle}">${displayVal}${isBest && idx === 0 ? ' ⭐' : ''}</td>`;
+                });
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(() => {
+            container.innerHTML = '<div style="color: var(--text-muted); padding: 1rem; text-align: center; font-size: 0.8rem;">Nessun dato metriche disponibile per questa regione</div>';
+        });
+}
+
+function loadTsaClusteringImages() {
+    const container = document.getElementById('tsa-clustering-container');
+    if (!container) return;
+    
+    const code = state.selectedCountry;
+    if (!code) return;
+    
+    const clusteringFiles = [
+        { file: 'Hierarchical_Dendrogram_Shape.png', title: 'Dendrogramma Shape-Based (DTW)' },
+        { file: 'Hierarchical_Dendrogram_Features.png', title: 'Dendrogramma Feature-Based' },
+        { file: 'Cluster_Map_Admin1.png', title: 'Mappa Cluster Admin1' },
+        { file: 'Feature_Based_PCA_Scatter.png', title: 'PCA Scatter delle Province' }
+    ];
+    
+    let html = '';
+    clusteringFiles.forEach(cf => {
+        const path = `${TSA_BASE_PATH}/${code}/clustering/${cf.file}`;
+        html += `
+            <div style="text-align: center;">
+                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">${cf.title}</div>
+                <img src="${path}" alt="${cf.title}" 
+                     style="width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" 
+                     loading="lazy"
+                     onerror="this.parentElement.style.display='none';">
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function loadTsaGlobalPanel() {
+    const basePath = `${TSA_BASE_PATH}/global`;
+    
+    const mappings = [
+        { id: 'tsa-global-map-hierarchical', file: 'global_national_map_hierarchical.png' },
+        { id: 'tsa-global-map-kmeans', file: 'global_national_map_kmeans.png' },
+        { id: 'tsa-global-dendro-features', file: 'global_national_dendrogram_features.png' },
+        { id: 'tsa-global-dendro-shape', file: 'global_national_dendrogram_shape.png' },
+        { id: 'tsa-global-dendro-ncd', file: 'global_national_dendrogram_compression.png' },
+        { id: 'tsa-global-heatmap-dtw', file: 'global_national_dtw_heatmap.png' },
+        { id: 'tsa-global-heatmap-ncd', file: 'global_national_ncd_heatmap.png' },
+        { id: 'tsa-global-pca-national', file: 'global_national_pca_scatter.png' },
+        { id: 'tsa-global-pca-regions', file: 'global_regions_pca_scatter.png' },
+        { id: 'tsa-global-regions-map-hierarchical', file: 'global_regions_map_hierarchical.png' },
+        { id: 'tsa-global-regions-map-kmeans', file: 'global_regions_map_kmeans.png' }
+    ];
+    
+    mappings.forEach(m => {
+        const img = document.getElementById(m.id);
+        if (img) {
+            img.src = `${basePath}/${m.file}`;
+            img.onerror = function() {
+                this.style.display = 'none';
+                if (this.parentElement) {
+                    this.parentElement.insertAdjacentHTML('beforeend', 
+                        '<div style="color: var(--text-muted); padding: 1rem; font-size: 0.75rem; text-align: center;">Immagine non disponibile</div>');
+                }
+            };
+        }
+    });
+}
 

@@ -1,0 +1,14 @@
+services:
+  hero-ui:
+    build:
+      context: ../UI
+      dockerfile: Dockerfile
+    container_name: hero_ui_container
+    ports:
+      - "8080:80"
+    volumes:
+      # Monta la cartella UI locale per consentire l'hot-reloading dei file sorgente e del file global_summary.json
+      - ../UI:/usr/share/nginx/html
+      # Monta la cartella dei risultati di TSA per essere risolta dal percorso relativo ../TSA/results -> /TSA/results
+      - ../TSA/results:/usr/share/nginx/html/TSA/results:ro
+    restart: unless-stopped
