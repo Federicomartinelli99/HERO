@@ -1,0 +1,73 @@
+esempio_1_input = """During the 2017 post-harvest season, 33% of the population were classified in “Crisis” (IPC Phase 3) and “Emergency” (IPC Phase 4) in the North Eastern Region covering the provinces of Badakhshan, Baghlan, Kunduz and Takhar. 
+
+Kohistan, Raghistan, Yawan, Koran o Minjan, Yamgan, Darwaz Bala, Darwaz Payin, Kufab, Shiki, Wakhan, Zebak, Arghanj Khwah, Eshkashim, Shighnan districts of Badakhshan province were the most food insecure districts with 30% to 45% food insecure households, corresponds to 120 293 people in emergency situation (IPC phase 4).
+ 
+Badakhshan was the most vulnerable province in terms of food insecurity including 5 clusters (14 districts) classified in emergency situation (IPC Phase 4) due to limited food availability in the market, poor access and utilization of food, displacement due to conflicts and remoteness of some districts especially in Darwaz, 3 districts that have no road connection from Afghanistan. Other causes are the road blockage in 12 districts of Badakhshan province for up to 6 months due to heavy snow, mountainous landscape and bad road conditions.
+ 
+The Kunduz province was partially under control of government last year with high conflict and insecurity rate, which caused displacement of 39000 individuals to centre of Kunduz and neighbouring provinces.
+ 
+Residents of Takhar have suffered shortages of water for irrigation where bad road conditions also contributed challenging food availability. Insecurity in some districts of this province caused displacement of 8100 individuals.
+ 
+On-going conflicts, natural disasters, decreased level of water, limited market functionality, remoteness of some areas in this region are the major contributing factors which caused displacement, unemployment, depletion of livelihood assets and led people to engage in irreversible coping strategies."""
+
+esempio_1_output = """[SHOCKS AND DRIVERS]: 
+The affected areas experienced significant food insecurity due to a combination of economic factors, agricultural challenges, and climate shocks. Limited food availability in the market, poor access and utilization of food, and displacement due to conflicts were major contributing factors. Road blockages for up to 6 months in some districts due to heavy snow and poor road conditions exacerbated the situation. Additionally, ongoing conflicts, natural disasters, and decreased water levels further compounded the issues, leading to displacement, unemployment, and depletion of livelihood assets.
+ 
+[CURRENT FOOD SECURITY DATA]: 
+During the post-harvest season, 33% of the population were classified in “Crisis” (IPC Phase 3) and “Emergency” (IPC Phase 4). The most food insecure districts had 30% to 45% of households in emergency situations, corresponding to 120,293 people in IPC Phase 4. Five clusters (14 districts) were classified in emergency situations (IPC Phase 4) due to limited food availability, poor access and utilization of food, and displacement.
+ 
+[PROJECTED FOOD SECURITY DATA]: 
+The report does not provide specific projected food security data for future periods. However, the ongoing conflicts, natural disasters, and limited market functionality are expected to continue impacting food security in the affected areas.
+ 
+[HUMANITARIAN IMPACTS]: 
+The humanitarian impacts include displacement of 39,000 individuals to the center of one province and neighboring areas due to high conflict and insecurity rates. In another province, 8,100 individuals were displaced due to insecurity in some districts. The overall impact on livelihoods includes unemployment and depletion of livelihood assets, leading people to engage in irreversible coping strategies."""
+
+esempio_2_input = """The Valle and Choluteca region is classified Phase 1 from 4 December 2012 to 31 January 2013.  As from 31 January to 28 February 2013, Phase 1 is maintained for municipalities as Aramecina, Charity, Goascorán, Nacaome, Alliance, Amapala, San Lorenzo, Conception of Mary, Choluteca, El Corpus, El Triunfo, Marcovia, San Marcos Columbus and St. Anne Yusguare.  
+The classification need to be reviewed for the municipalities of Apacilagua, Duyure, Morolica, Namasigue, Orocuina, Pespire, San Antonio Flores, San Isidro, San Jose, and San Francisco de Langue Coray. 
+In Amapala, households dedicated to fishing could face a more complicated period due to an increasing pressure on resources in the Gulf and the tension on the jurisdiction of the water control. 
+Last September, the food consumption level of households in some municipalities was acceptable. Given that current conditions are more favourable than in September, it I is possible to infer this situation quite certainly. 
+Contributing factors related to food safety are maintained at favourable levels or normal: no adverse weather events, grain prices below the historical average and employment opportunities.
+"""
+esempio_2_output = """[SHOCKS AND DRIVERS]: 
+The affected areas have experienced a variety of factors influencing food security. These include stable economic conditions with grain prices below historical averages, favorable weather conditions without adverse events, and the presence of employment opportunities. However, in some coastal areas, households dependent on fishing face challenges due to resource pressure and jurisdictional tensions over water control.
+ 
+[CURRENT FOOD SECURITY DATA]: 
+The current food security classification is Phase 1 for the affected areas. This classification is maintained for numerous municipalities, including those where households have shown acceptable food consumption levels. The conditions are more favorable compared to the previous period, supporting the current Phase 1 classification.
+ 
+[PROJECTED FOOD SECURITY DATA]: 
+The classification for several municipalities needs to be reviewed, indicating potential changes in food security status. However, the overall conditions remain favorable, with no adverse weather events and stable economic factors, suggesting that the current Phase 1 classification could persist.
+ 
+[HUMANITARIAN IMPACTS]: 
+The humanitarian impacts on livelihoods are mixed. While many households are experiencing favorable conditions, those dependent on fishing in certain coastal areas are facing resource pressures and jurisdictional issues, which could affect their livelihoods and food security. There are no significant displacements reported, but the tension over water control could lead to further complications in the future.
+"""
+
+# ============================================================
+# SISTEMA PROMPT (più breve — gli esempi fanno il lavoro pesante)
+# ============================================================
+prompt_sistema = (
+    "You are an expert humanitarian data analyst. "
+    "Your task is to rewrite food insecurity reports into anonymous structured summaries "
+    "optimized for semantic similarity analysis.\n\n"
+    "Rules:\n"
+    "- Remove ALL geographic names (countries, regions, cities) and ALL dates.\n"
+    "- Use generic terms: 'the affected areas', 'the population', 'the country'.\n"
+    "- Preserve ALL exact numbers, percentages, and IPC classifications.\n"
+    "- Structure output in exactly 4 tagged sections as shown in the examples.\n"
+    "- No markdown headers or bullet points.\n\n"
+    "Learn from these examples:"
+)
+
+# ============================================================
+# PROMPT STRUTTURA CON ESEMPI
+# ============================================================
+prompt_struttura = (
+    f"{prompt_sistema}\n\n"
+    f"--- EXAMPLE 1 ---\n"
+    f"INPUT:\n{esempio_1_input}\n\n"
+    f"OUTPUT:\n{esempio_1_output}\n\n"
+    f"--- EXAMPLE 2 ---\n"
+    f"INPUT:\n{esempio_2_input}\n\n"
+    f"OUTPUT:\n{esempio_2_output}\n\n"
+    f"--- NOW PROCESS THIS REPORT ---\n"
+    f"INPUT:\n"
+)
