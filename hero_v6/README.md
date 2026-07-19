@@ -118,3 +118,48 @@ Notes:
 - `rainfall.parquet` and `wfp_with_pcodes.parquet` are supplied inputs (not API-fetched);
   they ship in `data/raw/` (see *Key design decisions* above for WFP provenance).
 - If you re-fetch, set your own `EMAIL`/`APP_NAME` in `config.py` for the HAPI token.
+
+## Running the UI (Dashboard)
+
+All configurations and startup scripts are located in the [CNR_setup](file:///c:/Dev/Progetti/HERO/hero_v6/CNR_setup) directory. We support both **Windows** (using `.bat` files) and **Linux/macOS** (using `.sh` scripts).
+
+You can run the UI in two ways:
+
+---
+
+### Option 1: Docker Compose (Recommended)
+This approach runs Nginx in a container, bypasses CORS issues, and maps files dynamically so that any changes to `UI/` are hot-reloaded.
+
+*   **Windows (Double-click):** 
+    Run [run_ui_docker.bat](file:///c:/Dev/Progetti/HERO/hero_v6/CNR_setup/run_ui_docker.bat)
+*   **Linux/macOS:** 
+    Execute [run_ui_docker.sh](file:///c:/Dev/Progetti/HERO/hero_v6/CNR_setup/run_ui_docker.sh) (ensure it has execute permissions: `chmod +x run_ui_docker.sh` first)
+*   **Manual CLI (from `hero_v6/CNR_setup`):**
+    ```bash
+    cd hero_v6/CNR_setup
+    docker compose up --build
+    ```
+
+The dashboard will be available at: **http://localhost:8080**
+
+---
+
+### Option 2: Local Python Server (No Containers)
+If you don't have Docker, you can run a local HTTP server using Python. 
+
+*   **Windows (Double-click):** 
+    Run [run_ui.bat](file:///c:/Dev/Progetti/HERO/hero_v6/CNR_setup/run_ui.bat)
+*   **Linux/macOS:** 
+    Execute [run_ui.sh](file:///c:/Dev/Progetti/HERO/hero_v6/CNR_setup/run_ui.sh) (ensure it has execute permissions: `chmod +x run_ui.sh` first)
+*   **Manual CLI (from `hero_v6/` root):**
+    ```bash
+    # IMPORTANT: Run from hero_v6 root, not from UI/ or CNR_setup/ 
+    # to let the browser resolve ../TSA/results correctly.
+    cd hero_v6
+    python3 -m http.server 8080
+    ```
+
+The dashboard will be available at: **http://localhost:8080/UI/index.html**
+
+
+

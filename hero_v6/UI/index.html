@@ -505,10 +505,26 @@
                     <div class="country-charts-grid" style="width: 100%;">
                         <!-- Food Security IPC Stacked Chart -->
                         <div class="glass-card chart-card-double">
-                            <div class="card-title">
+                            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                 <div class="card-title-text">
                                     <i class="fa-solid fa-wheat-awn text-emerald-400"></i>
                                     <span id="chart-ipc-title">Evoluzione Classificazione Fasi IPC (Popolazione %)</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); flex-shrink: 0; white-space: nowrap;">
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span>Filtro:</span>
+                                        <select id="ipc-period-type-filter" onchange="onIpcPeriodFilterChange()" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 11px; padding: 4px 10px; outline: none; cursor: pointer; font-family: var(--font-sans); transition: all var(--transition-speed);">
+                                            <option value="all" style="background-color: #111827; color: var(--text-primary);">Tutti i periodi</option>
+                                            <option value="current" style="background-color: #111827; color: var(--text-primary);">Solo corrente</option>
+                                            <option value="projection" style="background-color: #111827; color: var(--text-primary);">Solo proiezioni</option>
+                                        </select>
+                                    </div>
+                                    <span style="color: rgba(255, 255, 255, 0.15)">|</span>
+                                    <span>Larghezza Proporzionale</span>
+                                    <label class="switch-container">
+                                        <input type="checkbox" id="ipc-main-proportional-toggle" onchange="toggleIpcMainProportionalView()">
+                                        <span class="slider-round"></span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="chart-container" id="chart-ipc"></div>
@@ -821,10 +837,17 @@
 
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;" class="country-charts-grid">
                         <div class="glass-card">
-                            <div class="card-title">
+                            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                 <div class="card-title-text">
                                     <i class="fa-solid fa-chart-area text-emerald-400"></i>
                                     <span>Evoluzione Temporale delle Fasi IPC (Popolazione in Fase 3+)</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);">
+                                    <span>Larghezza Proporzionale</span>
+                                    <label class="switch-container">
+                                        <input type="checkbox" id="ipc-proportional-toggle" onchange="toggleIpcProportionalView()">
+                                        <span class="slider-round"></span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="chart-container" id="chart-raw-ipc-time" style="height: 380px;"></div>

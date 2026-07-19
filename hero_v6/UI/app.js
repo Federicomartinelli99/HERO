@@ -27,7 +27,10 @@ let state = {
     chartType: 'linear',     // 'linear' or 'circular'
     preselectedSubregion: null, // Temp store for subregion selection from modal
     compareCountries: [],   // List of ISO3 codes for comparison
-    activeMapCountry: null  // ISO3 code of the currently highlighted map country
+    activeMapCountry: null, // ISO3 code of the currently highlighted map country
+    ipcProportional: false, // Toggle for proportional-width timeline in IPC nativi
+    ipcMainProportional: false, // Toggle for proportional-width timeline in main IPC chart
+    ipcPeriodFilter: 'all' // Filter for period type: 'all', 'current', 'projection'
 };
 
 // Data Cache
@@ -1326,22 +1329,54 @@ function destroyChart(chartKey) {
 }
 
 // Render Food Security (IPC) Stacked Bar Chart
+// Render Food Security (IPC) Stacked Bar Chart
 function renderIpcChart(trends) {
+    if (trends) {
+        window.currentIpcMainTrends = trends;
+    } else {
+        trends = window.currentIpcMainTrends;
+    }
+    
+    if (!trends) return;
+    
+    // Apply period type filtering
+    let filteredTrends = trends;
+    if (state.ipcPeriodFilter === 'current') {
+        filteredTrends = trends.filter(t => t.period === 'current');
+    } else if (state.ipcPeriodFilter === 'projection') {
+        filteredTrends = trends.filter(t => t.period && t.period.toLowerCase().includes('projection'));
+    }
+    
     destroyChart('ipc');
     const container = document.getElementById("chart-ipc");
     container.innerHTML = "";
     
-    if (!trends || trends.length === 0) {
-        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">Nessun dato IPC disponibile</div>`;
+    if (!filteredTrends || filteredTrends.length === 0) {
+        container.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-family: Inter, sans-serif;">Nessun dato IPC disponibile per il filtro selezionato</div>`;
         return;
     }
     
-    const categories = trends.map(t => t.from.substring(0, 7));
-    const p1 = trends.map(t => t.phase_1_percentage !== null ? parseFloat(t.phase_1_percentage.toFixed(1)) : 0);
-    const p2 = trends.map(t => t.phase_2_percentage !== null ? parseFloat(t.phase_2_percentage.toFixed(1)) : 0);
-    const p3 = trends.map(t => t.phase_3_percentage !== null ? parseFloat(t.phase_3_percentage.toFixed(1)) : 0);
-    const p4 = trends.map(t => t.phase_4_percentage !== null ? parseFloat(t.phase_4_percentage.toFixed(1)) : 0);
-    const p5 = trends.map(t => t.phase_5_percentage !== null ? parseFloat(t.phase_5_percentage.toFixed(1)) : 0);
+    // Update toggle checkbox and select filter in UI
+    const toggleEl = document.getElementById('ipc-main-proportional-toggle');
+    if (toggleEl) {
+        toggleEl.checked = !!state.ipcMainProportional;
+    }
+    const filterEl = document.getElementById('ipc-period-type-filter');
+    if (filterEl) {
+        filterEl.value = state.ipcPeriodFilter || 'all';
+    }
+    
+    if (state.ipcMainProportional) {
+        renderIpcProportionalChart(container, filteredTrends);
+        return;
+    }
+    
+    const categories = filteredTrends.map(t => t.from.substring(0, 7));
+    const p1 = filteredTrends.map(t => t.phase_1_percentage !== null ? parseFloat(t.phase_1_percentage.toFixed(1)) : 0);
+    const p2 = filteredTrends.map(t => t.phase_2_percentage !== null ? parseFloat(t.phase_2_percentage.toFixed(1)) : 0);
+    const p3 = filteredTrends.map(t => t.phase_3_percentage !== null ? parseFloat(t.phase_3_percentage.toFixed(1)) : 0);
+    const p4 = filteredTrends.map(t => t.phase_4_percentage !== null ? parseFloat(t.phase_4_percentage.toFixed(1)) : 0);
+    const p5 = filteredTrends.map(t => t.phase_5_percentage !== null ? parseFloat(t.phase_5_percentage.toFixed(1)) : 0);
     
     const options = {
         series: [
@@ -1363,7 +1398,7 @@ function renderIpcChart(trends) {
                 dataPointSelection: function(event, chartContext, config) {
                     const dataPointIndex = config.dataPointIndex;
                     if (dataPointIndex !== undefined && dataPointIndex >= 0) {
-                        openPeriodDetailModal(trends, dataPointIndex);
+                        openPeriodDetailModal(filteredTrends, dataPointIndex);
                     }
                 }
             }
@@ -1415,6 +1450,239 @@ function renderIpcChart(trends) {
     
     countryCharts.ipc = new ApexCharts(container, options);
     countryCharts.ipc.render();
+}
+
+// Handler for toggle of proportional width timeline in main IPC chart
+function toggleIpcMainProportionalView() {
+    const toggleEl = document.getElementById('ipc-main-proportional-toggle');
+    if (toggleEl) {
+        state.ipcMainProportional = toggleEl.checked;
+        renderIpcChart();
+    }
+}
+
+// Handler for period filter change in main IPC chart
+function onIpcPeriodFilterChange() {
+    const filterEl = document.getElementById('ipc-period-type-filter');
+    if (filterEl) {
+        state.ipcPeriodFilter = filterEl.value;
+        renderIpcChart();
+    }
+}
+
+// Custom renderer for 100% stacked proportional timeline of main IPC phases
+function renderIpcProportionalChart(container, trends) {
+    const CHART_HEIGHT = 265; // px - matches ApexCharts plot area within 320px total
+    const TOTAL_CONTAINER = 320; // px - same as ApexCharts chart height
+    const Y_AXIS_WIDTH = 65; // px - space for y-axis title + labels
+    const X_AXIS_HEIGHT = 28; // px - bottom axis labels
+    const LEGEND_HEIGHT = 27; // p    // Sort trends chronologically, parsing start/end consistently as UTC to prevent timezone overlaps
+    const sorted = trends.filter(t => t.from && t.to)
+                         .map((t, idx) => {
+                             const start = new Date(t.from.substring(0, 10) + "T00:00:00Z");
+                             const end = new Date(t.to.substring(0, 10) + "T23:59:59Z");
+                             return { ...t, start, end, originalIndex: idx };
+                         })
+                         .sort((a, b) => a.start - b.start);
+                         
+    if (sorted.length === 0) {
+        container.innerHTML = `<div style="height: ${TOTAL_CONTAINER}px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-family: Inter, sans-serif;">Nessun dato IPC disponibile</div>`;
+        return;
+    }
+    
+    const minDate = sorted[0].start;
+    // Calculate the absolute latest end date across all elements to prevent right-overflow
+    let maxDate = sorted[0].end;
+    sorted.forEach(t => {
+        if (t.end > maxDate) {
+            maxDate = t.end;
+        }
+    });
+    const totalTime = maxDate - minDate || 1;
+    
+    // Generate year labels (without drawing vertical grid lines to match standard plot)
+    const minYear = minDate.getUTCFullYear();
+    const maxYear = maxDate.getUTCFullYear();
+    
+    let vGridHtml = '';
+    for (let y = minYear; y <= maxYear + 1; y++) {
+        const gridDate = new Date(Date.UTC(y, 0, 1));
+        if (gridDate >= minDate && gridDate <= maxDate) {
+            const offset = ((gridDate - minDate) / totalTime) * 100;
+            vGridHtml += `<div style="position: absolute; left: ${offset}%; top: ${CHART_HEIGHT + 8}px; transform: translateX(-50%); font-size: 9px; color: #94a3b8; font-family: Inter, Helvetica, sans-serif; pointer-events: none;">${y}</div>`;
+        }
+    }
+    
+    // Dashed horizontal gridlines matching ApexCharts
+    let hGridHtml = '';
+    for (let pct = 0; pct <= 100; pct += 20) {
+        const yPos = CHART_HEIGHT - (pct / 100) * CHART_HEIGHT;
+        hGridHtml += `<div style="position: absolute; left: 0; right: 0; top: ${yPos}px; border-top: 1px dashed rgba(255,255,255,0.08); pointer-events: none;"></div>`;
+    }
+    
+    // Generate bars
+    let barsHtml = '';
+    sorted.forEach((t, i) => {
+        const left = ((t.start - minDate) / totalTime) * 100;
+        const width = ((t.end - t.start) / totalTime) * 100;
+        
+        const p1 = t.phase_1_percentage ?? 0;
+        const p2 = t.phase_2_percentage ?? 0;
+        const p3 = t.phase_3_percentage ?? 0;
+        const p4 = t.phase_4_percentage ?? 0;
+        const p5 = t.phase_5_percentage ?? 0;
+        const sum = p1 + p2 + p3 + p4 + p5 || 1;
+        
+        const pcts = [
+            { val: p1, color: '#10b981' },
+            { val: p2, color: '#84cc16' },
+            { val: p3, color: '#eab308' },
+            { val: p4, color: '#f97316' },
+            { val: p5, color: '#ef4444' }
+        ];
+        
+        // Build stacked segments with absolute positioning to grow in place from their baseline, staggered left-to-right
+        let segmentsHtml = '';
+        let currentBottom = 0;
+        const animDelay = i * 40; // 40ms stagger delay per bar
+        pcts.forEach(s => {
+            const hPct = (s.val / sum) * 100;
+            const label = hPct > 7 ? `<span style="font-size: 8px; font-family: Inter, Helvetica, sans-serif; color: #fff; font-weight: normal; pointer-events: none; user-select: none;">${Math.round(hPct)}%</span>` : '';
+            segmentsHtml += `<div class="ipc-prop-segment" style="position: absolute; left: 0; width: 100%; bottom: ${currentBottom}%; height: ${hPct}%; background-color: ${s.color}; opacity: 0.85; border: 1.5px solid #0b0f19; box-sizing: border-box; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; animation-delay: ${animDelay}ms;">${label}</div>`;
+            currentBottom += hPct;
+        });
+        
+        barsHtml += `
+            <div class="ipc-prop-bar" 
+                 style="position: absolute; left: ${left}%; width: ${width}%; bottom: 0; height: ${CHART_HEIGHT}px; cursor: pointer;"
+                 onclick="openPeriodDetailModal(window.currentIpcMainTrends, ${t.originalIndex})"
+                 data-idx="${t.originalIndex}"
+            >${segmentsHtml}</div>
+        `;
+    });
+    
+    // Y-axis labels (matching ApexCharts: decimal format, 9px, color: #94a3b8)
+    let yLabelsHtml = '';
+    for (let pct = 0; pct <= 100; pct += 20) {
+        const yPos = CHART_HEIGHT - (pct / 100) * CHART_HEIGHT;
+        yLabelsHtml += `<div style="position: absolute; right: 8px; top: ${yPos}px; transform: translateY(-50%); font-size: 9px; color: #94a3b8; font-family: Inter, Helvetica, Arial, sans-serif;">${pct.toFixed(1)}</div>`;
+    }
+    
+    // Legend (matching ApexCharts: top center, 11px Inter, colored circles, color: #e2e8f0)
+    const legendItems = [
+        { name: 'Fase 1: Minima', color: '#10b981' },
+        { name: 'Fase 2: Stress', color: '#84cc16' },
+        { name: 'Fase 3: Crisi', color: '#eab308' },
+        { name: 'Fase 4: Emergenza', color: '#f97316' },
+        { name: 'Fase 5: Catastrofe', color: '#ef4444' },
+    ];
+    let legendHtml = `<div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; height: ${LEGEND_HEIGHT}px; align-items: center; font-family: Inter, Helvetica, Arial, sans-serif; font-size: 11px;">`;
+    legendItems.forEach(l => {
+        legendHtml += `<div style="display: flex; align-items: center; gap: 6px; cursor: pointer;"><span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: ${l.color};"></span><span style="color: #e2e8f0;">${l.name}</span></div>`;
+    });
+    // Extra legend item for gaps
+    legendHtml += `<div style="display: flex; align-items: center; gap: 6px; margin-left: 6px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); cursor: default;"><span style="display: inline-block; width: 12px; height: 8px; background: repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0 2px, transparent 2px 5px); border-radius: 2px;"></span><span style="color: #e2e8f0;">Periodo scoperto</span></div>`;
+    legendHtml += `</div>`;
+ 
+    container.innerHTML = `
+        <style>
+            @keyframes ipcSegmentGrow {
+                from { height: 0; }
+            }
+            .ipc-prop-bar {
+                box-sizing: border-box;
+                transition: filter 0.2s ease, box-shadow 0.2s ease;
+            }
+            .ipc-prop-segment {
+                animation: ipcSegmentGrow 0.8s ease-in-out both;
+            }
+            .ipc-prop-bar:hover {
+                filter: brightness(1.15);
+                box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+                z-index: 10 !important;
+            }
+        </style>
+        ${legendHtml}
+        <div style="position: relative; width: 100%; height: ${TOTAL_CONTAINER - LEGEND_HEIGHT}px; font-family: Inter, Helvetica, sans-serif;">
+            <!-- Tooltip -->
+            <div id="ipc-main-timeline-tooltip" style="position: absolute; display: none; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #e5e7eb; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.5); z-index: 100; min-width: 200px; font-family: Inter, Helvetica, sans-serif;"></div>
+ 
+            <!-- Y-axis title (rotated, matching ApexCharts) -->
+            <div style="position: absolute; left: 0; top: ${CHART_HEIGHT / 2}px; transform: rotate(-90deg) translateX(-50%); transform-origin: 0 0; font-size: 11px; color: #94a3b8; font-family: Inter, Helvetica, Arial, sans-serif; white-space: nowrap;">Percentuale Popolazione</div>
+            
+            <!-- Y-axis labels -->
+            <div style="position: absolute; left: 20px; top: 0; width: ${Y_AXIS_WIDTH - 20}px; height: ${CHART_HEIGHT}px;">
+                ${yLabelsHtml}
+            </div>
+            
+            <!-- Plot area -->
+            <!-- Plot area (bars + gridlines) -->
+            <div style="position: absolute; left: ${Y_AXIS_WIDTH}px; right: 8px; top: 0; height: ${CHART_HEIGHT}px; overflow: visible;">
+                <!-- Horizontal gridlines -->
+                ${hGridHtml}
+                <!-- Bars -->
+                ${barsHtml}
+            </div>
+            <!-- X-axis area (year labels, below bars) -->
+            <div style="position: absolute; left: ${Y_AXIS_WIDTH}px; right: 8px; top: 0; height: ${CHART_HEIGHT + X_AXIS_HEIGHT}px; pointer-events: none; overflow: visible;">
+                ${vGridHtml}
+            </div>
+        </div>
+    `;
+    
+    // Tooltip event listeners (matching ApexCharts shared tooltip style)
+    const tooltipEl = document.getElementById("ipc-main-timeline-tooltip");
+    
+    container.querySelectorAll(".ipc-prop-bar").forEach(bar => {
+        const idx = parseInt(bar.getAttribute("data-idx"));
+        const t = trends[idx];
+        
+        bar.addEventListener("mouseenter", () => {
+            const p1 = t.phase_1_percentage ?? 0;
+            const p2 = t.phase_2_percentage ?? 0;
+            const p3 = t.phase_3_percentage ?? 0;
+            const p4 = t.phase_4_percentage ?? 0;
+            const p5 = t.phase_5_percentage ?? 0;
+            const sum = p1 + p2 + p3 + p4 + p5 || 1;
+            
+            const rows = [
+                { name: 'Fase 1: Minima', color: '#10b981', val: p1 },
+                { name: 'Fase 2: Stress', color: '#84cc16', val: p2 },
+                { name: 'Fase 3: Crisi', color: '#eab308', val: p3 },
+                { name: 'Fase 4: Emergenza', color: '#f97316', val: p4 },
+                { name: 'Fase 5: Catastrofe', color: '#ef4444', val: p5 },
+            ];
+            
+            let rowsHtml = rows.map(r => {
+                const pct = ((r.val / sum) * 100).toFixed(1);
+                return `<div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 0;"><span style="display: flex; align-items: center; gap: 5px;"><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${r.color};"></span>${r.name}</span><span style="font-weight: 600; margin-left: 12px;">${pct}%</span></div>`;
+            }).join('');
+            
+            tooltipEl.innerHTML = `
+                <div style="font-size: 11px; color: #9ca3af; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    ${t.from.substring(0, 10)} → ${t.to.substring(0, 10)} (${t.period === 'current' ? 'Corrente' : 'Proiezione'})
+                </div>
+                ${rowsHtml}
+            `;
+            tooltipEl.style.display = "block";
+        });
+        
+        bar.addEventListener("mousemove", (e) => {
+            const rect = container.getBoundingClientRect();
+            let leftPos = e.clientX - rect.left + 15;
+            let topPos = e.clientY - rect.top - 10;
+            
+            if (leftPos + 230 > rect.width) leftPos = e.clientX - rect.left - 240;
+            if (topPos < 0) topPos = 10;
+            
+            tooltipEl.style.left = leftPos + "px";
+            tooltipEl.style.top = topPos + "px";
+        });
+        
+        bar.addEventListener("mouseleave", () => {
+            tooltipEl.style.display = "none";
+        });
+    });
 }
 
 // Render ACLED Conflict Dual-Axis Chart
@@ -5169,6 +5437,17 @@ function renderIpcTab(trends) {
         tbody.appendChild(tr);
     });
     
+    // Check toggle state
+    const toggleEl = document.getElementById('ipc-proportional-toggle');
+    if (toggleEl) {
+        toggleEl.checked = !!state.ipcProportional;
+    }
+    
+    if (state.ipcProportional) {
+        renderIpcProportionalTimeline(container, trends);
+        return;
+    }
+    
     // Render Dual Axis Chart (Phase 3+ Pop vs Phase 3+ %)
     const categories = trends.map(t => `${t.from.substring(0, 7)} (${t.type === 'current' ? 'Corr' : 'Proj'})`);
     const pop = trends.map(t => t.phase_3plus);
@@ -5221,6 +5500,223 @@ function renderIpcTab(trends) {
     
     rawCharts.ipc = new ApexCharts(container, options);
     rawCharts.ipc.render();
+}
+
+// Handler for toggle of proportional width timeline in IPC tab
+function toggleIpcProportionalView() {
+    const toggleEl = document.getElementById('ipc-proportional-toggle');
+    if (toggleEl) {
+        state.ipcProportional = toggleEl.checked;
+        
+        // Re-render the tab with currently cached data
+        if (state.selectedCountry) {
+            const cachedData = rawCache[state.selectedCountry] && rawCache[state.selectedCountry]['ipc'];
+            if (cachedData) {
+                let trends = [];
+                if (state.subregion === 'national') {
+                    trends = cachedData.national || [];
+                } else {
+                    const parts = state.subregion.split('_');
+                    const level = parts[0];
+                    const pcode = parts[1];
+                    trends = (cachedData.regions && cachedData.regions[level]) ? (cachedData.regions[level][pcode] || []) : [];
+                }
+                renderIpcTab(trends);
+            }
+        }
+    }
+}
+
+// Custom renderer for proportional timeline of IPC analyses
+function renderIpcProportionalTimeline(container, trends) {
+    // Save trends reference globally for event listeners/modals
+    window.currentIpcTrends = trends;
+    
+    // Sort trends chronologically
+    const sorted = trends.map((t, idx) => ({ ...t, originalIndex: idx }))
+                         .sort((a, b) => new Date(a.from) - new Date(b.from));
+                         
+    const minDate = new Date(sorted[0].from);
+    const maxDate = new Date(sorted[sorted.length - 1].to);
+    const totalTime = maxDate - minDate || 1;
+    
+    // Generate year/month gridlines
+    const minYear = minDate.getFullYear();
+    const maxYear = maxDate.getFullYear();
+    const yearDiff = maxYear - minYear;
+    
+    let gridHtml = '';
+    if (yearDiff === 0) {
+        // Month gridlines
+        const minMonth = minDate.getMonth();
+        const maxMonth = maxDate.getMonth();
+        const monthNames = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+        for (let m = minMonth; m <= maxMonth; m++) {
+            const gridDate = new Date(minYear, m, 1);
+            if (gridDate >= minDate && gridDate <= maxDate) {
+                const offset = ((gridDate - minDate) / totalTime) * 100;
+                gridHtml += `
+                    <div style="position: absolute; left: ${offset}%; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.06); pointer-events: none; z-index: 1;"></div>
+                    <div style="position: absolute; left: ${offset}%; bottom: -20px; transform: translateX(-50%); font-size: 0.65rem; color: var(--text-muted); font-family: 'Inter', sans-serif; pointer-events: none; z-index: 1;">${monthNames[m]}</div>
+                `;
+            }
+        }
+    } else {
+        // Year gridlines
+        for (let y = minYear; y <= maxYear + 1; y++) {
+            const gridDate = new Date(y, 0, 1);
+            if (gridDate >= minDate && gridDate <= maxDate) {
+                const offset = ((gridDate - minDate) / totalTime) * 100;
+                gridHtml += `
+                    <div style="position: absolute; left: ${offset}%; top: 0; bottom: 0; border-left: 1px dashed rgba(255,255,255,0.06); pointer-events: none; z-index: 1;"></div>
+                    <div style="position: absolute; left: ${offset}%; bottom: -20px; transform: translateX(-50%); font-size: 0.65rem; color: var(--text-muted); font-family: 'Inter', sans-serif; pointer-events: none; z-index: 1;">${y}</div>
+                `;
+            }
+        }
+    }
+    
+    // Generate bars
+    let barsHtml = '';
+    sorted.forEach(t => {
+        const start = new Date(t.from);
+        const end = new Date(t.to);
+        const left = ((start - minDate) / totalTime) * 100;
+        const width = ((end - start) / totalTime) * 100;
+        
+        const val = t.phase_3plus_percentage !== null && t.phase_3plus_percentage !== undefined ? t.phase_3plus_percentage : 0;
+        const height = Math.min(100, Math.max(2, val)); // Min height 2% for visibility
+        
+        const p3 = t.phase_3_percentage || 0;
+        const p4 = t.phase_4_percentage || 0;
+        const p5 = t.phase_5_percentage || 0;
+        const sum = p3 + p4 + p5 || 1;
+        
+        const p3Height = (p3 / sum) * 100;
+        const p4Height = (p4 / sum) * 100;
+        const p5Height = (p5 / sum) * 100;
+        
+        barsHtml += `
+            <div class="ipc-proportional-bar" 
+                 style="position: absolute; left: ${left}%; width: ${width}%; bottom: 0; height: ${height}%; display: flex; flex-direction: column-reverse; cursor: pointer;"
+                 onclick="openPeriodDetailModal(window.currentIpcTrends, ${t.originalIndex})"
+                 data-idx="${t.originalIndex}"
+            >
+                <div style="height: ${p3Height}%; background-color: #eab308; width: 100%;"></div>
+                <div style="height: ${p4Height}%; background-color: #f97316; width: 100%;"></div>
+                <div style="height: ${p5Height}%; background-color: #ef4444; width: 100%;"></div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = `
+        <style>
+            .ipc-proportional-bar {
+                border-radius: 4px;
+                border: 1px solid rgba(255,255,255,0.06);
+                background: rgba(30, 41, 59, 0.4);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                overflow: hidden;
+            }
+            .ipc-proportional-bar:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+                border-color: rgba(99, 102, 241, 0.5);
+                filter: brightness(1.15);
+            }
+        </style>
+        <div style="display: flex; height: 100%; width: 100%; font-family: 'Inter', sans-serif; box-sizing: border-box; overflow: hidden; position: relative;">
+            <!-- Custom HTML Tooltip -->
+            <div id="ipc-timeline-tooltip" style="position: absolute; display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px; font-size: 0.75rem; color: white; pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 100; min-width: 200px;"></div>
+
+            <!-- Y-Axis -->
+            <div style="width: 45px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; padding-right: 8px; box-sizing: border-box; font-size: 0.65rem; color: var(--text-muted); border-right: 1px solid rgba(255,255,255,0.08); z-index: 2;">
+                <div style="height: calc(100% - 55px); margin-top: 15px; margin-bottom: 40px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end;">
+                    <div>100%</div>
+                    <div>80%</div>
+                    <div>60%</div>
+                    <div>40%</div>
+                    <div>20%</div>
+                    <div>0%</div>
+                </div>
+            </div>
+            
+            <!-- Chart Area -->
+            <div style="flex-grow: 1; height: 100%; position: relative; background: rgba(15, 23, 42, 0.2); box-sizing: border-box; overflow: visible; z-index: 2;">
+                <!-- Horizontal Gridlines -->
+                <div style="position: absolute; left: 0; right: 0; top: 15px; border-top: 1px solid rgba(255,255,255,0.04); pointer-events: none;"></div>
+                <div style="position: absolute; left: 0; right: 0; top: calc(15px + (100% - 55px) * 0.2); border-top: 1px solid rgba(255,255,255,0.04); pointer-events: none;"></div>
+                <div style="position: absolute; left: 0; right: 0; top: calc(15px + (100% - 55px) * 0.4); border-top: 1px solid rgba(255,255,255,0.04); pointer-events: none;"></div>
+                <div style="position: absolute; left: 0; right: 0; top: calc(15px + (100% - 55px) * 0.6); border-top: 1px solid rgba(255,255,255,0.04); pointer-events: none;"></div>
+                <div style="position: absolute; left: 0; right: 0; top: calc(15px + (100% - 55px) * 0.8); border-top: 1px solid rgba(255,255,255,0.04); pointer-events: none;"></div>
+                <div style="position: absolute; left: 0; right: 0; bottom: 40px; border-top: 1px dashed rgba(255,255,255,0.15); pointer-events: none; z-index: 3;"></div>
+                
+                <!-- Vertical Gridlines and labels -->
+                <div style="position: absolute; left: 0; right: 0; top: 15px; bottom: 40px; overflow: visible;">
+                    ${gridHtml}
+                </div>
+                
+                <!-- Bars container -->
+                <div id="ipc-proportional-bars-container" style="position: absolute; left: 0; right: 0; top: 15px; bottom: 40px; z-index: 2;">
+                    ${barsHtml}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add tooltip event listeners to bars
+    const tooltipEl = document.getElementById("ipc-timeline-tooltip");
+    
+    container.querySelectorAll(".ipc-proportional-bar").forEach(bar => {
+        const idx = parseInt(bar.getAttribute("data-idx"));
+        const t = trends[idx];
+        
+        bar.addEventListener("mouseenter", (e) => {
+            const p3 = t.phase_3_percentage || 0;
+            const p4 = t.phase_4_percentage || 0;
+            const p5 = t.phase_5_percentage || 0;
+            
+            tooltipEl.innerHTML = `
+                <div style="font-weight: 700; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 3px; font-family: 'Inter', sans-serif;">
+                    Analisi IPC (${t.type === 'current' ? 'Corrente' : 'Proiezione'})
+                </div>
+                <div style="margin-bottom: 5px; color: var(--text-muted); font-size: 0.65rem; font-family: 'Inter', sans-serif;">
+                    Periodo: ${t.from.substring(0, 10)} al ${t.to.substring(0, 10)}
+                </div>
+                <div style="display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 3px; font-family: 'Inter', sans-serif;">
+                    <span>Fase 3+ (%):</span>
+                    <span style="color: var(--color-danger); font-weight: 700;">${t.phase_3plus_percentage.toFixed(1)}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 5px; font-family: 'Inter', sans-serif;">
+                    <span>Fase 3+ Pop.:</span>
+                    <span style="color: var(--color-danger); font-weight: 700;">${formatNumber(t.phase_3plus)}</span>
+                </div>
+                <div style="font-size: 0.65rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 5px; display: flex; flex-direction: column; gap: 2px; font-family: 'Inter', sans-serif;">
+                    <div style="display: flex; justify-content: space-between;"><span style="color: #eab308;">Fase 3 (Crisi):</span> <span>${t.phase_3_percentage !== null ? t.phase_3_percentage.toFixed(1) + '%' : 'N/A'}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="color: #f97316;">Fase 4 (Emergenza):</span> <span>${t.phase_4_percentage !== null ? t.phase_4_percentage.toFixed(1) + '%' : 'N/A'}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="color: #ef4444;">Fase 5 (Catastrofe):</span> <span>${t.phase_5_percentage !== null ? t.phase_5_percentage.toFixed(1) + '%' : 'N/A'}</span></div>
+                </div>
+            `;
+            tooltipEl.style.display = "block";
+        });
+        
+        bar.addEventListener("mousemove", (e) => {
+            const currentContainerRect = container.getBoundingClientRect();
+            const leftPos = e.clientX - currentContainerRect.left + 15;
+            const topPos = e.clientY - currentContainerRect.top + 15;
+            
+            if (leftPos + 220 > currentContainerRect.width) {
+                tooltipEl.style.left = `${e.clientX - currentContainerRect.left - 230}px`;
+            } else {
+                tooltipEl.style.left = `${leftPos}px`;
+            }
+            tooltipEl.style.top = `${topPos}px`;
+        });
+        
+        bar.addEventListener("mouseleave", () => {
+            tooltipEl.style.display = "none";
+        });
+    });
 }
 
 // 2. ACLED RAW RENDERER

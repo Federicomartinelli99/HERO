@@ -180,6 +180,31 @@ for m_key, (col, agg_fn) in value_metrics.items():
         "z": z_data
     }
 
+# Compute value heatmaps for Admin1
+print("Calculating value matrices for Admin1...")
+value_heatmaps_adm1 = {}
+df_adm1_clean = df_adm1.dropna(subset=['adm1_pcode']).copy()
+df_adm1_clean['adm1_label'] = df_adm1_clean['Country'] + " - " + df_adm1_clean['Level 1']
+
+all_adm1_pcodes = sorted(df_adm1_clean['adm1_pcode'].unique())
+pcode_to_label = dict(zip(df_adm1_clean['adm1_pcode'], df_adm1_clean['adm1_label']))
+# Sort pcodes by label name
+sorted_pcodes = sorted(all_adm1_pcodes, key=lambda x: pcode_to_label.get(x, x))
+
+for m_key, (col, agg_fn) in value_metrics.items():
+    if col in df_adm1_clean.columns:
+        grouped = df_adm1_clean.groupby(['adm1_pcode', 'year_quarter'])[col].agg(agg_fn).reset_index()
+        pivot = grouped.pivot(index="adm1_pcode", columns="year_quarter", values=col)
+        pivot = pivot.reindex(index=sorted_pcodes, columns=all_quarters)
+        z_data = pivot.where(pd.notna(pivot), None).values.tolist()
+        
+        value_heatmaps_adm1[m_key] = {
+            "x": all_quarters,
+            "y": [pcode_to_label.get(p, p) for p in sorted_pcodes],
+            "y_codes": sorted_pcodes,
+            "z": z_data
+        }
+
 # Compute overall country completeness averages for rankings
 country_averages = {}
 for code in all_countries:
@@ -236,7 +261,8 @@ global_summary = {
     "stats": global_stats,
     "countries": sorted(list(country_averages.values()), key=lambda x: x["name"]),
     "heatmaps": heatmaps,
-    "value_heatmaps": value_heatmaps
+    "value_heatmaps": value_heatmaps,
+    "value_heatmaps_adm1": value_heatmaps_adm1
 }
 
 global_summary = clean_val(global_summary)
