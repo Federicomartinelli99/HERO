@@ -1,0 +1,28 @@
+Methodology: Data Preprocessing & Robust KNN Imputation
+Before feeding the statistical fingerprints into the clustering algorithms, the dataset undergoes a rigorous data preparation pipeline. This step ensures that the machine learning models operate on high-quality, complete, and mathematically sound data without introducing bias.
+1. Pre-requisite: Multicollinearity & Feature Selection
+To prevent the clustering algorithms from miscalculating distances due to redundant information, the feature space is first refined:
+Multicollinearity Analysis: High correlation between statistical features (e.g., if stat_var and ar1_coeff carry identical information) can artificially inflate their weight in distance metrics. A dedicated multicollinearity screening (such as Variance Inflation Factor - VIF evaluation) was conducted to detect highly redundant features.
+Feature Selection: Based on the multicollinearity study, a finalized subset of independent statistical features (target_columns) was selected. This guarantees that each feature provides a distinct behavioral signal to the model, streamlining the input space before handling missing values.
+2. The Logic of Distance-Based KNN Imputation
+Instead of simple statistical replacement (like filling missing entries with a global mean or median, which flattens variance), this workflow utilizes K-Nearest Neighbors (KNN) Imputation via the impute_missing_knn pipeline.
+The core logic rests on a fundamental mathematical assumption: regions that share similar statistical behaviors across known features should share similar behaviors in their missing values.
+[Raw Grouped Data] ──> [Scale Features] ──> [Calculate Distance-Based Weights] ──> [KNN Impute] ──> [Inverse Scale] ──> [Clean Data]
+3. Why This Approach is Optimal
+The implemented custom function optimizes the imputation process through three strict layers of execution:
+Temporal and Local Integrity (Safe Grouping): When executed inside a groupby operation (e.g., processing data country-by-country), standard imputers often crash. This pipeline includes absolute safety checks: it automatically identifies and skips columns that are entirely missing (all-NaN) for a specific country, preventing mathematical failures.
+Dynamic Neighbor Scaling: If a specific country or group contains fewer rows than the requested number of neighbors (e.g., a country has only 3 regional records, but n_neighbors=5), a standard KNN model fails. The code dynamically rescales the neighbor count on the fly:
+Neighbors 
+actual
+​	
+ =min(n_neighbors,Rows 
+available
+​	
+ )
+Distance-Weighted Distance Scaling: The function applies a standard scaling transformation (Z-score) before computing distances. Because KNN relies entirely on Euclidean distance, scaling ensures that features with larger numerical ranges do not dominate the calculation. Furthermore, by utilizing weights='distance', closer neighboring regions have a much stronger mathematical influence on the imputed value than more distant ones.
+4. Mathematical Pipeline Flow
+The code automatically handles the entire lifecycle of the data transformation:
+Feature Separation: Isolates the refined, post-selection target_columns.
+Forward Scaling: Transforms data to a mean of 0 and standard deviation of 1 so distances are perfectly uniform.
+KNN Execution: Fills missing entries using distance-weighted coordinates of the closest operational profiles.
+Inverse Scaling: Converts the data back to its original physical units, ensuring the final output matches the actual scale of the region's original metrics.
