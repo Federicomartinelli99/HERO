@@ -1,0 +1,5 @@
+COUNTRY: Ecuador
+PERIOD: Sep 2024 / Mar 2025
+========================================
+
+This projection update on the food security situation in Ecuador revises the earlier projections for the period from September 2024 to March 2025, covering all 24 provinces. The update was prompted by the need to assess the impact of several worsening factors, including a major drought-driven energy shortage at the end of 2024, La Niña impacts, rising insecurity, and disruptions to agricultural production. The previous projection estimated that the number of people experiencing high levels of acute food insecurity (IPC Phase 3 or above) would rise from 2.58 million to 2.73 million. However, due to the worsening conditions, the figure has now been revised to 2.82 million—an increase of 94,194 more people than originally expected.

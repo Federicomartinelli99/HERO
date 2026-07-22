@@ -1,0 +1,49 @@
+esempio_1_input = """During the 2017 post-harvest season, 33% of the population were classified in “Crisis” (IPC Phase 3) and “Emergency” (IPC Phase 4) in the North Eastern Region covering the provinces of Badakhshan, Baghlan, Kunduz and Takhar. 
+
+Kohistan, Raghistan, Yawan, Koran o Minjan, Yamgan, Darwaz Bala, Darwaz Payin, Kufab, Shiki, Wakhan, Zebak, Arghanj Khwah, Eshkashim, Shighnan districts of Badakhshan province were the most food insecure districts with 30% to 45% food insecure households, corresponds to 120 293 people in emergency situation (IPC phase 4).
+ 
+Badakhshan was the most vulnerable province in terms of food insecurity including 5 clusters (14 districts) classified in emergency situation (IPC Phase 4) due to limited food availability in the market, poor access and utilization of food, displacement due to conflicts and remoteness of some districts especially in Darwaz, 3 districts that have no road connection from Afghanistan. Other causes are the road blockage in 12 districts of Badakhshan province for up to 6 months due to heavy snow, mountainous landscape and bad road conditions.
+ 
+The Kunduz province was partially under control of government last year with high conflict and insecurity rate, which caused displacement of 39000 individuals to centre of Kunduz and neighbouring provinces.
+ 
+Residents of Takhar have suffered shortages of water for irrigation where bad road conditions also contributed challenging food availability. Insecurity in some districts of this province caused displacement of 8100 individuals.
+ 
+On-going conflicts, natural disasters, decreased level of water, limited market functionality, remoteness of some areas in this region are the major contributing factors which caused displacement, unemployment, depletion of livelihood assets and led people to engage in irreversible coping strategies."""
+
+esempio_1_output = """[SHOCKS AND DRIVERS]: 
+The affected areas experienced significant food insecurity due to a combination of economic factors, agricultural challenges, and climate shocks. Limited food availability in the market, poor access and utilization of food, and displacement due to conflicts were major contributing factors. Road blockages for up to 6 months in some districts due to heavy snow and poor road conditions exacerbated the situation. Additionally, ongoing conflicts, natural disasters, and decreased water levels further compounded the issues, leading to displacement, unemployment, and depletion of livelihood assets.
+ 
+[CURRENT FOOD SECURITY DATA]: 
+During the post-harvest season, 33% of the population were classified in “Crisis” (IPC Phase 3) and “Emergency” (IPC Phase 4). The most food insecure districts had 30% to 45% of households in emergency situations, corresponding to 120,293 people in IPC Phase 4. Five clusters (14 districts) were classified in emergency situations (IPC Phase 4) due to limited food availability, poor access and utilization of food, and displacement.
+ 
+[PROJECTED FOOD SECURITY DATA]: 
+The report does not provide specific projected food security data for future periods. However, the ongoing conflicts, natural disasters, and limited market functionality are expected to continue impacting food security in the affected areas.
+
+
+
+# ============================================================
+# SISTEMA PROMPT (più breve — gli esempi fanno il lavoro pesante)
+# ============================================================
+prompt_sistema = (
+    "You are an expert humanitarian data analyst. "
+    "Your task is to rewrite food insecurity reports into anonymous structured summaries "
+    "optimized for semantic similarity analysis.\n\n"
+    "Rules:\n"
+    "- Remove ALL geographic names (countries, regions, cities) and ALL dates.\n"
+    "- Use generic terms: 'the affected areas', 'the population', 'the country'.\n"
+    "- Preserve ALL exact numbers, percentages, and IPC classifications.\n"
+    "- Structure output in exactly 3 tagged sections as shown in the examples.\n"
+    "Learn from this example:"
+)
+
+# ============================================================
+# PROMPT STRUTTURA CON ESEMPI
+# ============================================================
+prompt_struttura = (
+    f"{prompt_sistema}\n\n"
+    f"--- EXAMPLE 1 ---\n"
+    f"INPUT:\n{esempio_1_input}\n\n"
+    f"OUTPUT:\n{esempio_1_output}\n\n"
+    f"--- NOW PROCESS THIS REPORT ---\n"
+    f"INPUT:\n"
+)
