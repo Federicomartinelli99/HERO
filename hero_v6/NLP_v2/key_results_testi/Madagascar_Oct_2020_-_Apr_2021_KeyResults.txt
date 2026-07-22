@@ -1,0 +1,9 @@
+COUNTRY: Madagascar
+PERIOD: Oct 2020 / Apr 2021
+========================================
+
+DISCLAIMER: Please note that this IPC Acute Food Insecurity analysis was integrated with an IPC Acute Malnutrition analysis.
+Overview:
+During the current period (October to December 2020), 1.06 million people (27% of the analysed population) are estimated to be facing high levels of acute food insecurity (IPC Phase 3 or above), including 204,000 people in Emergency (IPC Phase 4) and 859,000 in Crisis (IPC Phase 3). During the projected period (January to April 2021), the situation is expected to deteriorate with 1.35 million people likely facing high levels of acute food insecurity (IPC Phase 3 or above). That includes 282,000 people expected to be in Emergency (IPC Phase 4) and 1.067 million in Crisis (IPC Phase 3). Additionally, 135,476 children are likely to suffer from acute malnutrition in the ten analysed districts, including 27,137 severe cases based on the three forms of acute malnutrition from SMART surveys.
+Key Drivers:
+The impacts of the COVID-19 pandemic, along with the long drought during the 2019-2020 crop year, seriously affected the availability and access to food in all the areas analysed. The major contributing factors to the deterioration of the nutritional situation include: inadequate food intake with rates between 1.2 and 2.2%, and low minimum diet with rates between 0 and 2%. Poor access to safe drinking water and sanitation facilities also contributes to increasing levels of acute malnutrition. The mortality rate for Amboasary Atsimo and Ambovombe has reached emergency stages and is one of the factors exacerbating malnutrition in these districts.

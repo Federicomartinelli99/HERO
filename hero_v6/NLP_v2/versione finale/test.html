@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "vconcat": [{"mark": {"type": "point"}, "encoding": {"color": {"field": "c", "type": "nominal"}, "opacity": {"condition": {"param": "param_1", "value": 1, "empty": true}, "value": 0}, "x": {"field": "x", "type": "quantitative"}, "y": {"field": "y", "type": "quantitative"}}, "name": "view_1"}, {"mark": {"type": "rect"}, "encoding": {"color": {"field": "c", "type": "nominal"}, "x": {"field": "x", "type": "quantitative"}, "y": {"field": "country", "type": "nominal"}}, "transform": [{"filter": {"param": "param_2", "empty": false}}]}], "data": {"name": "data-e9dcb89d44fe9fd155415445a1558b78"}, "params": [{"name": "param_1", "select": {"type": "point", "fields": ["country"]}, "bind": {"input": "select", "options": [null, "A", "B"], "labels": ["Tutti", "A", "B"], "name": "Paese: "}, "views": ["view_1"]}, {"name": "param_2", "select": {"type": "point", "fields": ["country"]}, "bind": {"input": "select", "options": [null, "A", "B"], "labels": ["Tutti", "A", "B"], "name": "Paese: "}, "views": ["view_1"]}], "$schema": "https://vega.github.io/schema/vega-lite/v5.20.1.json", "datasets": {"data-e9dcb89d44fe9fd155415445a1558b78": [{"country": "A", "x": 1, "y": 4, "c": "C1"}, {"country": "A", "x": 2, "y": 3, "c": "C2"}, {"country": "B", "x": 3, "y": 2, "c": "C1"}, {"country": "B", "x": 4, "y": 1, "c": "C2"}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
