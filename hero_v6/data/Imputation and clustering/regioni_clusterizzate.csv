@@ -1,0 +1,516 @@
+country;adm1_pcode;region_name;hierarchical_features_no_coords;hierarchical_features_with_coords;kmeans_features_no_coords;kmeans_features_with_coords
+AFG;AF01;Kabul;4;2;1;1
+AFG;AF02;Kapisa;4;2;1;1
+AFG;AF03;Parwan;4;2;1;1
+AFG;AF04;Maidan Wardak;4;2;1;1
+AFG;AF05;Logar;4;2;1;1
+AFG;AF06;Nangarhar;4;2;1;1
+AFG;AF07;Laghman;4;2;1;1
+AFG;AF08;Panjsher;4;2;1;1
+AFG;AF09;Baghlan;4;2;1;1
+AFG;AF10;Bamyan;4;2;1;1
+AFG;AF11;Ghazni;4;2;1;1
+AFG;AF12;Paktika;4;2;1;1
+AFG;AF13;Paktya;4;2;1;1
+AFG;AF14;Khost;4;2;1;1
+AFG;AF15;Kunar;4;2;1;1
+AFG;AF16;Nuristan;4;2;1;1
+AFG;AF17;Badakhshan;4;2;1;1
+AFG;AF18;Takhar;4;2;1;1
+AFG;AF19;Kunduz;4;2;1;1
+AFG;AF20;Samangan;4;2;1;1
+AFG;AF21;Balkh;4;2;1;1
+AFG;AF22;Sar-e-Pul;4;2;1;1
+AFG;AF23;Ghor;4;2;1;1
+AFG;AF24;Daykundi;4;2;1;1
+AFG;AF25;Uruzgan;4;2;1;1
+AFG;AF26;Zabul;4;2;1;1
+AFG;AF27;Kandahar;4;2;1;1
+AFG;AF28;Jawzjan;4;2;1;1
+AFG;AF29;Faryab;4;2;1;1
+AFG;AF30;Hilmand;4;2;1;1
+AFG;AF31;Badghis;4;2;1;1
+AFG;AF32;Hirat;4;2;1;1
+AFG;AF33;Farah;4;2;1;1
+AFG;AF34;Nimroz;4;2;1;1
+AGO;AO08;Cunene;4;4;2;0
+AGO;AO09;Huíla;4;4;2;0
+AGO;AO16;Namibe;4;4;1;1
+BEN;BJ01;Alibori;3;4;2;0
+BEN;BJ02;Atacora;3;4;2;0
+BEN;BJ03;Atlantique;3;4;2;0
+BEN;BJ04;Borgou;3;4;2;0
+BEN;BJ05;Collines;3;4;2;0
+BEN;BJ06;Couffo;3;4;2;0
+BEN;BJ07;Donga;3;4;2;0
+BEN;BJ08;Littoral;3;4;2;1
+BEN;BJ09;Mono;3;4;2;0
+BEN;BJ10;Oueme;3;4;2;0
+BEN;BJ11;Plateau;3;4;2;0
+BEN;BJ12;Zou;3;4;2;0
+BFA;BF50;Nando;3;4;2;0
+BGD;BD10;Barishal;3;4;2;0
+BGD;BD20;Chattogram;1;1;2;0
+BGD;BD30;Dhaka;3;4;2;0
+BGD;BD40;Khulna;3;4;2;0
+BGD;BD45;Mymensingh;3;4;2;0
+BGD;BD50;Rajshahi;3;4;2;0
+BGD;BD55;Rangpur;3;4;2;0
+BGD;BD60;Sylhet;3;4;2;0
+CAF;CF11;Ombella M'Poko;3;4;2;0
+CAF;CF12;Lobaye;3;4;2;0
+CAF;CF21;Mambéré-Kadéï;3;4;2;0
+CAF;CF22;Nana-Mambéré;3;4;2;0
+CAF;CF23;Sangha-Mbaéré;3;4;2;0
+CAF;CF31;Ouham Pendé;3;4;2;0
+CAF;CF32;Ouham;3;4;2;0
+CAF;CF41;Kémo;3;4;2;0
+CAF;CF42;Nana-Gribizi;3;4;2;0
+CAF;CF43;Ouaka;3;4;2;0
+CAF;CF51;Bamingui-Bangoran;3;4;0;0
+CAF;CF52;Haute-Kotto;1;1;0;3
+CAF;CF53;Vakaga;1;1;0;3
+CAF;CF61;Basse-Kotto;3;4;2;0
+CAF;CF62;Mbomou;3;4;2;0
+CAF;CF63;Haut-Mbomou;1;1;0;3
+CAF;CF71;Bangui;3;4;2;0
+CMR;CM001;Adamawa;3;4;2;0
+CMR;CM002;Centre;3;4;2;0
+CMR;CM003;East;3;4;2;0
+CMR;CM004;Far-North;4;2;1;1
+CMR;CM005;Littoral;3;4;2;0
+CMR;CM006;North;3;4;2;0
+CMR;CM007;North-West;3;4;2;0
+CMR;CM008;West;3;4;2;0
+CMR;CM009;South;3;4;2;0
+CMR;CM010;South-West;3;4;2;0
+COD;CD10;Kinshasa;3;4;2;0
+COD;CD20;Kongo-Central;3;4;2;0
+COD;CD31;Kwango;3;4;2;0
+COD;CD32;Kwilu;3;4;2;0
+COD;CD33;Maï-Ndombe;3;4;2;0
+COD;CD41;Equateur;3;4;2;0
+COD;CD42;Sud-Ubangi;3;4;2;0
+COD;CD43;Nord-Ubangi;3;4;2;0
+COD;CD44;Mongala;3;4;2;0
+COD;CD45;Tshuapa;3;4;2;0
+COD;CD51;Tshopo;3;4;2;0
+COD;CD52;Bas-Uele;3;4;2;0
+COD;CD53;Haut-Uele;3;4;2;0
+COD;CD54;Ituri;1;1;0;3
+COD;CD61;Nord-Kivu;1;1;0;3
+COD;CD62;Sud-Kivu;1;1;0;0
+COD;CD63;Maniema;3;4;2;0
+COD;CD71;Haut-Katanga;3;4;2;0
+COD;CD72;Lualaba;3;4;2;0
+COD;CD73;Haut-Lomami;3;4;2;0
+COD;CD74;Tanganyika;3;4;2;0
+COD;CD81;Lomami;3;4;2;0
+COD;CD82;Kasaï-Oriental;3;4;2;0
+COD;CD83;Sankuru;3;4;2;0
+COD;CD91;Kasaï-Central;3;4;2;0
+COD;CD92;Kasaï;3;4;2;0
+ECU;EC01;Azuay;3;4;2;0
+ECU;EC02;Bolivar;3;4;2;0
+ECU;EC03;Cañar;3;4;2;0
+ECU;EC04;Carchi;3;4;2;0
+ECU;EC05;Cotopaxi;3;4;2;0
+ECU;EC06;Chimborazo;4;4;2;0
+ECU;EC07;El Oro;3;4;2;0
+ECU;EC08;Esmeraldas;3;4;2;0
+ECU;EC09;Guayas;3;4;2;0
+ECU;EC10;Imbabura;3;4;2;0
+ECU;EC11;Loja;3;4;2;0
+ECU;EC12;Los Rios;3;4;2;0
+ECU;EC13;Manabi;3;4;2;0
+ECU;EC14;Morona Santiago;3;4;2;0
+ECU;EC15;Napo;3;4;2;0
+ECU;EC16;Pastaza;2;3;3;2
+ECU;EC17;Pichincha;3;4;2;0
+ECU;EC18;Tungurahua;3;4;2;0
+ECU;EC19;Zamora Chinchipe;3;4;2;0
+ECU;EC20;Galapagos;4;2;1;1
+ECU;EC21;Sucumbios;3;4;2;0
+ECU;EC22;Orellana;3;4;2;0
+ECU;EC23;Santo Domingo de los Tsachilas;3;4;2;0
+ECU;EC24;Santa Elena;4;4;1;0
+ETH;ET01;Tigray;4;2;1;3
+ETH;ET02;Afar;4;2;1;1
+ETH;ET03;Amhara;4;2;1;1
+ETH;ET04;Oromia;4;2;1;1
+ETH;ET05;Somali;4;2;1;1
+ETH;ET07;SNNP;3;2;2;0
+ETH;ET16;Sidama;3;2;2;0
+GHA;GH01;Ahafo;3;4;2;0
+GHA;GH02;Ashanti;3;4;2;0
+GHA;GH03;Bono;3;4;2;0
+GHA;GH04;Bono East;3;4;2;0
+GHA;GH05;Central;3;4;2;0
+GHA;GH06;Eastern;3;4;2;0
+GHA;GH07;Greater Accra;3;4;2;0
+GHA;GH08;Northern;3;4;2;1
+GHA;GH09;Northern East;3;4;2;1
+GHA;GH10;Oti;3;4;2;1
+GHA;GH11;Savannah;3;4;2;0
+GHA;GH12;Upper East;3;4;2;0
+GHA;GH13;Upper West;3;4;2;0
+GHA;GH14;Volta;3;4;2;0
+GHA;GH15;Western;3;4;2;0
+GHA;GH16;Western North;3;4;2;0
+GIN;GN001;Boke;3;4;2;0
+GIN;GN002;Conakry;3;4;2;0
+GIN;GN003;Faranah;3;4;2;0
+GIN;GN004;Kankan;3;4;2;0
+GIN;GN005;Kindia;3;4;2;0
+GIN;GN006;Labe;3;4;2;0
+GIN;GN007;Mamou;3;4;2;0
+GIN;GN008;Nzerekore;3;4;2;0
+GTM;GT01;Guatemala;3;4;2;0
+GTM;GT02;El Progreso;3;4;2;0
+GTM;GT03;Sacatepéquez;3;4;2;0
+GTM;GT04;Chimaltenango;3;4;2;0
+GTM;GT05;Escuintla;3;4;2;0
+GTM;GT06;Santa Rosa;3;4;2;0
+GTM;GT07;Sololá;3;4;2;0
+GTM;GT08;Totonicapán;3;4;2;0
+GTM;GT09;Quetzaltenango;3;4;2;0
+GTM;GT10;Suchitepéquez;3;4;2;0
+GTM;GT11;Retalhuleu;3;4;2;0
+GTM;GT12;San Marcos;3;4;2;0
+GTM;GT13;Huehuetenango;3;4;2;0
+GTM;GT14;Quiché;3;4;2;0
+GTM;GT15;Baja Verapaz;3;4;2;0
+GTM;GT16;Alta Verapaz;3;4;2;0
+GTM;GT17;Petén;3;4;2;0
+GTM;GT18;Izabal;3;4;2;0
+GTM;GT19;Zacapa;3;4;2;0
+GTM;GT20;Chiquimula;3;4;2;0
+GTM;GT21;Jalapa;3;4;2;0
+GTM;GT22;Jutiapa;3;4;2;0
+HND;HN01;Atlantida;3;4;2;0
+HND;HN02;Colon;3;4;2;0
+HND;HN03;Comayagua;3;4;2;0
+HND;HN04;Copan;3;4;2;0
+HND;HN05;Cortes;3;4;2;0
+HND;HN06;Choluteca;3;4;2;0
+HND;HN07;El Paraiso;3;4;2;0
+HND;HN08;Francisco Morazan;3;4;2;0
+HND;HN09;Gracias a Dios;3;4;2;0
+HND;HN10;Intibuca;3;4;2;0
+HND;HN11;Islas de La Bahia;3;4;2;0
+HND;HN12;La Paz;3;4;2;0
+HND;HN13;Lempira;3;4;2;0
+HND;HN14;Ocotepeque;3;4;2;0
+HND;HN15;Olancho;3;4;2;0
+HND;HN16;Santa Barbara;3;4;2;0
+HND;HN17;Valle;3;4;2;0
+HND;HN18;Yoro;3;4;2;0
+HTI;HT01;West;1;2;0;3
+HTI;HT02;South-East;3;4;2;0
+HTI;HT03;North;3;4;2;0
+HTI;HT04;North-East;3;4;2;0
+HTI;HT05;Artibonite;3;4;2;0
+HTI;HT06;Centre;3;4;2;0
+HTI;HT07;South;3;4;2;0
+HTI;HT08;Grande'Anse;3;4;2;0
+HTI;HT09;North-West;3;4;2;0
+HTI;HT10;Nippes;3;4;2;0
+KEN;KE002;Kwale;3;4;2;0
+KEN;KE003;Kilifi;3;4;2;1
+KEN;KE004;Tana River;3;4;1;1
+KEN;KE005;Lamu;3;4;2;1
+KEN;KE006;Taita Taveta;3;4;2;0
+KEN;KE007;Garissa;3;4;2;0
+KEN;KE008;Wajir;4;2;1;1
+KEN;KE009;Mandera;3;4;2;0
+KEN;KE010;Marsabit;4;2;1;1
+KEN;KE011;Isiolo;3;4;2;0
+KEN;KE012;Meru;3;4;2;1
+KEN;KE013;Tharaka-Nithi;3;4;2;0
+KEN;KE014;Embu;3;4;2;0
+KEN;KE015;Kitui;3;4;2;0
+KEN;KE016;Machakos;3;4;2;0
+KEN;KE017;Makueni;3;4;2;0
+KEN;KE019;Nyeri;3;4;2;0
+KEN;KE022;Kiambu;3;4;2;0
+KEN;KE023;Turkana;4;2;1;1
+KEN;KE024;West Pokot;3;4;2;0
+KEN;KE025;Samburu;3;4;2;0
+KEN;KE028;Elgeyo-Marakwet;3;4;2;0
+KEN;KE030;Baringo;3;4;2;0
+KEN;KE031;Laikipia;3;4;2;0
+KEN;KE033;Narok;3;4;2;0
+KEN;KE034;Kajiado;3;4;2;0
+KEN;KE042;Kisumu;3;4;2;0
+KEN;KE043;Homa Bay;3;4;2;0
+KEN;KE044;Migori;3;4;2;0
+LBR;LR01;Bomi;3;4;2;0
+LBR;LR02;Bong;3;4;2;0
+LBR;LR03;Gbarpolu;3;4;2;0
+LBR;LR04;Grand Bassa;3;4;2;0
+LBR;LR05;Grand Cape Mount;3;4;2;0
+LBR;LR06;Grand Gedeh;3;4;2;0
+LBR;LR07;Grand Kru;3;4;2;0
+LBR;LR08;Lofa;3;4;2;0
+LBR;LR09;Margibi;3;4;2;0
+LBR;LR10;Maryland;3;4;2;0
+LBR;LR11;Montserrado;3;4;2;0
+LBR;LR12;Nimba;3;4;2;0
+LBR;LR13;River Gee;3;4;2;0
+LBR;LR14;Rivercess;3;4;2;0
+LBR;LR15;Sinoe;3;4;2;0
+MLI;ML01;Kayes;4;2;1;1
+MLI;ML02;Koulikoro;4;2;1;1
+MLI;ML03;Sikasso;4;2;1;1
+MLI;ML04;Segou;4;2;1;1
+MLI;ML05;Mopti;4;2;0;3
+MLI;ML06;Timbuktu;4;2;1;1
+MLI;ML07;Gao;4;2;0;3
+MLI;ML08;Kidal;1;1;0;3
+MOZ;MZ01;Cabo Delgado;4;2;2;0
+MOZ;MZ02;Gaza;3;4;2;0
+MOZ;MZ03;Inhambane;3;4;2;0
+MOZ;MZ04;Manica;3;4;2;0
+MOZ;MZ05;Maputo;3;4;2;0
+MOZ;MZ06;Maputo City;3;4;2;0
+MOZ;MZ07;Nampula;3;4;2;0
+MOZ;MZ08;Niassa;3;4;2;0
+MOZ;MZ09;Sofala;3;4;2;0
+MOZ;MZ10;Tete;3;4;2;0
+MOZ;MZ11;Zambezia;3;4;2;0
+MRT;MR01;Hodh Chargui;4;2;1;1
+MRT;MR02;Hodh El Gharbi;4;2;1;1
+MRT;MR03;Assaba;4;2;1;1
+MRT;MR04;Gorgol;4;2;1;1
+MRT;MR05;Brakna;4;2;1;1
+MRT;MR06;Trarza;4;2;1;1
+MRT;MR07;Adrar;4;2;1;1
+MRT;MR08;Dakhlet Nouadhibou;4;2;1;1
+MRT;MR09;Tagant;4;2;1;1
+MRT;MR10;Guidimagha;4;2;1;1
+MRT;MR11;Tiris Zemmour;4;2;1;1
+MRT;MR12;Inchiri;4;2;1;1
+MRT;MR13;Nouakchott Ouest;3;4;2;0
+NAM;NA01;Zambezi;4;4;2;0
+NAM;NA02;Erongo;3;4;1;1
+NAM;NA03;Hardap;4;4;1;1
+NAM;NA04;Karas;4;2;1;1
+NAM;NA05;Kavango East;4;4;1;1
+NAM;NA06;Khomas;2;3;3;2
+NAM;NA07;Kunene;4;4;1;1
+NAM;NA08;Ohangwena;4;4;1;1
+NAM;NA09;Omaheke;4;4;1;1
+NAM;NA10;Omusati;4;4;1;1
+NAM;NA11;Oshana;4;2;1;1
+NAM;NA12;Oshikoto;4;4;1;1
+NAM;NA13;Otjozondjupa;2;3;3;2
+NAM;NA14;Kavango West;4;4;1;1
+NER;NE001;Agadez;4;2;1;1
+NER;NE002;Diffa;4;2;1;1
+NER;NE003;Dosso;4;2;1;1
+NER;NE004;Maradi;4;2;1;1
+NER;NE005;Tahoua;4;2;1;1
+NER;NE006;Tillabéri;4;2;1;1
+NER;NE007;Zinder;4;2;1;1
+NER;NE008;Niamey;4;2;1;1
+NGA;NG001;Abia;3;4;2;0
+NGA;NG002;Adamawa;4;2;1;1
+NGA;NG003;Akwa Ibom;3;4;2;0
+NGA;NG004;Anambra;3;4;2;0
+NGA;NG005;Bauchi;4;2;1;1
+NGA;NG006;Bayelsa;3;4;2;0
+NGA;NG007;Benue;3;4;2;0
+NGA;NG008;Borno;4;2;0;3
+NGA;NG009;Cross River;3;4;2;0
+NGA;NG010;Delta;3;4;2;0
+NGA;NG011;Ebonyi;3;4;2;0
+NGA;NG012;Edo;3;4;2;0
+NGA;NG013;Ekiti;3;4;2;0
+NGA;NG014;Enugu;3;4;2;0
+NGA;NG015;Federal Capital Territory;3;4;2;0
+NGA;NG016;Gombe;4;2;1;1
+NGA;NG017;Imo;3;4;2;0
+NGA;NG018;Jigawa;4;2;1;1
+NGA;NG019;Kaduna;3;4;2;0
+NGA;NG020;Kano;3;4;1;1
+NGA;NG021;Katsina;4;2;1;1
+NGA;NG022;Kebbi;3;4;1;1
+NGA;NG023;Kogi;3;4;2;0
+NGA;NG024;Kwara;3;4;2;0
+NGA;NG025;Lagos;3;4;2;0
+NGA;NG026;Nasarawa;3;4;2;0
+NGA;NG027;Niger;3;4;2;0
+NGA;NG028;Ogun;3;4;2;0
+NGA;NG029;Ondo;3;4;2;0
+NGA;NG030;Osun;3;4;2;0
+NGA;NG031;Oyo;3;4;2;0
+NGA;NG032;Plateau;3;4;2;1
+NGA;NG033;Rivers;3;4;2;0
+NGA;NG034;Sokoto;4;2;1;1
+NGA;NG035;Taraba;4;2;2;1
+NGA;NG036;Yobe;4;2;1;1
+NGA;NG037;Zamfara;4;2;1;1
+PAK;PK2;Balochistan;4;2;1;1
+PAK;PK5;Khyber Pakhtunkhwa;4;2;1;1
+PAK;PK7;Sindh;4;2;1;1
+SDN;SD01;Khartoum;1;2;0;3
+SDN;SD02;North Darfur;1;2;1;3
+SDN;SD03;South Darfur;1;2;1;3
+SDN;SD04;West Darfur;1;1;0;3
+SDN;SD05;East Darfur;1;2;1;3
+SDN;SD06;Central Darfur;1;2;1;3
+SDN;SD07;South Kordofan;1;2;1;3
+SDN;SD08;Blue Nile;1;2;1;3
+SDN;SD09;White Nile;1;2;1;3
+SDN;SD10;Red Sea;1;2;1;3
+SDN;SD11;Kassala;1;2;1;3
+SDN;SD12;Gedaref;1;2;1;3
+SDN;SD13;North Kordofan;1;2;1;3
+SDN;SD14;Sennar;1;2;1;3
+SDN;SD15;Aj Jazirah;1;2;1;3
+SDN;SD16;River Nile;1;2;1;3
+SDN;SD17;Northern;1;2;1;3
+SDN;SD18;West Kordofan;1;2;1;3
+SEN;SN01;Dakar;4;4;1;1
+SEN;SN02;Diourbel;4;2;1;1
+SEN;SN03;Fatick;4;2;1;1
+SEN;SN04;Kaffrine;4;2;1;1
+SEN;SN05;Kaolack;4;2;1;1
+SEN;SN06;Kédougou;3;4;2;0
+SEN;SN07;Kolda;3;4;2;0
+SEN;SN08;Louga;4;2;1;1
+SEN;SN09;Matam;4;2;1;1
+SEN;SN10;Saint-Louis;4;2;1;1
+SEN;SN11;Sédhiou;4;4;2;0
+SEN;SN12;Tambacounda;4;4;1;1
+SEN;SN13;Thiès;4;2;1;1
+SEN;SN14;Ziguinchor;4;4;2;0
+SLE;SL01;Eastern;3;4;2;0
+SLE;SL02;Northern;3;4;2;0
+SLE;SL03;Southern;3;4;2;0
+SLE;SL04;Western;3;4;2;0
+SLV;SV01;Ahuachapán;3;4;2;0
+SLV;SV02;Cabañas;3;4;2;0
+SLV;SV03;Chalatenango;3;4;2;0
+SLV;SV04;Cuscatlán;3;4;2;0
+SLV;SV05;La Libertad;3;4;2;0
+SLV;SV06;La Paz;3;4;2;0
+SLV;SV07;La Unión;3;4;2;0
+SLV;SV08;Morazán;3;4;2;0
+SLV;SV09;San Miguel;3;4;2;0
+SLV;SV10;San Salvador;3;4;2;0
+SLV;SV11;San Vicente;3;4;2;0
+SLV;SV12;Santa Ana;3;4;2;0
+SLV;SV13;Sonsonate;3;4;2;0
+SLV;SV14;Usulután;3;4;2;0
+SOM;SO11;Awdal;4;2;1;1
+SOM;SO12;Woqooyi Galbeed;4;2;1;1
+SOM;SO13;Togdheer;4;2;1;1
+SOM;SO14;Sool;4;2;1;1
+SOM;SO15;Sanaag;4;2;1;1
+SOM;SO16;Bari;4;2;1;1
+SOM;SO17;Nugaal;4;2;1;1
+SOM;SO18;Mudug;4;2;1;1
+SOM;SO19;Galgaduud;4;2;1;1
+SOM;SO20;Hiraan;1;1;0;3
+SOM;SO21;Middle Shabelle;1;1;0;3
+SOM;SO22;Banadir;1;1;0;3
+SOM;SO23;Lower Shabelle;4;1;1;1
+SOM;SO24;Bay;1;1;0;3
+SOM;SO25;Bakool;4;2;1;1
+SOM;SO26;Gedo;4;2;1;1
+SOM;SO27;Middle Juba;3;4;2;1
+SOM;SO28;Lower Juba;1;1;0;3
+SSD;SS01;Central Equatoria;4;2;1;3
+SSD;SS02;Eastern Equatoria;4;2;1;1
+SSD;SS03;Jonglei;4;2;1;3
+SSD;SS04;Lakes;4;2;1;1
+SSD;SS05;Northern Bahr el Ghazal;4;2;1;1
+SSD;SS06;Unity;4;2;1;3
+SSD;SS07;Upper Nile;4;2;1;3
+SSD;SS08;Warrap;4;2;1;1
+SSD;SS09;Western Bahr el Ghazal;4;2;1;1
+SSD;SS10;Western Equatoria;4;2;1;0
+SWZ;SZ1;Hhohho;3;4;2;0
+SWZ;SZ2;Manzini;3;4;2;0
+SWZ;SZ3;Shiselweni;3;4;2;0
+SWZ;SZ4;Lubombo;3;4;2;0
+TCD;TCD01;BATHA;4;2;1;1
+TCD;TCD02;BORKOU;4;2;1;1
+TCD;TCD03;CHARI BAGUIRMI;4;2;1;1
+TCD;TCD04;GUÉRA;4;2;1;1
+TCD;TCD05;HADJER LAMIS;4;2;1;1
+TCD;TCD06;KANEM;4;2;1;1
+TCD;TCD07;LAC;4;2;1;1
+TCD;TCD08;LOGONE OCCIDENTAL;3;4;2;0
+TCD;TCD09;LOGONE ORIENTAL;3;4;2;0
+TCD;TCD10;MANDOUL;3;4;2;0
+TCD;TCD11;MAYO KEBBI EST;3;4;2;1
+TCD;TCD12;MAYO KEBBI OUEST;3;4;2;0
+TCD;TCD13;MOYEN CHARI;4;4;2;0
+TCD;TCD14;OUADDAÏ;4;2;1;1
+TCD;TCD15;SALAMAT;4;2;1;1
+TCD;TCD16;TANDJILÉ;3;4;2;0
+TCD;TCD17;WADI FIRA;4;2;1;1
+TCD;TCD19;BARH EL GAZEL;4;2;1;1
+TCD;TCD20;ENNEDI EST;4;2;1;1
+TCD;TCD21;SILA;4;2;1;1
+TCD;TCD22;TIBESTI;4;2;1;1
+TCD;TCD23;ENNEDI OUEST;4;2;1;1
+TGO;TG01;Centrale;3;4;2;0
+TGO;TG02;Kara;3;4;2;0
+TGO;TG03;Maritime;3;4;2;0
+TGO;TG04;Plateaux;3;4;2;0
+TGO;TG05;Savanes;3;4;2;0
+TLS;TL01;Ainaro;3;4;2;0
+TLS;TL02;Aileu;3;4;2;0
+TLS;TL03;Baucau;3;4;2;0
+TLS;TL04;Bobonaro;3;4;2;0
+TLS;TL05;Covalima;3;4;2;0
+TLS;TL06;Dili;3;4;2;0
+TLS;TL07;Ermera;3;4;2;0
+TLS;TL08;Liquiçá;3;4;2;0
+TLS;TL09;Lautém;3;4;2;0
+TLS;TL10;Manufahi;3;4;2;0
+TLS;TL11;Manatuto;3;4;2;0
+TLS;TL12;Oecussi;3;4;2;0
+TLS;TL13;Viqueque;3;4;2;0
+YEM;YE11;Ibb;1;2;0;3
+YEM;YE12;Abyan;1;2;0;3
+YEM;YE13;Sana'a City;1;2;1;1
+YEM;YE14;Al Bayda;1;2;0;3
+YEM;YE15;Ta'iz;1;2;0;3
+YEM;YE16;Al Jawf;1;2;0;3
+YEM;YE17;Hajjah;1;2;0;3
+YEM;YE18;Al Hodeidah;1;2;0;3
+YEM;YE19;Hadramawt;1;2;1;1
+YEM;YE20;Dhamar;1;2;1;1
+YEM;YE21;Shabwah;1;2;1;1
+YEM;YE22;Sa'dah;1;2;0;3
+YEM;YE23;Sana'a;1;2;0;3
+YEM;YE24;Aden;1;2;1;3
+YEM;YE25;Lahj;1;2;1;3
+YEM;YE26;Ma'rib;1;1;0;3
+YEM;YE27;Al Mahwit;1;2;1;1
+YEM;YE28;Al Maharah;4;2;1;1
+YEM;YE29;Amran;1;2;1;1
+YEM;YE30;Ad Dali';1;2;0;3
+YEM;YE31;Raymah;1;2;1;1
+YEM;YE32;Socotra;4;2;1;1
+ZAF;ZA1;Western Cape;3;4;1;1
+ZAF;ZA2;Eastern Cape;4;4;2;0
+ZAF;ZA3;Nothern Cape;4;2;1;1
+ZAF;ZA4;Free State;4;2;1;1
+ZAF;ZA5;KwaZulu-Natal;3;4;2;0
+ZAF;ZA6;North West;4;2;1;1
+ZAF;ZA7;Gauteng;4;4;2;0
+ZAF;ZA8;Mpumalanga;4;4;2;0
+ZAF;ZA9;Limpopo;4;2;1;0
+ZWE;ZW11;Manicaland;3;4;2;0
+ZWE;ZW12;Mashonaland Central;4;4;2;0
+ZWE;ZW13;Mashonaland East;3;4;2;0
+ZWE;ZW14;Mashonaland West;4;4;2;0
+ZWE;ZW15;Matabeleland North;3;4;2;0
+ZWE;ZW16;Matabeleland South;3;4;2;0
+ZWE;ZW17;Midlands;3;4;2;0
+ZWE;ZW18;Masvingo;3;4;2;0
