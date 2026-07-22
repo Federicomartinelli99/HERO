@@ -102,6 +102,19 @@
         .svgMap-control-button:active {
             background: rgba(99, 102, 241, 0.35) !important;
         }
+        /* Dark mode filter and pointer for white matplotlib report images */
+        #panel-tsa-global img, #panel-clustering img, #tsa-diagnostic-image-container img {
+            filter: invert(0.92) hue-rotate(180deg) contrast(1.15) brightness(0.95);
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        #panel-tsa-global img:hover, #panel-clustering img:hover, #tsa-diagnostic-image-container img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+        }
     </style>
 </head>
 <body>
@@ -136,68 +149,68 @@
                 <ul class="sub-nav-menu" id="country-sub-menu" style="display: none; padding-left: 1.5rem; margin-top: 0.25rem; list-style: none; flex-direction: column; gap: 0.25rem;">
                     <li>
                         <a class="nav-item sub-nav-item active" id="nav-country-map" onclick="switchCountrySubViewFromSidebar('map')">
-                            <i class="fa-solid fa-map-location-dot" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Mappa & Regioni</span>
+                            <i class="fa-solid fa-map-location-dot" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Mappa & Regioni</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-charts" onclick="switchCountrySubViewFromSidebar('charts')">
-                            <i class="fa-solid fa-chart-line" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Grafici e Trend</span>
+                            <i class="fa-solid fa-chart-line" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Grafici e Trend</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-markets" onclick="switchCountrySubViewFromSidebar('markets')">
-                            <i class="fa-solid fa-store" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Mercati (WFP)</span>
+                            <i class="fa-solid fa-store" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Mercati (WFP)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-gdelt" onclick="switchCountrySubViewFromSidebar('gdelt')">
-                            <i class="fa-solid fa-globe" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Media & News (GDELT)</span>
+                            <i class="fa-solid fa-globe" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Media & News (GDELT)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-ipc" onclick="switchCountrySubViewFromSidebar('ipc')">
-                            <i class="fa-solid fa-wheat-awn" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Sicurezza Alimentare (IPC)</span>
+                            <i class="fa-solid fa-wheat-awn" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Sicurezza Alimentare (IPC)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-acled" onclick="switchCountrySubViewFromSidebar('acled')">
-                            <i class="fa-solid fa-burst" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Conflitti (ACLED)</span>
+                            <i class="fa-solid fa-burst" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Conflitti (ACLED)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-idp" onclick="switchCountrySubViewFromSidebar('idp')">
-                            <i class="fa-solid fa-people-roof" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Sfollati Interni (IDP)</span>
+                            <i class="fa-solid fa-people-roof" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Sfollati Interni (IDP)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-rainfall" onclick="switchCountrySubViewFromSidebar('rainfall')">
-                            <i class="fa-solid fa-cloud-showers-water" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Precipitazioni (CHIRPS)</span>
+                            <i class="fa-solid fa-cloud-showers-water" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Precipitazioni (CHIRPS)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-ndvi" onclick="switchCountrySubViewFromSidebar('ndvi')">
-                            <i class="fa-solid fa-leaf" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Vegetazione (NDVI)</span>
+                            <i class="fa-solid fa-leaf" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Vegetazione (NDVI)</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-spatiotemporal" onclick="switchCountrySubViewFromSidebar('spatiotemporal')">
-                            <i class="fa-solid fa-border-all" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Mappa Spazio-Temporale</span>
+                            <i class="fa-solid fa-border-all" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Mappa Spazio-Temporale</span>
                         </a>
                     </li>
                     <li>
                         <a class="nav-item sub-nav-item" id="nav-country-tsa" onclick="switchCountrySubViewFromSidebar('tsa')">
-                            <i class="fa-solid fa-wave-square" style="font-size: 0.8rem; width: 1rem;"></i>
-                            <span style="font-size: 0.75rem;">Diagnostica TSA</span>
+                            <i class="fa-solid fa-wave-square" style="font-size: 0.7rem; width: 1rem;"></i>
+                            <span style="font-size: 0.65rem;">Diagnostica TSA</span>
                         </a>
                     </li>
                 </ul>
@@ -211,19 +224,11 @@
                 </a>
             </li>
             <li>
-                <a class="nav-item" id="nav-heatmaps" onclick="switchView('heatmaps')">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
-                    </svg>
-                    <span>Mappa Temporale</span>
-                </a>
-            </li>
-            <li>
                 <a class="nav-item" id="nav-spatiotemporal" onclick="switchView('spatiotemporal')">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125Z" />
                     </svg>
-                    <span>Mappe Spazio-Temporali</span>
+                    <span>Esplorazione Spazio-Temporale</span>
                 </a>
             </li>
             <li>
@@ -232,6 +237,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
                     </svg>
                     <span>TSA Globale</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" id="nav-clustering" onclick="switchView('clustering')">
+                    <i class="fa-solid fa-diagram-project" style="font-size: 1.25rem; width: 1.5rem; text-align: center; margin-right: 0.5rem; color: var(--text-secondary);"></i>
+                    <span>Clustering & Pattern</span>
+                </a>
+            </li>
+            <li>
+                <a class="nav-item" id="nav-tsgraph" onclick="switchView('tsgraph')">
+                    <i class="fa-solid fa-circle-nodes" style="font-size: 1.25rem; width: 1.5rem; text-align: center; margin-right: 0.5rem; color: var(--text-secondary);"></i>
+                    <span>Esploratore Topologico</span>
                 </a>
             </li>
         </ul>
@@ -1245,18 +1262,7 @@
                         </div>
                     </div>
 
-                    <!-- Country-Level Clustering Card -->
-                    <div class="glass-card" style="width: 100%; padding: 1.25rem 1.5rem;">
-                        <div class="card-title-text" style="font-size: 0.95rem; font-weight: 700; color: white; margin-bottom: 0.75rem;">
-                            <i class="fa-solid fa-diagram-project text-indigo-500 mr-2"></i>Clustering Intra-Paese delle Province
-                        </div>
-                        <span style="font-size: 0.72rem; color: var(--text-secondary); display: block; margin-bottom: 0.75rem;">
-                            Dendrogrammi gerarchici (shape-based DTW e feature-based), mappa dei cluster e scatter PCA per le province del paese selezionato.
-                        </span>
-                        <div id="tsa-clustering-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1rem;">
-                            <div style="color: var(--text-muted); padding: 1.5rem; text-align: center; font-size: 0.8rem;">Nessun dato clustering disponibile</div>
-                        </div>
-                    </div>
+                    <!-- Old clustering card removed as requested, moved to its own standalone Main Tab -->
                 </div>
             </div>
         </section>
@@ -1344,27 +1350,36 @@
 
         </section>
 
-        <!-- VALUE HEATMAPS PANEL -->
-        <!-- TEMPORAL MAP PANEL -->
-        <section class="view-panel" id="panel-heatmaps">
-            <!-- Timeline controls card -->
-            <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-top: -1rem;">
+        <!-- SPATIOTEMPORAL HEATMAPS PANEL (MERGED - STACKED) -->
+        <section class="view-panel" id="panel-spatiotemporal">
+            <!-- Controls card shared for both -->
+            <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-top: -1rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; align-items: center; gap: 1.5rem; flex-grow: 1; flex-wrap: wrap;">
                     <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Indicatore</span>
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Indicatore Globale</span>
                         <div class="select-wrapper">
-                            <select id="values-theme-selector" onchange="onValuesThemeChange()" style="width: 250px;">
+                            <select id="values-theme-selector" onchange="onValuesThemeChange(); onGlobalSpatiotemporalChange();" style="width: 250px;">
                                 <option value="ipc">Sicurezza Alimentare (IPC Fase 3+ %)</option>
                                 <option value="acled">Conflitti (ACLED Eventi)</option>
                                 <option value="idp">Sfollati Interni (IDP)</option>
                                 <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
                                 <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
                                 <option value="ndvi">Indice Vegetazione (NDVI VIM)</option>
-                                <option value="gdelt">Instabilità Media (GDELT Conflitti Materiali)</option>
+                                <option value="gdelt">Instabilità (GDELT)</option>
                             </select>
                         </div>
                     </div>
                     
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Dettaglio (Heatmap)</span>
+                        <div class="select-wrapper">
+                            <select id="spatiotemporal-level-selector" onchange="onGlobalSpatiotemporalChange()" style="width: 200px;">
+                                <option value="national">Nazioni</option>
+                                <option value="adm1">Province (Admin1)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Player Controls -->
                     <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem;">
                         <button class="toggle-btn" id="btn-play-timeline" onclick="toggleTimelinePlay()" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; width: 100px; justify-content: center;">
@@ -1375,74 +1390,44 @@
 
                     <!-- Slider Control -->
                     <div style="display: flex; flex-direction: column; gap: 0.25rem; flex-grow: 1; min-width: 200px;">
-                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Linea Temporale</span>
+                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Linea Temporale Mappa</span>
                         <div style="display: flex; align-items: center; gap: 1rem;">
                             <input type="range" id="timeline-slider" oninput="onTimelineSliderInput(this.value)" style="flex-grow: 1; cursor: pointer; height: 6px; border-radius: 3px; background: #1e293b; outline: none;">
-                            <span id="timeline-quarter-label" style="font-family: var(--font-title); font-weight: 800; font-size: 1.2rem; color: #a5b4fc; min-width: 80px; text-align: center; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); padding: 0.25rem 0.75rem; border-radius: 8px;">--</span>
+                            <span id="timeline-quarter-label" style="font-family: var(--font-title); font-weight: 800; font-size: 1.1rem; color: #a5b4fc; min-width: 70px; text-align: center; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); padding: 0.25rem 0.6rem; border-radius: 8px;">--</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Map Card (Full Width) -->
-            <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
-                <div class="card-title" style="margin-bottom: 0.75rem;">
-                    <div class="card-title-text">
-                        <i class="fa-solid fa-earth-africa text-indigo-500"></i>
-                        <span>Evoluzione Geografica dei Valori (Clicca un Paese per analizzare le regioni)</span>
-                    </div>
-                </div>
-                <div class="map-container" id="temporal-map-wrapper" style="height: 580px;">
-                    <!-- Target container for svgMap -->
-                    <div id="temporal-map" style="width: 100%; height: 100%;"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- SPATIOTEMPORAL HEATMAPS PANEL -->
-        <section class="view-panel" id="panel-spatiotemporal">
-            <!-- Heatmap controls card -->
-            <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-top: -1rem;">
-                <div style="display: flex; align-items: center; gap: 1.5rem; flex-grow: 1; flex-wrap: wrap;">
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Indicatore</span>
-                        <div class="select-wrapper">
-                            <select id="spatiotemporal-metric-selector" onchange="onGlobalSpatiotemporalChange()" style="width: 250px;">
-                                <option value="ipc">Sicurezza Alimentare (IPC Fase 3+ %)</option>
-                                <option value="acled">Conflitti (ACLED Eventi)</option>
-                                <option value="idp">Sfollati Interni (IDP)</option>
-                                <option value="rainfall">Precipitazioni (CHIRPS mm)</option>
-                                <option value="wfp">Prezzi Alimentari (WFP Indice)</option>
-                                <option value="ndvi">Indice Vegetazione (NDVI VIM)</option>
-                                <option value="gdelt">Instabilità Media (GDELT Conflitti Materiali)</option>
-                            </select>
+            <!-- Stacked Layout: 1. Map, 2. Heatmap -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+                <!-- 1. TEMPORAL MAP SUBSECTION -->
+                <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
+                    <div class="card-title" style="margin-bottom: 0.75rem;">
+                        <div class="card-title-text">
+                            <i class="fa-solid fa-earth-africa text-indigo-500"></i>
+                            <span>Evoluzione Geografica (Mappa Interattiva)</span>
                         </div>
                     </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                        <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Livello Geografico</span>
-                        <div class="select-wrapper">
-                            <select id="spatiotemporal-level-selector" onchange="onGlobalSpatiotemporalChange()" style="width: 250px;">
-                                <option value="national">A livello di Nazioni</option>
-                                <option value="adm1">A livello di Province (Admin1) - Tutte Insieme</option>
-                            </select>
+                    <div class="map-container" id="temporal-map-wrapper" style="height: 520px;">
+                        <!-- Target container for svgMap -->
+                        <div id="temporal-map" style="width: 100%; height: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- 2. HEATMAP SUBSECTION -->
+                <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
+                    <div class="card-title" style="margin-bottom: 0.75rem;">
+                        <div class="card-title-text">
+                            <i class="fa-solid fa-border-all text-indigo-500"></i>
+                            <span>Matrice Spazio-Temporale (Asse X Tempo / Asse Y Spazio)</span>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Heatmap Card (Full Width) -->
-            <div class="glass-card" style="display: flex; flex-direction: column; width: 100%;">
-                <div class="card-title" style="margin-bottom: 0.75rem;">
-                    <div class="card-title-text">
-                        <i class="fa-solid fa-border-all text-indigo-500"></i>
-                        <span>Matrice Spazio-Temporale (Asse X Tempo / Asse Y Spazio)</span>
-                    </div>
-                </div>
-                <div class="heatmap-wrapper" id="spatiotemporal-chart-container" style="min-height: 550px;">
-                    <!-- Heatmap will render here -->
-                    <div style="height: 550px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
-                        <i class="fa-solid fa-spinner fa-spin mr-2"></i> Generazione heatmap...
+                    <div class="heatmap-wrapper" id="spatiotemporal-chart-container" style="min-height: 550px;">
+                        <!-- Heatmap will render here -->
+                        <div style="height: 550px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                            <i class="fa-solid fa-spinner fa-spin mr-2"></i> Generazione heatmap...
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1468,12 +1453,12 @@
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1rem;">
                         <div style="text-align: center;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">Ward + Hierarchical</div>
-                            <img id="tsa-global-map-hierarchical" src="" alt="Hierarchical Map" style="width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" loading="lazy">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">Univariato (DTW Hierarchical)</div>
+                            <div id="tsa-global-map-univariate" style="width: 100%; min-height: 400px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card);"></div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">PCA + K-Means</div>
-                            <img id="tsa-global-map-kmeans" src="" alt="K-Means Map" style="width: 100%; border-radius: 8px; border: 1px solid var(--border-color);" loading="lazy">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">Multivariato (PCA + K-Means)</div>
+                            <div id="tsa-global-map-multivariate" style="width: 100%; min-height: 400px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card);"></div>
                         </div>
                     </div>
                 </div>
@@ -1552,6 +1537,83 @@
             </div>
         </section>
 
+        <!-- CLUSTERING & PATTERN PANEL -->
+        <section class="view-panel" id="panel-clustering">
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; width: 100%;">
+                
+                <!-- Controls Header -->
+                <div class="glass-card" style="padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <div class="card-title-text" style="font-size: 1.1rem; font-weight: 700; color: white;">
+                            <i class="fa-solid fa-diagram-project text-indigo-500 mr-2"></i>Clustering & Pattern Comparati
+                        </div>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; margin-top: 0.25rem;">
+                            Confronto diretto tra le strategie di Clustering Univariata (Shape-based DTW) e Multivariata (Feature-based) per le regioni del paese selezionato.
+                        </span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase;">Paese:</span>
+                            <div class="select-wrapper">
+                                <select id="clustering-country-selector" onchange="onClusteringCountryChange()" style="font-size: 0.75rem; padding: 0.4rem 1rem;">
+                                    <option value="">Seleziona Paese...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split Screen Comparison -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%;">
+                    
+                    <!-- LEFT SIDE: Univariate (Shape-Based) -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="glass-card" style="padding: 1rem; text-align: center; font-weight: 700; color: #38bdf8; border-bottom: 2px solid #38bdf8;">
+                            STRATEGIA 1: Univariata (Shape-Based DTW)
+                        </div>
+                        
+                        <div class="glass-card" style="padding: 1rem;">
+                            <div class="card-title-text" style="margin-bottom: 0.5rem; font-size: 0.85rem;"><i class="fa-solid fa-map"></i> Distribuzione Spaziale (DTW)</div>
+                            <div class="sidebar-map-container" id="clustering-map-uni" style="height: 400px; background: rgba(0,0,0,0.15); border-radius: 8px;"></div>
+                        </div>
+                        
+                        <div class="glass-card" style="padding: 1rem;">
+                            <div class="card-title-text" style="margin-bottom: 0.5rem; font-size: 0.85rem;"><i class="fa-solid fa-code-branch"></i> Dendrogramma e K-Opt</div>
+                            <div id="clustering-metrics-uni" style="min-height: 300px; display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">
+                                Nessun dato selezionato
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT SIDE: Multivariate (Feature-Based) -->
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="glass-card" style="padding: 1rem; text-align: center; font-weight: 700; color: #a855f7; border-bottom: 2px solid #a855f7;">
+                            STRATEGIA 2: Multivariata (Feature-Based)
+                        </div>
+                        
+                        <div class="glass-card" style="padding: 1rem;">
+                            <div class="card-title-text" style="margin-bottom: 0.5rem; font-size: 0.85rem;"><i class="fa-solid fa-map"></i> Distribuzione Spaziale (Catch22)</div>
+                            <div class="sidebar-map-container" id="clustering-map-multi" style="height: 400px; background: rgba(0,0,0,0.15); border-radius: 8px;"></div>
+                        </div>
+                        
+                        <div class="glass-card" style="padding: 1rem;">
+                            <div class="card-title-text" style="margin-bottom: 0.5rem; font-size: 0.85rem;"><i class="fa-solid fa-chart-scatter"></i> Scatter PCA e Metriche</div>
+                            <div id="clustering-metrics-multi" style="min-height: 300px; display: flex; flex-direction: column; gap: 1rem; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">
+                                Nessun dato selezionato
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TSGRAPH PANEL -->
+        <section class="view-panel" id="panel-tsgraph" style="padding: 0; height: 100vh; margin: -1.5rem -1.5rem -1.5rem -1.5rem;">
+            <iframe id="tsgraph-iframe" src="../TS/TSgraph/UI/index.html" style="width: 100%; height: 100vh; border: none; overflow: hidden; display: block;"></iframe>
+        </section>
+
     </main>
 
     <!-- GEOGRAPHIC AUDIT MODAL -->
@@ -1608,6 +1670,29 @@
         </div>
     </div>
 
+    <!-- IMAGE LIGHTBOX MODAL WITH ZOOM -->
+    <div class="modal-overlay" id="image-lightbox-modal" style="display: none; z-index: 9999;" onclick="closeImageLightbox()">
+        <div class="glass-card" style="position: relative; width: 92vw; height: 92vh; padding: 1.25rem; display: flex; flex-direction: column; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.96); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);" onclick="event.stopPropagation()">
+            
+            <!-- Header bar with title and controls -->
+            <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+                <span id="lightbox-caption" style="font-size: 0.95rem; color: #a5b4fc; font-weight: 700;"></span>
+                
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button class="toggle-btn" onclick="zoomLightboxImage(1.25)" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" title="Ingrandisci"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                    <button class="toggle-btn" onclick="zoomLightboxImage(0.8)" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" title="Riduci"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    <button class="toggle-btn" onclick="resetLightboxZoom()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" title="Reset"><i class="fa-solid fa-rotate-right"></i> RESET</button>
+                    <button class="modal-close-btn" onclick="closeImageLightbox()" style="position: static; font-size: 1.5rem; color: white; background: none; border: none; cursor: pointer; margin-left: 0.5rem;">&times;</button>
+                </div>
+            </div>
+            
+            <!-- Image Container with overflow and pan -->
+            <div id="lightbox-img-wrapper" style="width: 100%; flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; position: relative;">
+                <img id="lightbox-img" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; filter: invert(0.92) hue-rotate(180deg) contrast(1.15) brightness(0.95); background: #0f172a; transition: transform 0.15s ease; transform-origin: center center;" alt="Zoomed Report Image">
+            </div>
+        </div>
+    </div>
+
     <!-- ApexCharts JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     
@@ -1616,5 +1701,10 @@
     
     <!-- Application Logic -->
     <script src="app.js"></script>
+    
+    <!-- TS Individual & Clustering Modules -->
+    <script src="ts_individual.js"></script>
+    <script src="ts_clustering.js"></script>
+    <script src="ts_global.js"></script>
 </body>
 </html>

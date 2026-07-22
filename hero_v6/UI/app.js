@@ -143,6 +143,63 @@ function setupEventListeners() {
     }
 }
 
+let currentLightboxZoom = 1;
+
+window.openImageLightbox = function(src, caption) {
+    const modal = document.getElementById('image-lightbox-modal');
+    const img = document.getElementById('lightbox-img');
+    const cap = document.getElementById('lightbox-caption');
+    if (modal && img) {
+        img.src = src;
+        currentLightboxZoom = 1;
+        img.style.transform = `scale(1)`;
+        if (cap) cap.innerText = caption || 'Ingrandimento Grafico';
+        modal.style.display = 'flex';
+    }
+};
+
+window.closeImageLightbox = function() {
+    const modal = document.getElementById('image-lightbox-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.zoomLightboxImage = function(factor) {
+    const img = document.getElementById('lightbox-img');
+    if (!img) return;
+    currentLightboxZoom = Math.min(Math.max(0.5, currentLightboxZoom * factor), 6);
+    img.style.transform = `scale(${currentLightboxZoom})`;
+};
+
+window.resetLightboxZoom = function() {
+    const img = document.getElementById('lightbox-img');
+    if (!img) return;
+    currentLightboxZoom = 1;
+    img.style.transform = `scale(1)`;
+};
+
+// Global click handler per aprire in lightbox qualsiasi immagine di report
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.tagName === 'IMG' && (e.target.closest('#panel-tsa-global') || e.target.closest('#panel-clustering') || e.target.closest('#panel-country'))) {
+        if (e.target.id !== 'lightbox-img' && e.target.src && !e.target.src.endsWith('.svg')) {
+            const title = e.target.alt || e.target.title || (e.target.previousElementSibling ? e.target.previousElementSibling.innerText : 'Ingrandimento Grafico');
+            openImageLightbox(e.target.src, title);
+        }
+    }
+});
+
+// Mouse wheel zoom sul contenitore dell'immagine lightbox
+document.addEventListener('wheel', function(e) {
+    const modal = document.getElementById('image-lightbox-modal');
+    if (modal && modal.style.display === 'flex') {
+        const wrapper = document.getElementById('lightbox-img-wrapper');
+        if (wrapper && wrapper.contains(e.target)) {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.15 : 0.85;
+            zoomLightboxImage(factor);
+        }
+    }
+}, { passive: false });
+
 // Switch between Global and Country views
 function switchView(viewName) {
     state.currentView = viewName;
@@ -153,6 +210,17 @@ function switchView(viewName) {
     // Safety check: remove stuck tooltips from svgMap on view changes
     document.querySelectorAll('.svgMap-tooltip').forEach(el => el.remove());
     
+    // Toggle main header visibility & main container padding for full-bleed tsgraph view
+    const mainHeader = document.getElementById('main-header');
+    const mainElem = document.querySelector('main');
+    if (viewName === 'tsgraph') {
+        if (mainHeader) mainHeader.style.setProperty('display', 'none', 'important');
+        if (mainElem) mainElem.style.padding = '0';
+    } else {
+        if (mainHeader) mainHeader.style.display = 'flex';
+        if (mainElem) mainElem.style.padding = '1.5rem';
+    }
+    
     // Toggle active panel class
     document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -160,7 +228,15 @@ function switchView(viewName) {
     // Toggle sidebar country sub-menu visibility
     const countrySubMenu = document.getElementById('country-sub-menu');
     if (countrySubMenu) {
-        countrySubMenu.style.display = viewName === 'country' ? 'flex' : 'none';
+        if (viewName === 'country') {
+            if (state.currentView === 'country') {
+                countrySubMenu.style.display = countrySubMenu.style.display === 'none' ? 'flex' : 'none';
+            } else {
+                countrySubMenu.style.display = 'flex';
+            }
+        } else {
+            countrySubMenu.style.display = 'none';
+        }
     }
     
     if (viewName === 'global') {
@@ -220,26 +296,12 @@ function switchView(viewName) {
         document.getElementById('country-selector-wrapper').style.display = 'none';
         
         initCompareSelectors();
-    } else if (viewName === 'heatmaps') {
-        document.getElementById('panel-heatmaps').classList.add('active');
-        document.getElementById('nav-heatmaps').classList.add('active');
-        
-        document.getElementById('view-title').innerText = "Mappa Temporale dell'Evoluzione Dati";
-        document.getElementById('view-subtitle').innerText = "Visualizza l'andamento geografico reale nel tempo con animazione controllata";
-        
-        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
-        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
-        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
-        document.getElementById('country-selector-wrapper').style.display = 'none';
-        
-        initTimelineControls();
-        renderTemporalMap();
     } else if (viewName === 'spatiotemporal') {
         document.getElementById('panel-spatiotemporal').classList.add('active');
         document.getElementById('nav-spatiotemporal').classList.add('active');
         
-        document.getElementById('view-title').innerText = "Mappe Spazio-Temporali dell'Andamento Variabili";
-        document.getElementById('view-subtitle').innerText = "Visualizza l'andamento spazio-temporale reale di ciascuna variabile nel tempo per nazione o provincia";
+        document.getElementById('view-title').innerText = "Esplorazione Spazio-Temporale";
+        document.getElementById('view-subtitle').innerText = "Visualizza l'andamento geografico reale e le heatmap matriciali nel tempo";
         
         document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
         const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
@@ -248,6 +310,8 @@ function switchView(viewName) {
         const subregSel = document.getElementById('subregion-selector-wrapper');
         if (subregSel) subregSel.style.display = 'none';
         
+        initTimelineControls();
+        renderTemporalMap();
         renderGlobalSpatiotemporalHeatmap();
     } else if (viewName === 'tsa-global') {
         document.getElementById('panel-tsa-global').classList.add('active');
@@ -264,6 +328,36 @@ function switchView(viewName) {
         if (subregSel) subregSel.style.display = 'none';
         
         loadTsaGlobalPanel();
+    } else if (viewName === 'clustering') {
+        document.getElementById('panel-clustering').classList.add('active');
+        document.getElementById('nav-clustering').classList.add('active');
+        
+        document.getElementById('view-title').innerText = "Clustering & Pattern Comparati";
+        document.getElementById('view-subtitle').innerText = "Confronta le strategie di clustering univariate e multivariate per le province";
+        
+        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
+        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
+        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
+        document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
+        
+        if (typeof renderClusteringView === 'function') {
+            renderClusteringView();
+        }
+    } else if (viewName === 'tsgraph') {
+        document.getElementById('panel-tsgraph').classList.add('active');
+        document.getElementById('nav-tsgraph').classList.add('active');
+        
+        const mainHeader = document.getElementById('main-header');
+        if (mainHeader) mainHeader.style.display = viewName === 'tsgraph' ? 'none' : 'flex';
+        
+        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
+        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
+        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
+        document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
     }
 }
 
@@ -307,21 +401,34 @@ function populateGlobalStats() {
     setSafeHtml("stat-wfp-trend", `<i class="fa-solid fa-circle-info"></i> Prezzi alimentari disponibili`);
 }
 
-// Populate Country Selector dropdown
+// Populate Country Selector dropdowns (Global and Clustering)
 function populateCountrySelector() {
-    if (!globalData) return;
+    if (!globalData || !globalData.countries) return;
     
     const selector = document.getElementById("country-selector");
-    // Clear and keep default option
-    selector.innerHTML = '<option value="">Seleziona Paese...</option>';
-    
-    globalData.countries.forEach(c => {
-        const opt = document.createElement("option");
-        const flag = getFlagEmoji(ISO3_TO_ISO2[c.code]);
-        opt.value = c.code;
-        opt.innerText = `${flag} ${c.name} (${c.code})`;
-        selector.appendChild(opt);
-    });
+    if (selector) {
+        selector.innerHTML = '<option value="">Seleziona Paese...</option>';
+        globalData.countries.forEach(c => {
+            const opt = document.createElement("option");
+            const flag = getFlagEmoji(ISO3_TO_ISO2[c.code]);
+            opt.value = c.code;
+            opt.innerText = `${flag} ${c.name} (${c.code})`;
+            selector.appendChild(opt);
+        });
+    }
+
+    const clusteringSel = document.getElementById("clustering-country-selector");
+    if (clusteringSel) {
+        clusteringSel.innerHTML = '';
+        globalData.countries.forEach(c => {
+            const opt = document.createElement("option");
+            const flag = getFlagEmoji(ISO3_TO_ISO2[c.code]);
+            opt.value = c.code;
+            opt.innerText = `${flag} ${c.name} (${c.code})`;
+            clusteringSel.appendChild(opt);
+        });
+        if (state && state.selectedCountry) clusteringSel.value = state.selectedCountry;
+    }
 }
 
 // Render Rankings list sidebar
@@ -6820,20 +6927,21 @@ function loadTsaClusteringImages() {
 }
 
 function loadTsaGlobalPanel() {
-    const basePath = `${TSA_BASE_PATH}/global`;
+    if (typeof renderGlobalClusteringMaps === 'function') {
+        renderGlobalClusteringMaps();
+    }
+    
+    const basePath = "../TS/TSclusters/results";
     
     const mappings = [
-        { id: 'tsa-global-map-hierarchical', file: 'global_national_map_hierarchical.png' },
-        { id: 'tsa-global-map-kmeans', file: 'global_national_map_kmeans.png' },
-        { id: 'tsa-global-dendro-features', file: 'global_national_dendrogram_features.png' },
-        { id: 'tsa-global-dendro-shape', file: 'global_national_dendrogram_shape.png' },
-        { id: 'tsa-global-dendro-ncd', file: 'global_national_dendrogram_compression.png' },
-        { id: 'tsa-global-heatmap-dtw', file: 'global_national_dtw_heatmap.png' },
-        { id: 'tsa-global-heatmap-ncd', file: 'global_national_ncd_heatmap.png' },
-        { id: 'tsa-global-pca-national', file: 'global_national_pca_scatter.png' },
-        { id: 'tsa-global-pca-regions', file: 'global_regions_pca_scatter.png' },
-        { id: 'tsa-global-regions-map-hierarchical', file: 'global_regions_map_hierarchical.png' },
-        { id: 'tsa-global-regions-map-kmeans', file: 'global_regions_map_kmeans.png' }
+        { id: 'tsa-global-dendro-shape', file: 'national_univariate/national_univariate_evaluation_metrics.png' },
+        { id: 'tsa-global-dendro-ncd', file: 'national_univariate/k_2/strategy_similarity_heatmap.png' },
+        { id: 'tsa-global-heatmap-dtw', file: 'national_univariate/k_2/dtw_hierarchical/crosstab_ipc.png' },
+        { id: 'tsa-global-heatmap-ncd', file: 'national_univariate/k_2/dtw_hierarchical/medoids.png' },
+        { id: 'tsa-global-pca-national', file: 'national_multivariate/k_3/multivariate_dtw_hierarchical/pca.png' },
+        { id: 'tsa-global-pca-regions', file: 'national_multivariate/k_3/multivariate_dtw_hierarchical/umap.png' },
+        { id: 'tsa-global-regions-map-hierarchical', file: 'national_multivariate/k_3/multivariate_dtw_hierarchical/map.png' },
+        { id: 'tsa-global-regions-map-kmeans', file: 'national_multivariate/k_3/multivariate_kmeans/map.png' }
     ];
     
     mappings.forEach(m => {
@@ -6842,10 +6950,6 @@ function loadTsaGlobalPanel() {
             img.src = `${basePath}/${m.file}`;
             img.onerror = function() {
                 this.style.display = 'none';
-                if (this.parentElement) {
-                    this.parentElement.insertAdjacentHTML('beforeend', 
-                        '<div style="color: var(--text-muted); padding: 1rem; font-size: 0.75rem; text-align: center;">Immagine non disponibile</div>');
-                }
             };
         }
     });
