@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERO TSgraph - Country Comparison</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .compare-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%; max-width: 1000px;
+            height: 80%; max-height: 800px;
+            display: flex; flex-direction: column;
+            padding: 20px;
+        }
+        .back-btn {
+            position: absolute; top: 15px; left: 15px;
+            color: var(--text-primary); padding: 10px 15px;
+            border-radius: 8px; cursor: pointer; text-decoration: none;
+            font-size: 1rem; font-weight: 600; border: 1px solid var(--border);
+            background: var(--bg-panel); backdrop-filter: blur(12px);
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+    
+    <a href="index.html" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Torna alla Mappa</a>
+
+    <div class="glass-panel compare-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0; color:#38bdf8;"><i class="fa-solid fa-chart-line"></i> Cross-Country Weight Distribution</h2>
+            <div style="display:flex; gap:10px;">
+                <select id="metricSelectCompare" style="padding:8px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.1); border-radius:6px; outline:none;">
+                    <option value="Pearson">Pearson</option>
+                    <option value="STE">STE (Sync)</option>
+                    <option value="MI">MI (Mutual Info)</option>
+                </select>
+                <select id="lagSelectCompare" style="padding:8px; background:#1e293b; color:white; border:1px solid rgba(255,255,255,0.1); border-radius:6px; outline:none;">
+                    <option value="0">Lag 0</option>
+                    <option value="1">Lag 1</option>
+                    <option value="2">Lag 2</option>
+                    <option value="3">Lag 3</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="loadingMsg" style="text-align:center; padding:50px; color:#94a3b8;">
+            <i class="fa-solid fa-spinner fa-spin fa-2x"></i><br><br>Caricamento dati (AFG, SSD, COD)...<br><small>Assicurati di aver lanciato lo script Python per generare i JSON!</small>
+        </div>
+        
+        <div id="plotCompare" style="flex:1; width:100%; min-height:0; display:none;"></div>
+    </div>
+
+    <script src="compare.js"></script>
+</body>
+</html>

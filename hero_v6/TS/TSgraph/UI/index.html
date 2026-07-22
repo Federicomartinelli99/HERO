@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERO TSgraph - Interactive Topology</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="map"></div>
+    
+    <button id="toggleSidebar" class="toggle-btn glass-panel"><i class="fa-solid fa-bars"></i> Menu</button>
+
+    <aside id="sidebar" class="sidebar glass-panel">
+        <div class="sidebar-header">
+            <h2 style="font-size: 1.2rem; margin:0; color: #38bdf8;"><i class="fa-solid fa-diagram-project"></i> TSgraph</h2>
+            <div class="stats-mini">
+                <span id="statNodes">0</span>N | <span id="statEdges">0</span>E
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <div class="control-row" style="display:flex; gap:5px;">
+                <select id="countrySelect" style="flex:1;"><option value="AFG">AFG</option><option value="SSD">SSD</option><option value="COD">COD</option><option value="GLOBAL">GLO</option></select>
+                <select id="lagSelect" style="flex:1;"><option value="0">Lag 0</option><option value="1">Lag 1</option><option value="2">Lag 2</option><option value="3">Lag 3</option></select>
+                <select id="metricSelect" style="flex:1;"><option value="Pearson">Pearson</option><option value="STE">STE</option><option value="MI">MI</option></select>
+            </div>
+
+            <div class="threshold-section" style="padding: 10px; margin-top:5px;">
+                <div class="checkbox-container" style="font-size:0.85rem; margin-bottom:8px;">
+                    <input type="checkbox" id="statCheck" checked>
+                    <label for="statCheck">Stat. Sig. (p < 0.05)</label>
+                </div>
+                <div class="radio-group" style="font-size:0.85rem; margin-bottom:10px;">
+                    <input type="radio" id="modeFixed" name="thrMode" value="fixed" checked> <label for="modeFixed">Fix</label>
+                    <input type="radio" id="modeTopological" name="thrMode" value="topological" style="margin-left:10px;"> <label for="modeTopological">Top %</label>
+                </div>
+                <div id="fixedControls" class="slider-container" style="font-size:0.85rem;">
+                    <label>Weight &ge; <span id="fixedVal">0.20</span></label>
+                    <input type="range" id="fixedSlider" min="0" max="1" step="0.01" value="0.20">
+                </div>
+                <div id="topoControls" class="slider-container" style="display:none; font-size:0.85rem;">
+                    <label>Top <span id="topoVal">5</span>%</label>
+                    <input type="range" id="topoSlider" min="1" max="100" step="1" value="5">
+                </div>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:8px; background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05); font-size:0.85rem;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;">
+                    <input type="checkbox" id="toggleFitting" style="accent-color:var(--accent);"> Curve Fitting
+                </label>
+                <select id="fitModelSelect" style="font-size:0.75rem; padding:2px 4px; background:rgba(0,0,0,0.3); color:#f8fafc; border:1px solid rgba(255,255,255,0.1); border-radius:4px;">
+                    <option value="exponential">Exponential</option>
+                    <option value="powerlaw">Power-Law</option>
+                    <option value="linear">Linear</option>
+                </select>
+            </div>
+            
+            <a href="#" id="btnOpenCompare" style="display:block; text-align:center; padding:8px; background:var(--accent); color:#0f172a; text-decoration:none; font-weight:600; border-radius:6px; margin-top:5px; transition:opacity 0.2s;">Confronto Paesi &rarr;</a>
+        </div>
+        
+        <div class="mini-table-wrapper" style="margin-top: 15px; flex: 1; min-height: 150px; overflow:visible;">
+            <table class="benchmark-table" id="benchmarkTable">
+                <thead>
+                    <tr>
+                        <th class="has-tooltip" data-tooltip="Generative Model of the Network">Model</th>
+                        <th class="has-tooltip" data-tooltip="Average Degree: Average number of connections per node">&lt;k&gt;</th>
+                        <th class="has-tooltip" data-tooltip="Global Clustering Coefficient: Probability that two neighbors of a node are also connected">CC</th>
+                        <th class="has-tooltip" data-tooltip="Average Shortest Path: Average number of steps between any two nodes">SP</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div id="networkStatsPanel" style="margin-top:15px; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; font-size:0.85rem; border:1px solid rgba(255,255,255,0.05);">
+            <div style="color:#38bdf8; font-weight:600; margin-bottom:5px;"><i class="fa-solid fa-circle-nodes"></i> Topology Info (Real)</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="has-tooltip" data-tooltip="Pearson Correlation of node degrees. r > 0 means hubs connect to hubs.">Assortativity (r):</span>
+                <span id="statAssortativity" style="color:var(--text-primary); font-weight:600;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="has-tooltip" data-tooltip="Number of disconnected subgraphs">Components:</span>
+                <span id="statComponents" style="color:var(--text-primary); font-weight:600;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="has-tooltip" data-tooltip="Size of the largest connected component">Giant Component:</span>
+                <span id="statGC" style="color:var(--text-primary); font-weight:600;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="has-tooltip" data-tooltip="Nodes with zero edges">Isolated Nodes:</span>
+                <span id="statIsolated" style="color:var(--text-primary); font-weight:600;">-</span>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.05); margin: 6px 0;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                <span class="has-tooltip" data-tooltip="Top 3 markets by Degree Centrality">Top Hubs (Deg):</span>
+                <span id="statHubs" style="color:#fcd34d; font-weight:600; text-align:right; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+                <span class="has-tooltip" data-tooltip="Market with the highest Closeness Centrality">Max Closeness:</span>
+                <span id="statCloseness" style="color:#a78bfa; font-weight:600; text-align:right; max-width:60%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-</span>
+            </div>
+        </div>
+    </aside>
+
+    <aside id="sidebarRight" class="sidebar-right glass-panel">
+        <div class="mini-charts-container">
+            <div id="plotDistanceDecay" class="mini-chart"></div>
+            
+            <div style="position:relative; display:flex; flex-direction:column; flex:1; min-height:120px;">
+                <div style="position:absolute; top:5px; right:10px; z-index:10; font-size:0.7rem; background:rgba(0,0,0,0.5); padding:2px 5px; border-radius:4px; display:flex; gap:5px;">
+                    <label style="cursor:pointer;"><input type="radio" name="scaleDegree" value="loglog" checked> Log-Log</label>
+                    <label style="cursor:pointer;"><input type="radio" name="scaleDegree" value="linlin"> Lin-Lin</label>
+                    <label style="cursor:pointer;"><input type="radio" name="scaleDegree" value="linlog"> Lin-Log</label>
+                </div>
+                <div id="plotDegreeDist" class="mini-chart" style="border:none; flex:1;"></div>
+            </div>
+            
+            <div style="position:relative; display:flex; flex-direction:column; flex:1; min-height:120px;">
+                <div style="position:absolute; top:5px; right:10px; z-index:10; font-size:0.7rem; background:rgba(0,0,0,0.5); padding:2px 5px; border-radius:4px; display:flex; gap:5px;">
+                    <label style="cursor:pointer;"><input type="radio" name="assortType" value="knn" checked> Knn</label>
+                    <label style="cursor:pointer;"><input type="radio" name="assortType" value="scatter"> k1-k2</label>
+                </div>
+                <div id="plotAssortativity" class="mini-chart" style="border:none; flex:1;"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Comparison Modal -->
+    <div id="compareModal" class="glass-panel" style="display:none; position:fixed; top:5%; left:5%; width:90%; height:90%; z-index:9999; flex-direction:column; padding:20px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 style="margin:0; color:#38bdf8;"><i class="fa-solid fa-chart-line"></i> Confronto Multi-Paese</h2>
+            <button id="btnCloseCompare" style="background:transparent; border:none; color:#f8fafc; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        
+        <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px; background:rgba(0,0,0,0.2); padding:15px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                <h4 style="margin:0 0 10px 0; color:#cbd5e1;">Filtri Confronto</h4>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; font-size:0.85rem;">
+                    <select id="cmpMetric" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px;">
+                        <option value="Pearson">Pearson</option><option value="STE">STE</option><option value="MI">MI</option>
+                    </select>
+                    <select id="cmpLag" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px;">
+                        <option value="0">Lag 0</option><option value="1">Lag 1</option><option value="2">Lag 2</option><option value="3">Lag 3</option>
+                    </select>
+                    <select id="cmpThrMode" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px;">
+                        <option value="fixed">Fixed</option><option value="topological">Top %</option>
+                    </select>
+                    <div style="display:flex; align-items:center; gap:5px; flex:1; min-width:120px;">
+                        <span id="cmpThrValLabel" style="font-weight:600; min-width:35px; text-align:right;">0.20</span>
+                        <input type="range" id="cmpThrVal" min="0" max="1" step="0.01" value="0.20" style="flex:1; accent-color:var(--accent);">
+                    </div>
+                    <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="cmpSig" checked> Sig. (p<0.05)</label>
+                </div>
+            </div>
+            <div style="flex:1; min-width:300px; background:rgba(0,0,0,0.2); padding:15px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                <h4 style="margin:0 0 10px 0; color:#cbd5e1;">Plot</h4>
+                <div style="display:flex; gap:10px; font-size:0.85rem;">
+                    <select id="cmpPlotType" style="flex:1; background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px;">
+                        <option value="distDecay">Distance Decay</option>
+                        <option value="degreeDist">Degree Distribution</option>
+                        <option value="assortKnn">Assortativity (Knn)</option>
+                        <option value="assortScatter">Assortativity (k1-k2)</option>
+                    </select>
+                    <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="cmpFitToggle"> Fit</label>
+                    <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="cmpOnlyFit"> Solo Fit</label>
+                    <select id="cmpFitModel" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px;">
+                        <option value="exponential">Exp</option><option value="powerlaw">Pow</option><option value="linear">Lin</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:15px; display:flex; gap:10px; align-items:center;">
+            <select id="cmpAddCountrySelect" style="background:#1e293b; color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px; min-width:150px;"></select>
+            <button id="cmpBtnAdd" style="background:#3b82f6; color:#fff; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:600;">Aggiungi Paese</button>
+        </div>
+        
+        <div id="cmpCardsContainer" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:15px; min-height:80px;">
+            <!-- Cards injected here -->
+        </div>
+        
+        <div id="cmpPlotArea" style="flex:1; background:rgba(0,0,0,0.3); border-radius:8px; border:1px solid rgba(255,255,255,0.05); position:relative;"></div>
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+</html>

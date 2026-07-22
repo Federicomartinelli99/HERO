@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HERO Graph Explorer - GLOBAL</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.1.0/leaflet.polylineDecorator.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Outfit', sans-serif; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #0f172a; color: #f8fafc; }
+        #map { height: 100vh; width: 100vw; background-color: #1e293b; }
+        .control-panel { position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(15, 23, 42, 0.9); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); max-height: 90vh; overflow-y: auto; width: 300px; }
+        select { width: 100%; padding: 8px; margin-bottom: 10px; background: #1e293b; color: white; border: 1px solid #475569; border-radius: 4px; }
+        .info-box { font-size: 13px; color: #cbd5e1; }
+        .info-box span { font-weight: bold; color: #38bdf8; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div class="control-panel">
+    <h3 style="margin-top:0; color:#38bdf8;">Network Explorer: GLOBAL</h3>
+    <label>Select Metric / Threshold:</label>
+    <select id="metricSelect"></select>
+    
+    <div class="info-box" id="graphStats">
+        Please select a network to view.
+    </div>
+</div>
+
+<script>
+    var map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CARTO'
+    }).addTo(map);
+
+    var db = {"Statistical - MI": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [{"source": "AFG_Badakhshan", "target": "AFG_Badghis", "weight": 0.13273841659038454, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Baghlan", "weight": 0.2402440846278124, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Balkh", "weight": 0.16031856544974424, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Bamyan", "weight": 0.12371084232782387, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Badakhshan", "weight": 0.13273841659038454, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Balkh", "weight": 0.10557916903117286, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Bamyan", "weight": 0.11131099526731612, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Badakhshan", "weight": 0.2402440846278124, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Badghis", "weight": 0.08316246399553419, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Balkh", "weight": 0.1245794418530655, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Bamyan", "weight": 0.1576527947461174, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Badakhshan", "weight": 0.16031856544974424, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Badghis", "weight": 0.10557916903117286, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Baghlan", "weight": 0.12457944185306549, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Bamyan", "weight": 0.14697679290649673, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Badakhshan", "weight": 0.12371084232782387, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Badghis", "weight": 0.11131099526731611, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Baghlan", "weight": 0.15765279474611738, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Balkh", "weight": 0.14697679290649676, "lag": 0}], "is_directed": true}, "Statistical - Pearson": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [{"source": "AFG_Badakhshan", "target": "AFG_Badghis", "weight": 0.2973912806046508, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Baghlan", "weight": 0.45381385835227955, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Balkh", "weight": 0.43064157180630924, "lag": 0}, {"source": "AFG_Badakhshan", "target": "AFG_Bamyan", "weight": 0.3998921841754133, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Badakhshan", "weight": 0.2973912806046508, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Baghlan", "weight": 0.30977385594665685, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Balkh", "weight": 0.18842417766843542, "lag": 0}, {"source": "AFG_Badghis", "target": "AFG_Bamyan", "weight": 0.2491195889482166, "lag": 2}, {"source": "AFG_Baghlan", "target": "AFG_Badakhshan", "weight": 0.45381385835227955, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Badghis", "weight": 0.30977385594665685, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Balkh", "weight": 0.42601820136059304, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Bamyan", "weight": 0.27613015687319276, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Badakhshan", "weight": 0.43064157180630924, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Badghis", "weight": 0.18842417766843542, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Baghlan", "weight": 0.42601820136059304, "lag": 0}, {"source": "AFG_Balkh", "target": "AFG_Bamyan", "weight": 0.33354828552018273, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Badakhshan", "weight": 0.3998921841754133, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Badghis", "weight": 0.23590607297318014, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Baghlan", "weight": 0.27613015687319276, "lag": 0}, {"source": "AFG_Bamyan", "target": "AFG_Balkh", "weight": 0.33354828552018273, "lag": 0}], "is_directed": true}, "Statistical - STE": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [], "is_directed": true}, "Topological - MI": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [{"source": "AFG_Badakhshan", "target": "AFG_Baghlan", "weight": 0.2402440846278124, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Badakhshan", "weight": 0.2402440846278124, "lag": 0}], "is_directed": true}, "Topological - Pearson": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [{"source": "AFG_Badakhshan", "target": "AFG_Baghlan", "weight": 0.45381385835227955, "lag": 0}, {"source": "AFG_Baghlan", "target": "AFG_Badakhshan", "weight": 0.45381385835227955, "lag": 0}], "is_directed": true}, "Topological - STE": {"nodes": [{"id": "AFG_Badakhshan", "lat": 37.040000000000006, "lon": 70.46}, {"id": "AFG_Badghis", "lat": 35.14, "lon": 63.73}, {"id": "AFG_Baghlan", "lat": 35.8, "lon": 68.91}, {"id": "AFG_Balkh", "lat": 36.67, "lon": 67.08}, {"id": "AFG_Bamyan", "lat": 34.82, "lon": 67.82}], "edges": [{"source": "AFG_Bamyan", "target": "AFG_Badakhshan", "weight": 0.3985971957570307, "lag": 3}], "is_directed": true}};
+    var currentLayers = [];
+    var currentDecorators = [];
+    
+    var select = document.getElementById('metricSelect');
+    select.innerHTML = '<option value="">-- Choose a Network --</option>';
+    for(var key in db) {
+        var opt = document.createElement('option');
+        opt.value = key; opt.innerHTML = key;
+        select.appendChild(opt);
+    }
+    
+    function clearMap() {
+        currentLayers.forEach(l => map.removeLayer(l));
+        currentDecorators.forEach(d => map.removeLayer(d));
+        currentLayers = [];
+        currentDecorators = [];
+    }
+    
+    function drawGraph(key) {
+        var graph = db[key];
+        if(!graph) return;
+        
+        var nodeMap = {};
+        graph.nodes.forEach(n => {
+            nodeMap[n.id] = [n.lat, n.lon];
+            var marker = L.circleMarker([n.lat, n.lon], {
+                radius: 5, color: '#0ea5e9', fillColor: '#0ea5e9', fillOpacity: 0.8
+            }).bindPopup("<b>"+n.id+"</b>");
+            marker.addTo(map);
+            currentLayers.push(marker);
+        });
+        
+        graph.edges.forEach(e => {
+            var latlngs = [nodeMap[e.source], nodeMap[e.target]];
+            var isSTE = key.includes('STE');
+            var isPearson = key.includes('Pearson');
+            var color = isSTE ? '#ef4444' : (isPearson ? '#3b82f6' : '#22c55e');
+            
+            var polyline = L.polyline(latlngs, {color: color, weight: Math.max(1, e.weight * 5), opacity: 0.5}).addTo(map);
+            polyline.bindPopup(e.source + " &rarr; " + e.target + "<br>Weight: " + e.weight.toFixed(3) + "<br>Lag: " + e.lag + " months");
+            currentLayers.push(polyline);
+            
+            if(graph.is_directed) {
+                var decorator = L.polylineDecorator(polyline, {
+                    patterns: [
+                        {offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({pixelSize: 10, polygon: false, pathOptions: {stroke: true, color: color, weight: 2}})}
+                    ]
+                }).addTo(map);
+                currentDecorators.push(decorator);
+            }
+        });
+    }
+    
+    function loadNetwork(key) {
+        clearMap();
+        if(key === "") {
+            document.getElementById('graphStats').innerHTML = "Select a network metric from the dropdown above.";
+        } else {
+            drawGraph(key);
+            var g = db[key];
+            if(g.nodes.length > 0) {
+                var bounds = new L.LatLngBounds(g.nodes.map(n => [n.lat, n.lon]));
+                map.fitBounds(bounds, {padding: [50, 50]});
+            }
+            document.getElementById('graphStats').innerHTML = "<span>Nodes:</span> " + g.nodes.length + "<br><span>Edges:</span> " + g.edges.length + "<br><span>Directed:</span> " + (g.is_directed ? "Yes" : "No");
+        }
+    }
+    
+    select.addEventListener('change', function(e) {
+        loadNetwork(e.target.value);
+    });
+    
+</script>
+</body>
+</html>

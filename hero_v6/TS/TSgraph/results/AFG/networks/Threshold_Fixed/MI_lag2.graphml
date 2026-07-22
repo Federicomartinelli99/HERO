@@ -1,0 +1,254 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"><key id="d3" for="edge" attr.name="lag" attr.type="long"/>
+<key id="d2" for="edge" attr.name="weight" attr.type="double"/>
+<key id="d1" for="node" attr.name="lon" attr.type="double"/>
+<key id="d0" for="node" attr.name="lat" attr.type="double"/>
+<graph edgedefault="directed"><node id="Badakhshan">
+  <data key="d0">37.040000000000006</data>
+  <data key="d1">70.46</data>
+</node>
+<node id="Badghis">
+  <data key="d0">35.14</data>
+  <data key="d1">63.73</data>
+</node>
+<node id="Baghlan">
+  <data key="d0">35.8</data>
+  <data key="d1">68.91</data>
+</node>
+<node id="Balkh">
+  <data key="d0">36.67</data>
+  <data key="d1">67.08</data>
+</node>
+<node id="Bamyan">
+  <data key="d0">34.82</data>
+  <data key="d1">67.82</data>
+</node>
+<node id="Daykundi">
+  <data key="d0">33.71</data>
+  <data key="d1">66.22</data>
+</node>
+<node id="Farah">
+  <data key="d0">32.61</data>
+  <data key="d1">62.3</data>
+</node>
+<node id="Faryab">
+  <data key="d0">36.06</data>
+  <data key="d1">64.87</data>
+</node>
+<node id="Fayzabad">
+  <data key="d0">37.12</data>
+  <data key="d1">70.58</data>
+</node>
+<node id="Gardez">
+  <data key="d0">33.6</data>
+  <data key="d1">69.23</data>
+</node>
+<node id="Ghazni">
+  <data key="d0">33.32</data>
+  <data key="d1">67.81</data>
+</node>
+<node id="Ghor">
+  <data key="d0">34.52</data>
+  <data key="d1">65.25</data>
+</node>
+<node id="Hilmand">
+  <data key="d0">31.15</data>
+  <data key="d1">64.05</data>
+</node>
+<node id="Hirat">
+  <data key="d0">34.35</data>
+  <data key="d1">62.2</data>
+</node>
+<node id="Jalalabad">
+  <data key="d0">34.43</data>
+  <data key="d1">70.45</data>
+</node>
+<node id="Jawzjan">
+  <data key="d0">36.83</data>
+  <data key="d1">65.85</data>
+</node>
+<node id="Kabul">
+  <data key="d0">34.52</data>
+  <data key="d1">69.18</data>
+</node>
+<node id="Kandahar">
+  <data key="d0">31.61</data>
+  <data key="d1">65.71</data>
+</node>
+<node id="Kapisa">
+  <data key="d0">34.96</data>
+  <data key="d1">69.62</data>
+</node>
+<node id="Khost">
+  <data key="d0">33.38</data>
+  <data key="d1">69.83</data>
+</node>
+<node id="Kunar">
+  <data key="d0">34.97</data>
+  <data key="d1">71.09</data>
+</node>
+<node id="Kunduz">
+  <data key="d0">36.84</data>
+  <data key="d1">68.75</data>
+</node>
+<node id="Laghman">
+  <data key="d0">34.76</data>
+  <data key="d1">70.16</data>
+</node>
+<node id="Logar">
+  <data key="d0">34.01</data>
+  <data key="d1">69.17</data>
+</node>
+<node id="Maidan Wardak">
+  <data key="d0">34.3</data>
+  <data key="d1">68.22</data>
+</node>
+<node id="Maymana">
+  <data key="d0">35.92</data>
+  <data key="d1">64.78</data>
+</node>
+<node id="Mazar">
+  <data key="d0">36.73</data>
+  <data key="d1">67.11</data>
+</node>
+<node id="Nangarhar">
+  <data key="d0">34.27</data>
+  <data key="d1">70.48</data>
+</node>
+<node id="Nili">
+  <data key="d0">33.71</data>
+  <data key="d1">66.11</data>
+</node>
+<node id="Nimroz">
+  <data key="d0">30.8</data>
+  <data key="d1">62.32</data>
+</node>
+<node id="Nuristan">
+  <data key="d0">35.42</data>
+  <data key="d1">70.79</data>
+</node>
+<node id="Paktika">
+  <data key="d0">32.48</data>
+  <data key="d1">68.74</data>
+</node>
+<node id="Paktya">
+  <data key="d0">33.63</data>
+  <data key="d1">69.39</data>
+</node>
+<node id="Panjsher">
+  <data key="d0">35.45</data>
+  <data key="d1">69.79</data>
+</node>
+<node id="Parwan">
+  <data key="d0">34.96</data>
+  <data key="d1">68.89</data>
+</node>
+<edge source="Daykundi" target="Bamyan">
+  <data key="d2">0.11646621669528635</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Daykundi" target="Kabul">
+  <data key="d2">0.10782837005945399</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Daykundi" target="Nili">
+  <data key="d2">0.10503434289520414</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Faryab" target="Nimroz">
+  <data key="d2">0.1042502394462369</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Gardez" target="Nili">
+  <data key="d2">0.10276098039753986</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Jawzjan" target="Gardez">
+  <data key="d2">0.10775449547770032</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Jawzjan" target="Panjsher">
+  <data key="d2">0.11028454372204376</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Badghis">
+  <data key="d2">0.12111209834348376</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Bamyan">
+  <data key="d2">0.10564663039367753</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Ghazni">
+  <data key="d2">0.10968266015687761</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Maidan Wardak">
+  <data key="d2">0.1114898770753865</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Paktika">
+  <data key="d2">0.11639276441105444</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kabul" target="Parwan">
+  <data key="d2">0.1264547127923375</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Kapisa" target="Faryab">
+  <data key="d2">0.10494521280921307</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Khost" target="Nangarhar">
+  <data key="d2">0.10121498715166738</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Logar" target="Maidan Wardak">
+  <data key="d2">0.10030677340175169</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Logar" target="Parwan">
+  <data key="d2">0.12031521617346884</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Maidan Wardak" target="Balkh">
+  <data key="d2">0.10576763251933376</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Maymana" target="Badakhshan">
+  <data key="d2">0.11198466158107868</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Nili" target="Daykundi">
+  <data key="d2">0.12834993065549125</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Nimroz" target="Badghis">
+  <data key="d2">0.10045476896396459</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Nimroz" target="Baghlan">
+  <data key="d2">0.10663485299087246</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Nimroz" target="Jawzjan">
+  <data key="d2">0.10760085720806008</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Nimroz" target="Kabul">
+  <data key="d2">0.10268860973645322</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Paktika" target="Gardez">
+  <data key="d2">0.11787626396670628</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Paktya" target="Nili">
+  <data key="d2">0.1166056712258616</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="Parwan" target="Maidan Wardak">
+  <data key="d2">0.12156819177568731</data>
+  <data key="d3">2</data>
+</edge>
+</graph></graphml>

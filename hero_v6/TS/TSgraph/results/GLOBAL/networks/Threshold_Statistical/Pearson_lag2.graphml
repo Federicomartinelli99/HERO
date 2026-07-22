@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"><key id="d3" for="edge" attr.name="lag" attr.type="long"/>
+<key id="d2" for="edge" attr.name="weight" attr.type="float"/>
+<key id="d1" for="node" attr.name="lon" attr.type="double"/>
+<key id="d0" for="node" attr.name="lat" attr.type="double"/>
+<graph edgedefault="directed"><node id="AFG_Badakhshan">
+  <data key="d0">37.040000000000006</data>
+  <data key="d1">70.46</data>
+</node>
+<node id="AFG_Badghis">
+  <data key="d0">35.14</data>
+  <data key="d1">63.73</data>
+</node>
+<node id="AFG_Baghlan">
+  <data key="d0">35.8</data>
+  <data key="d1">68.91</data>
+</node>
+<node id="AFG_Balkh">
+  <data key="d0">36.67</data>
+  <data key="d1">67.08</data>
+</node>
+<node id="AFG_Bamyan">
+  <data key="d0">34.82</data>
+  <data key="d1">67.82</data>
+</node>
+<edge source="AFG_Badakhshan" target="AFG_Baghlan">
+  <data key="d2">0.1371612047552832</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="AFG_Badakhshan" target="AFG_Bamyan">
+  <data key="d2">0.13864348125348142</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="AFG_Badghis" target="AFG_Bamyan">
+  <data key="d2">0.2491195889482166</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="AFG_Baghlan" target="AFG_Balkh">
+  <data key="d2">0.1599414672292884</data>
+  <data key="d3">2</data>
+</edge>
+<edge source="AFG_Baghlan" target="AFG_Bamyan">
+  <data key="d2">0.13080191602699523</data>
+  <data key="d3">2</data>
+</edge>
+</graph></graphml>

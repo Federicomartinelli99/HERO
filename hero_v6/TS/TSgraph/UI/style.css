@@ -1,0 +1,186 @@
+:root {
+    --bg-main: #0f172a;
+    --bg-panel: rgba(15, 23, 42, 0.85);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent: #38bdf8;
+    --border: rgba(255, 255, 255, 0.1);
+    color-scheme: dark;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+body, html { height: 100%; width: 100%; overflow: hidden; background: var(--bg-main); color: var(--text-primary); }
+
+#map { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; background-color: #1e293b; }
+
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.toggle-btn {
+    position: absolute;
+    top: 15px; left: 15px;
+    z-index: 1001;
+    color: var(--text-primary);
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    outline: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.sidebar {
+    position: absolute;
+    top: 65px; left: 15px; bottom: 15px;
+    width: 300px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    gap: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+    transform: translateX(-150%);
+}
+
+.sidebar-right {
+    position: absolute;
+    top: 15px; right: 15px; bottom: 15px;
+    width: 450px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-right.collapsed-right {
+    transform: translateX(120%);
+}
+
+.sidebar-header {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 0 0 auto;
+}
+
+.stats-mini {
+    font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;
+}
+.stats-mini span { color: var(--accent); }
+
+.controls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+select {
+    padding: 6px;
+    background: #1e293b;
+    color: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    outline: none;
+    font-size: 0.8rem;
+}
+
+.threshold-section {
+    background: rgba(0,0,0,0.2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+
+input[type=range] { width: 100%; accent-color: var(--accent); }
+
+.mini-charts-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0; /* allows shrinking */
+}
+
+.mini-chart {
+    flex: 1;
+    min-height: 120px; /* minimum bound so plotly doesn't error */
+    width: 100%;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.2);
+}
+
+.mini-table-wrapper {
+    flex: 0 0 100px;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.2);
+}
+
+.benchmark-table {
+    width: 100%; border-collapse: collapse; font-size: 0.75rem;
+}
+.benchmark-table th, .benchmark-table td {
+    padding: 4px 8px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.benchmark-table th { color: var(--text-secondary); cursor: help; }
+
+.js-plotly-plot .plotly .bg { fill: transparent !important; }
+
+/* Leaflet Popup Dark Theme */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-panel) !important;
+    color: var(--text-primary) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.leaflet-popup-close-button {
+    color: var(--text-secondary) !important;
+}
+.leaflet-popup-close-button:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Custom Tooltips */
+.has-tooltip {
+    position: relative;
+    cursor: default !important; /* Remove the ? cursor */
+}
+.has-tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    color: #38bdf8;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    width: max-content;
+    max-width: 200px;
+    z-index: 10000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    pointer-events: none;
+    font-weight: 400;
+}
+
+select option { background-color: #0f172a; color: #f8fafc; }
