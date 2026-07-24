@@ -1,0 +1,10 @@
+scope,n_rows,n_countries,R2,MAE,R2_vs_global,MAE_vs_global,dR2
+global,8093,33,0.681,6.02,,,
+regional,7896,28,0.705,5.85,0.704,5.88,0.001
+local,7826,22,0.7,5.89,0.705,5.89,-0.005
+cluster_kmeans,7312,22,0.728,5.67,0.738,5.59,-0.01
+cluster_hierarchical,7312,22,0.726,5.71,0.738,5.59,-0.013
+cluster_tfidf_kmeans,8064,30,0.686,5.98,0.696,5.93,-0.01
+cluster_tfidf_hdbscan,8022,31,0.671,6.07,0.684,6.01,-0.013
+cluster_emb_kmeans,8085,32,0.664,6.11,0.681,6.02,-0.017
+cluster_emb_hdbscan,8083,31,0.673,6.0,0.681,6.02,-0.008
