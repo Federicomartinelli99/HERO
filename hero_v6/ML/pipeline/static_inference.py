@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import GroupKFold
 
 import features as F
-from config import (AREA_COL, COUNTRY_COL, CLUSTER_SCOPES, N_SPLITS, SHAP_SAMPLE_SIZE, RANDOM_STATE,
+from config import (AREA_COL, COUNTRY_COL, CLUSTER_SCOPE_NAMES, N_SPLITS, SHAP_SAMPLE_SIZE, RANDOM_STATE,
                     HEADLINE_MODEL, REGIONS, MIN_ROWS_FOR_LOCAL_MODEL, MIN_AREAS_FOR_LOCAL_MODEL,
                     MIN_ROWS_TO_REPORT_STATIC as MIN_ROWS_TO_REPORT,
                     DATASETS, make_models, results_dir)
@@ -164,7 +164,7 @@ def main(dataset: str):
     df = F.load_dataset(dataset)
     features, target, meta = F.build_features(df)
     groups, country = meta[AREA_COL], meta[COUNTRY_COL].values
-    clusters = {name: meta[name].values for name in CLUSTER_SCOPES if name in meta.columns}
+    clusters = {name: meta[name].values for name in CLUSTER_SCOPE_NAMES if name in meta.columns}
     print(f"  rows={len(features)}  features={features.shape[1]}  areas={groups.nunique()}  "
           f"target mean={target.mean():.1f}%")
 
@@ -191,6 +191,7 @@ def main(dataset: str):
     scope_df.to_csv(outdir / "metrics_scopes.csv")
     overall.to_csv(outdir / "metrics_scopes_overall.csv")
     F.plot_scopes(scope_df, "Static inference", outdir / "scope_comparison.png")
+    F.plot_scopes_box(scope_df, "Static inference", outdir / "scope_box.png")
     print("\nLocalization:", F.scope_summary(scope_df))
     print("Overall by scope:\n" + overall.to_string())
 

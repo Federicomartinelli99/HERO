@@ -25,8 +25,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import features as F
-from config import (COUNTRY_COL, CLUSTER_SCOPES, SHAP_SAMPLE_SIZE, RANDOM_STATE, HEADLINE_MODEL, REGIONS,
-                    BACKTEST_ORIGINS, TEST_WINDOW_MONTHS, MIN_ROWS_FOR_LOCAL_MODEL,
+from config import (COUNTRY_COL, CLUSTER_SCOPE_NAMES, SHAP_SAMPLE_SIZE, RANDOM_STATE, HEADLINE_MODEL,
+                    REGIONS, BACKTEST_ORIGINS, TEST_WINDOW_MONTHS, MIN_ROWS_FOR_LOCAL_MODEL,
                     MIN_ROWS_TO_REPORT_NOWCAST as MIN_ROWS_TO_REPORT,
                     DATASETS, make_models, results_dir)
 
@@ -166,7 +166,7 @@ def localization_scopes(features, target, panel):
                 features, target, panel, cols, mask, mask & is_current)[mask]
     preds["regional"] = regional
     preds["local"] = _scope_predictions(features, target, panel, cols, country, is_current)
-    for name in CLUSTER_SCOPES:
+    for name in CLUSTER_SCOPE_NAMES:
         if name in panel.columns:
             preds[name] = _scope_predictions(features, target, panel, cols,
                                              panel[name].values, is_current)
@@ -294,6 +294,8 @@ def main(dataset: str):
     scope_df.to_csv(outdir / "metrics_scopes.csv")
     overall.to_csv(outdir / "metrics_scopes_overall.csv")
     F.plot_scopes(scope_df, "Nowcast", outdir / "scope_comparison.png")
+    persistence_mae = pct[pct.model == "persistence"].set_index("Country")["MAE"]
+    F.plot_scopes_skill_box(scope_df, persistence_mae, "Nowcast", outdir / "scope_box.png")
     print("Localization:", F.scope_summary(scope_df))
     print("Overall by scope:\n" + overall.to_string())
 

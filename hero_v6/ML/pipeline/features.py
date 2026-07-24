@@ -24,12 +24,19 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from config import (TARGET, AREA_COL, COUNTRY_COL, CLUSTER_SCOPES, CLUSTER_JOIN_COL, DRIVERS, N_SPLITS,
                     BACKTEST_ORIGINS, TEST_WINDOW_MONTHS, MIN_TRAIN_ROWS_PER_FOLD,
-                    make_models, HEADLINE_MODEL, DATASETS, CLUSTERS_PATH)
+                    make_models, HEADLINE_MODEL, DATASETS, CLUSTERS_PATH,
+                    TEXT_CLUSTERS_DIR, TEXT_CLUSTER_SPECS, TEXT_CLUSTER_OTHER,
+                    COUNTRY_NAME_TO_ISO3, CLUSTER_SCOPE_NAMES)
 
 # The training scopes compared in localization, in a fixed order (colour-stable across charts).
-SCOPES = ["global", "regional", "local", "cluster_kmeans", "cluster_hierarchical"]
+# Feature clusters (behavioural, per-adm1) + text clusters (narrative, per-country) — see config.
+SCOPES = ["global", "regional", "local", "cluster_kmeans", "cluster_hierarchical",
+          "cluster_tfidf_kmeans", "cluster_tfidf_hdbscan", "cluster_emb_kmeans", "cluster_emb_hdbscan"]
 SCOPE_COLORS = {"global": "#adb5bd", "regional": "#4895ef", "local": "#f3722c",
-                "cluster_kmeans": "#2a9d8f", "cluster_hierarchical": "#9b5de5"}
+                "cluster_kmeans": "#2a9d8f", "cluster_hierarchical": "#9b5de5",
+                # text scopes: well-separated hues (red/magenta for tf-idf, green/brown for embedding)
+                "cluster_tfidf_kmeans": "#d00000", "cluster_tfidf_hdbscan": "#dc2f8a",
+                "cluster_emb_kmeans": "#588157", "cluster_emb_hdbscan": "#7f5539"}
 
 # Autoregressive features (nowcast only): last value, one before, recent trend.
 AR_FEATURES = ["lag1", "lag2", "recent_trend"]
@@ -58,7 +65,20 @@ def load_dataset(dataset: str) -> pd.DataFrame:
     df = df[df["phase_all_number"].fillna(0) > 0].copy()      # drop no-analysis (phantom) rows
     clusters = pd.read_csv(CLUSTERS_PATH, sep=";", usecols=[CLUSTER_JOIN_COL, *CLUSTER_SCOPES.values()])
     clusters = clusters.rename(columns={v: k for k, v in CLUSTER_SCOPES.items()})
-    return df.merge(clusters, on=CLUSTER_JOIN_COL, how="left")
+    df = df.merge(clusters, on=CLUSTER_JOIN_COL, how="left")
+
+    # Text-narrative clusters: source rows are per (country-name, period); collapse to one static label
+    # per ISO3 (mode across periods), then join by COUNTRY_COL. HDBSCAN's -1 noise is dropped before the
+    # mode. Areas whose country is absent from the text corpus get the shared TEXT_CLUSTER_OTHER bucket,
+    # so each text scope covers 100% of rows (a fair comparison with global/regional on the same rows).
+    for scope, (fname, ccol, lcol) in TEXT_CLUSTER_SPECS.items():
+        text = pd.read_csv(TEXT_CLUSTERS_DIR / fname, usecols=[ccol, lcol])
+        text["iso"] = text[ccol].map(COUNTRY_NAME_TO_ISO3)
+        text = text.dropna(subset=["iso"])
+        text = text[text[lcol] >= 0]                          # drop HDBSCAN noise (-1); no-op for kmeans
+        mode = text.groupby("iso")[lcol].agg(lambda s: s.value_counts().index[0])
+        df[scope] = df[COUNTRY_COL].map(mode).fillna(TEXT_CLUSTER_OTHER)
+    return df
 
 
 # ============================================================ static features
@@ -85,7 +105,7 @@ def build_features(df: pd.DataFrame):
     assert not [c for c in features.columns if "phase_" in c], "leakage: phase_* in features"
     meta = pd.DataFrame({COUNTRY_COL: df[COUNTRY_COL].values,
                          AREA_COL: df[AREA_COL].astype(str).values})
-    for name in CLUSTER_SCOPES:                          # carried for the cluster scopes, never features
+    for name in CLUSTER_SCOPE_NAMES:                     # carried for the cluster scopes, never features
         if name in df.columns:
             meta[name] = df[name].values
     target = df[TARGET].astype(float)
@@ -324,7 +344,9 @@ def best_scope(row) -> str:
 # Each scope gets its own colour AND marker shape, so the dot charts stay readable in greyscale / for
 # colour-vision deficiency (colour alone never carries identity).
 SCOPE_MARKERS = {"global": "D", "regional": "o", "local": "^",
-                 "cluster_kmeans": "s", "cluster_hierarchical": "v"}
+                 "cluster_kmeans": "s", "cluster_hierarchical": "v",
+                 "cluster_tfidf_kmeans": "P", "cluster_tfidf_hdbscan": "X",
+                 "cluster_emb_kmeans": "*", "cluster_emb_hdbscan": "h"}
 
 
 def _scope_dot_panel(ax, table, scopes, order, clip, xlabel):
@@ -422,6 +444,95 @@ def plot_scopes_skill(scope_df: pd.DataFrame, baseline_mae, round_name: str, pat
     fig.suptitle(f"{round_name} — per-country skill vs persistence & MAE by training scope",
                  fontsize=11, fontweight="bold")
     fig.tight_layout(rect=[0, 0.04, 1, 0.97])
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _scope_box_panel(ax, table, scopes, xlabel, clip=None, ref=None):
+    """Horizontal box-per-scope summary of a per-country metric — one box = the spread across countries.
+
+    `table` is countries × scopes. Each scope gets a box (its per-country distribution) plus faint
+    jittered per-country points in the scope's colour/marker, with `n` in the tick label. Optional `ref`
+    draws a dashed vertical reference (global median for R², 0 for skill). Scopes keep the fixed SCOPES
+    order (global at top as the reference), so this reads as the compact summary of the busy dot chart.
+    """
+    order = list(scopes)
+    ypos = list(range(len(order) - 1, -1, -1))                      # first scope at the top
+    cols = [(table[s].clip(*clip) if clip else table[s]).dropna() for s in order]
+    bp = ax.boxplot([c.values for c in cols], positions=ypos, vert=False, widths=0.62,
+                    patch_artist=True, showfliers=False, medianprops=dict(color="#111", lw=1.5),
+                    whiskerprops=dict(color="#8a8a8a", lw=1.0), capprops=dict(color="#8a8a8a", lw=1.0),
+                    boxprops=dict(lw=0.8), zorder=2)
+    rng = np.random.default_rng(0)
+    for box, y, s, c in zip(bp["boxes"], ypos, order, cols):
+        box.set_facecolor(SCOPE_COLORS[s]); box.set_alpha(0.30); box.set_edgecolor(SCOPE_COLORS[s])
+        ax.plot(c.values, np.full(len(c), y) + rng.uniform(-0.16, 0.16, len(c)), linestyle="none",
+                marker=SCOPE_MARKERS[s], markersize=3.8, markeredgewidth=0.3, markeredgecolor="white",
+                color=SCOPE_COLORS[s], alpha=0.75, zorder=4)
+    if ref is not None:
+        ax.axvline(ref, color="#333", lw=0.9, ls="--", zorder=1)
+    ax.set_yticks(ypos)
+    ax.set_yticklabels([f"{s}  (n={len(c)})" for s, c in zip(order, cols)], fontsize=8)
+    ax.yaxis.set_tick_params(length=0)
+    ax.set_ylim(-0.7, len(order) - 0.3)
+    ax.set_xlabel(xlabel, fontsize=9)
+    ax.grid(axis="x", lw=0.4, alpha=0.5, zorder=0)
+    ax.spines[["top", "right"]].set_visible(False)
+
+
+def plot_scopes_box(scope_df: pd.DataFrame, round_name: str, path):
+    """Compact box-per-scope summary of the per-country R² & MAE distributions (static round).
+
+    The at-a-glance companion to `plot_scopes`: instead of one marker per country per scope, each scope is
+    a single box (median, IQR, whiskers) over its per-country R² (left) and MAE (right), so the nine
+    scopes are directly comparable. A dashed line marks the global median R²; a scope whose box sits to
+    its right typically beats global. Per-country points are overlaid faintly; `n` is in each label.
+    """
+    scopes = [s for s in SCOPES if f"R2_{s}" in scope_df.columns]
+    if not scopes:
+        return
+    r2 = scope_df[[f"R2_{s}" for s in scopes]].copy();  r2.columns = scopes
+    mae = scope_df[[f"MAE_{s}" for s in scopes]].copy(); mae.columns = scopes
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(12, max(3.6, len(scopes) * 0.55)), sharey=True)
+    ref = float(np.nanmedian(r2["global"].values)) if "global" in r2 else None
+    _scope_box_panel(ax_l, r2, scopes, "R²  (clipped at −1)", clip=(-1.0, 1.0), ref=ref)
+    _scope_box_panel(ax_r, mae, scopes, "MAE (pp)  — lower is better")
+    ax_r.tick_params(labelleft=False)
+    ax_l.set_title("R² per country", fontsize=9); ax_r.set_title("MAE per country", fontsize=9)
+    fig.suptitle(f"{round_name} — localization scopes compared (per-country distribution)",
+                 fontsize=11, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_scopes_skill_box(scope_df: pd.DataFrame, baseline_mae, round_name: str, path):
+    """Compact box-per-scope summary for the nowcast round: per-country skill & MAE distributions.
+
+    The nowcast twin of `plot_scopes_box` — per-country R² is the wrong lens for a persistent target, so
+    the left panel is **skill = % MAE improvement over persistence** (dashed line at 0 = ties persistence).
+    `baseline_mae` is the per-country persistence MAE (Series/dict indexed by Country).
+    """
+    scopes = [s for s in SCOPES if f"MAE_{s}" in scope_df.columns]
+    if not scopes:
+        return
+    mae = scope_df[[f"MAE_{s}" for s in scopes]].copy(); mae.columns = scopes
+    base = pd.Series(dict(baseline_mae)).reindex(mae.index)
+    mae = mae[base.notna() & (base > 0)]
+    base = base.loc[mae.index]
+    if mae.empty:
+        return
+    skill = mae.apply(lambda col: 100.0 * (base - col) / base)
+    fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(12, max(3.6, len(scopes) * 0.55)), sharey=True)
+    _scope_box_panel(ax_l, skill, scopes, "skill vs persistence (% MAE improvement; →better)",
+                     clip=(-60.0, 60.0), ref=0.0)
+    _scope_box_panel(ax_r, mae, scopes, "MAE (pp)  — lower is better")
+    ax_r.tick_params(labelleft=False)
+    ax_l.set_title("skill vs persistence per country", fontsize=9)
+    ax_r.set_title("MAE per country", fontsize=9)
+    fig.suptitle(f"{round_name} — localization scopes compared (per-country distribution)",
+                 fontsize=11, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.97])
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 

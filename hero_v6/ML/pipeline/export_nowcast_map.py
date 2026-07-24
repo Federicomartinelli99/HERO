@@ -4,19 +4,22 @@ Jekyll / GitHub Pages site — a drop-in twin of that site's `assets/charts/usa.
 
 The map colours each admin-1 area by its **latest nowcasted** IPC Phase 3+ level; hovering an area pops a
 small trend graph (observed actual series + walk-forward nowcast, with a dotted connector from the last
-real assessment to the latest nowcast); clicking zooms into the province (the hook where an admin-2 layer
-will later slot in). Data + boundaries are inlined into the one HTML file, so there is no runtime `fetch`
-(no CORS / baseurl issues) — it opens from `file://` and embeds via a single `<iframe>`.
+real assessment to the latest nowcast); clicking zooms into the province and, for Cameroon and DR Congo,
+drills into a real **admin-2** layer (same colouring + hover trend, one level finer — see
+`export_nowcast_map_adm2.py`). Data + boundaries are inlined into the one HTML file, so there is no
+runtime `fetch` (no CORS / baseurl issues) — it opens from `file://` and embeds via a single `<iframe>`.
 
 Standalone: this reuses `nowcast_viz.walk_forward_predictions` by **importing it read-only** — it never
 modifies `nowcast_viz.py` or any other pipeline file, and re-runs no metrics.
 
-Run (adm1 only; imputed dataset; pilot AFG + SOM):
+Run (admin-1 pilot: AFG, SOM, CMR, COD; imputed dataset; admin-2 drill-down auto-built for CMR/COD):
     python export_nowcast_map.py            # or: python export_nowcast_map.py imputed
 """
 
+import os
 import sys
 import json
+import subprocess
 import datetime
 
 import config                       # first — MKL/OpenMP guards before numpy
@@ -27,8 +30,12 @@ import features as F
 import nowcast_viz as NV             # read-only reuse of the walk-forward; never modified
 from config import TARGET, AREA_COL, COUNTRY_COL
 
-PILOT = {"AFG": "Afghanistan", "SOM": "Somalia"}    # pilot countries (both have adm1 boundary files)
+# Admin-1 pilot: all four have an adm1 boundary file in UI/data/boundaries/. Of these, CMR/COD also get
+# a real admin-2 drill-down (see load_adm2_layer) — AFG and SOM's admin-2 join is placeholder / unresolved
+# (no real adm2-level data), so they keep the "not available" panel on click.
+PILOT = {"AFG": "Afghanistan", "SOM": "Somalia", "CMR": "Cameroon", "COD": "DR Congo"}
 BOUND_DIR = config.HERO_ROOT / "UI" / "data" / "boundaries"
+ADM2_BOUND_DIR = BOUND_DIR / "adm2"
 OUT_DIR = config.PIPELINE_DIR / "nowcast_map"
 OUT_HTML = OUT_DIR / "nowcast_map.html"
 
@@ -109,6 +116,27 @@ def build_payload(panel: pd.DataFrame, dataset: str):
     return data, boundaries
 
 
+def load_adm2_layer():
+    """Run the admin-2 sub-build and inline its payload + boundaries.
+
+    `config.LEVEL` is read once, at import, from HERO_LEVEL — so building the admin-2 panel needs
+    its own interpreter, not just a different function call. `export_nowcast_map_adm2.py` sets
+    HERO_LEVEL=adm2 and writes a small JSON payload to nowcast_map/adm2_payload.json; this just
+    runs that script and reads its output back in.
+    """
+    print("[export_nowcast_map] building admin-2 drill-down layer (subprocess, HERO_LEVEL=adm2) ...")
+    env = os.environ.copy()
+    env["HERO_LEVEL"] = "adm2"
+    subprocess.run([sys.executable, "export_nowcast_map_adm2.py"],
+                    check=True, env=env, cwd=str(config.PIPELINE_DIR))
+
+    adm2_json = OUT_DIR / "adm2_payload.json"
+    payload = json.loads(adm2_json.read_text(encoding="utf-8"))
+    boundaries = {iso3: json.load(open(ADM2_BOUND_DIR / f"{iso3}.json", encoding="utf-8"))
+                  for iso3 in payload["countries"]}
+    return payload["countries"], boundaries
+
+
 def render_html(data: dict, boundaries: dict) -> str:
     """Inline the payload into the single-file Leaflet template (token replacement, no str.format)."""
     return (HTML_TEMPLATE
@@ -177,7 +205,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <div id="titlebar" class="panel">
   <h1>Latest nowcast — IPC Phase 3+</h1>
   <p>Admin-1 areas coloured by their most recent <b>nowcasted</b> % of population in Crisis+ (IPC 3+).
-     Hover an area for its trend; click to zoom in. <span id="gen"></span></p>
+     Hover an area for its trend; click to zoom in and drill into admin-2 (Cameroon &amp; DR Congo
+     so far). <span id="gen"></span></p>
   <select id="country"></select>
 </div>
 
@@ -196,7 +225,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
 <div id="adm2" class="panel">
   <b id="a2-name"></b><br/>
-  Admin-2 breakdown is not available yet — it will appear here once admin-2 boundaries are added.
+  <span id="a2-hint"></span>
   <br/><button id="a2-back">← Back to country</button>
 </div>
 
@@ -214,7 +243,13 @@ function colorFor(v){
 }
 
 const map = L.map('map',{zoomControl:true, attributionControl:false, minZoom:2});
-let layer=null, currentIso=null;
+let layer=null, adm2Layer=null, highlightOutline=null, currentIso=null;
+// Outline-only, non-interactive: a normal (interactive) polygon still captures hover/click across its
+// whole fill even at fillOpacity:0 (Leaflet's .leaflet-interactive CSS sets pointer-events:auto, which
+// hit-tests the shape regardless of paint) — so the "which admin-1 am I in" ring has to be a *separate*,
+// `interactive:false` layer, never the original clickable admin-1 polygon, or it blocks the admin-2 layer
+// underneath it once brought to front.
+const SELECTED_STYLE = {weight:4, color:'#2b8cff', fillOpacity:0, opacity:1, interactive:false};
 
 // ---- country selector
 const sel = document.getElementById('country');
@@ -239,13 +274,15 @@ function onEachFeature(iso){
     lyr.on('mouseover', e=>{ e.target.setStyle({weight:2.5, color:'#333'}); e.target.bringToFront();
       showTrend(a); });
     lyr.on('mouseout',  e=>{ layer.resetStyle(e.target); });
-    lyr.on('click',     ()=>{ map.fitBounds(lyr.getBounds(), {padding:[20,20]}); showAdm2(a); });
+    lyr.on('click',     ()=>{ map.fitBounds(lyr.getBounds(), {padding:[20,20]}); showAdm2(iso, f); });
   };
 }
 
 function loadCountry(iso){
   currentIso = iso;
   if(layer) map.removeLayer(layer);
+  if(adm2Layer){ map.removeLayer(adm2Layer); adm2Layer=null; }
+  if(highlightOutline){ map.removeLayer(highlightOutline); highlightOutline=null; }
   layer = L.geoJSON(NOWCAST_BOUNDARIES[iso], {style:styleFeature(iso), onEachFeature:onEachFeature(iso)});
   layer.addTo(map);
   map.fitBounds(layer.getBounds(), {padding:[20,20]});
@@ -267,14 +304,60 @@ function buildLegend(){
   el.innerHTML=rows;
 }
 
-// ---- adm2 placeholder (deferred drill-down hook)
-function showAdm2(a){
-  document.getElementById('a2-name').textContent = a.name;
+// ---- adm2 drill-down (real layer for CMR/COD; "not available" panel for AFG/SOM)
+function areaForAdm2(iso, f){
+  const pc = f.properties.adm2_pcode;
+  const rec = (NOWCAST_DATA.adm2 && NOWCAST_DATA.adm2[iso] && NOWCAST_DATA.adm2[iso].areas || {})[pc];
+  return rec || {name:f.properties.adm2_name, pcode:pc, value:null, series:[]};
+}
+function styleAdm2Feature(iso){
+  return f => ({ fillColor: colorFor(areaForAdm2(iso,f).value),
+    weight:1, color:'#ffffff', fillOpacity:0.85, opacity:0.9 }); }
+function onEachAdm2Feature(iso){
+  return (f, lyr)=>{
+    const a = areaForAdm2(iso, f);
+    lyr.on('mouseover', e=>{ e.target.setStyle({weight:2.5, color:'#333'}); e.target.bringToFront();
+      showTrend(a); });
+    lyr.on('mouseout',  e=>{ adm2Layer.resetStyle(e.target); });
+  };
+}
+
+function showAdm2(iso, adm1Feature){
+  const pcode = adm1Feature.properties.adm1_pcode;
+  document.getElementById('a2-name').textContent = adm1Feature.properties.adm1_name || '';
+  const hint = document.getElementById('a2-hint');
+  if(adm2Layer){ map.removeLayer(adm2Layer); adm2Layer=null; }
+  if(highlightOutline){ map.removeLayer(highlightOutline); highlightOutline=null; }
+
+  // Non-interactive outline of just the clicked province — visual only, never blocks the admin-2 layer.
+  highlightOutline = L.geoJSON(adm1Feature, {interactive:false, style:()=>SELECTED_STYLE});
+  highlightOutline.addTo(map);
+
+  const fc = NOWCAST_BOUNDARIES.adm2 && NOWCAST_BOUNDARIES.adm2[iso];
+  if(!fc){
+    hint.textContent = 'Admin-2 breakdown is not available yet for this country.';
+    document.getElementById('adm2').style.display='block';
+    return;
+  }
+  const sub = { type:'FeatureCollection', features: fc.features.filter(f=>f.properties.adm1_pcode===pcode) };
+  if(sub.features.length===0){
+    hint.textContent = 'No admin-2 areas found for this province.';
+    document.getElementById('adm2').style.display='block';
+    return;
+  }
+  hint.textContent = sub.features.length + ' admin-2 areas — hover for trend, click Back to return.';
+  adm2Layer = L.geoJSON(sub, {style:styleAdm2Feature(iso), onEachFeature:onEachAdm2Feature(iso)});
+  adm2Layer.addTo(map);
+  highlightOutline.bringToFront();   // outline ring stays visible above the new layer
+  map.fitBounds(adm2Layer.getBounds(), {padding:[20,20]});
   document.getElementById('adm2').style.display='block';
 }
 document.getElementById('a2-back').addEventListener('click', ()=>{
+  if(adm2Layer){ map.removeLayer(adm2Layer); adm2Layer=null; }
+  if(highlightOutline){ map.removeLayer(highlightOutline); highlightOutline=null; }
   map.fitBounds(layer.getBounds(), {padding:[20,20]});
   document.getElementById('adm2').style.display='none';
+  document.getElementById('trend').style.display='none';
 });
 
 // ---- trend panel + inline SVG sparkline
@@ -353,6 +436,7 @@ def main():
     panel = build_nowcast_panel(dataset)
     print("join coverage:")
     data, boundaries = build_payload(panel, dataset)
+    data["adm2"], boundaries["adm2"] = load_adm2_layer()
     OUT_HTML.write_text(render_html(data, boundaries), encoding="utf-8")
     kb = OUT_HTML.stat().st_size / 1024
     print(f"Wrote {OUT_HTML}  ({kb:.0f} KB)  countries={list(data['countries'])}")

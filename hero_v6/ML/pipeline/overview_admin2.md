@@ -21,7 +21,9 @@ Nothing about the method changes — only the geographic unit. The level is a sw
   five rate features are reconstructed **in-pipeline** (`prepare_adm2.py`): `raw / population × 1e5` and
   `idp / population`, using a **static per-area proxy** for population — `max(phase_all_number)` per adm2
   unit.
-- **Clusters inherited** from the parent adm1 (`CLUSTER_JOIN_COL = adm1_pcode`, joined at load).
+- **Clusters inherited** at load: the driver-fingerprint clusters join on `adm1_pcode` (so an adm2 area
+  takes its parent adm1's cluster); the four text-narrative clusters join by **country**, so every adm2
+  area shares its country's narrative label.
 - **Unimputed only** — the tree models split on missingness natively; no imputed adm2 dataset exists.
 
 **Scale — roughly 6× the areas:**
@@ -67,20 +69,33 @@ averaged away inside the country, so the country prior already captured most of 
 
 ### Localization wins even more broadly
 
-Every scope re-compared to the global model **on exactly the rows it scored**:
+Every scope re-compared to the global model **on exactly the rows it scored** — the same nine scopes as
+at admin-1 (the four text-narrative clusters join by country, so every adm2 area shares its country's
+narrative label):
 
 | scope | overall R² | MAE (pp) | global on same rows | ΔR² | countries where it beats global |
 |---|---|---|---|---|---|
 | global | 0.592 | 9.06 | — | — | — |
 | **regional** | 0.673 | 7.88 | 0.596 | **+0.077** | 25/27 |
 | **local (per-country)** | 0.696 | 7.46 | 0.601 | **+0.095** | **24/24** |
-| cluster_kmeans | 0.664 | 8.21 | 0.615 | **+0.049** | 20/23 |
-| cluster_hierarchical | 0.673 | 8.08 | 0.615 | **+0.059** | 20/23 |
+| cluster_kmeans (drivers) | 0.664 | 8.21 | 0.615 | +0.049 | 20/23 |
+| cluster_hierarchical (drivers) | 0.673 | 8.08 | 0.615 | +0.059 | 20/23 |
+| **cluster_tfidf_kmeans** (text) | 0.683 | 7.78 | 0.594 | **+0.089** | 28/29 |
+| **cluster_tfidf_hdbscan** (text) | 0.683 | 7.76 | 0.594 | **+0.089** | 28/29 |
+| **cluster_emb_kmeans** (text) | 0.672 | 7.89 | 0.592 | +0.080 | 28/31 |
+| **cluster_emb_hdbscan** (text) | 0.676 | 7.78 | 0.592 | +0.083 | 28/31 |
 
-Two things are stronger than at admin-1: **local beats global in all 24 data-rich countries** (vs 11/11
-at adm1, so far wider coverage), and — unlike the *flat* clusters at admin-1 — **the cluster scopes now
-add real signal** (+0.05–0.06 ΔR²). The per-country picture, R² (left) and MAE (right), one marker per
-scope:
+Three things are stronger than at admin-1: **local beats global in all 24 data-rich countries** (vs 11/11
+at adm1, far wider coverage); the **driver-fingerprint clusters now add real signal** (+0.05–0.06 ΔR²,
+vs flat at adm1); and — as at adm1 — the **text-narrative clusters are again the strongest cluster
+scopes** (+0.08–0.09 ΔR², beating global in 28 of ~30 countries), edging the driver clusters and matching
+the geographic region map. The narrative typology (conflict-refugee, agropastoral-water,
+price-inflation…) is a good country partition at this level too. The compact box-per-scope summary
+(dashed line = global median R²):
+
+![Static (adm2) — localization scopes compared (per-country distribution)](results/static_inference/adm2/unimputed/scope_box.png)
+
+And the full per-country detail, R² (left) and MAE (right), one marker per scope:
 
 ![Static (adm2) — per-country R² & MAE by training scope](results/static_inference/adm2/unimputed/scope_comparison.png)
 
@@ -139,20 +154,21 @@ the biggest increment; driver changes add a final nudge (XGBoost R²):
 And the SHAP story is identical: **persistence (lags) ≈ 12.2 dominates, rainfall ≈ 2.8 leads the
 exogenous drivers**, then vegetation/displacement/conflict.
 
-**Localization is still a wash.** Every scope lands within ±0.01 R² of the global model on the same rows
-(regional +0.001, local −0.005, clusters −0.01) — so, exactly as at admin-1, the recommendation is **one
-global model**. The per-country view below plots **skill vs persistence** (% MAE improvement) rather than
-R²: for a persistent, low-variance target the within-country R² denominator is tiny, so per-country R²
-turns sharply negative even where the nowcast is clearly beating persistence — R² is simply the wrong
-lens for this round. Read this way the picture is convincing: for almost every country the markers sit
-**right of 0** (all scopes beat persistence), and they sit **on top of each other** (routing to a
-regional / local / cluster model adds essentially nothing over global).
+**Localization is still a wash.** Across all nine scopes every one lands within ~±0.02 R² of the global
+model on the same rows (regional +0.001, local −0.005, driver clusters −0.01, and the **text clusters
+−0.008 to −0.017** — the narrative grouping that lifted the static model adds nothing here either) — so,
+exactly as at admin-1, the recommendation is **one global model**. The box-per-scope summary below plots
+**skill vs persistence** (% MAE improvement) rather than R²: for a persistent, low-variance target the
+within-country R² denominator is tiny, so per-country R² turns sharply negative even where the nowcast is
+clearly beating persistence — R² is simply the wrong lens for this round. Read this way the picture is
+convincing: every scope's box sits **right of 0** (all beat persistence) and the boxes sit **on top of
+each other** (routing to a regional / local / cluster model adds essentially nothing over global):
 
-![Nowcast (adm2) — per-country skill vs persistence & MAE by training scope](results/nowcast/adm2/unimputed/scope_skill_comparison.png)
+![Nowcast (adm2) — localization scopes compared (per-country distribution)](results/nowcast/adm2/unimputed/scope_box.png)
 
-*(The R²/MAE version of this chart — `scope_comparison.png`, the same format used in the static section —
-still lives in the results folder; the R² panel there is exactly what makes the localized nowcast look
-falsely weak, which is why the skill panel above replaces it here.)*
+*(Per-country dot versions — `scope_skill_comparison.png` (skill) and `scope_comparison.png` (R²/MAE) —
+still live in the results folder; the R² panel there is exactly what makes the localized nowcast look
+falsely weak, which is why the skill lens is used here.)*
 
 ---
 
@@ -171,7 +187,9 @@ actually taken.
   levels (not, we expect, the within-level conclusions).
 - **Unimputed only** — no imputed adm2 dataset yet (at adm1, imputation helped the nowcast most).
 - **Sparse drivers** — WFP prices (~29%) and IDP displacement (~39%) are thin at adm2.
-- **~23% of areas lack a cluster** (parent adm1 absent from the cluster table).
+- **~23% of areas lack a *driver-fingerprint* cluster** (parent adm1 absent from that cluster table). The
+  text-narrative clusters, by contrast, cover every area — the ~14 countries with no IPC-report text
+  share one catch-all "rest" group, which is a hybrid bucket (absence of text, not a narrative type).
 - **Region-map gaps** — a few adm2-only countries (e.g. DOM, LBN, PSE, MWI) fall outside the 6-region
   map, so they have no regional scope.
 

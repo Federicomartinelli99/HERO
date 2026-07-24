@@ -76,6 +76,45 @@ CLUSTER_SCOPES = {
     "cluster_hierarchical": "hierarchical_features_no_coords",
 }
 
+# Text-derived clusters: the colleague's unsupervised clustering of each IPC report's *narrative*
+# (TF-IDF and dense-embedding representations, each with a K-Means and an HDBSCAN labelling). The source
+# rows are per (country, analysis-period) and keyed on the country's full English name, so they are
+# handled differently from the feature clusters above: collapsed to one static per-country label (the
+# mode across its periods), then joined by COUNTRY_COL (ISO3) — see features.load_dataset. Four schemes,
+# each its own localization scope. Never a model feature.
+TEXT_CLUSTERS_DIR = IMPUTATION_DIR / "text_clusters"
+TEXT_CLUSTER_SPECS = {   # scope name -> (filename, country-name column, integer label column)
+    "cluster_tfidf_kmeans":  ("df_cluster_tf_idf.csv",           "country", "km_label"),
+    "cluster_tfidf_hdbscan": ("df_cluster_tf_idf.csv",           "country", "hd_label"),
+    "cluster_emb_kmeans":    ("df_cluster_embedding_densi.csv",  "paese",   "cluster_kmeans"),
+    "cluster_emb_hdbscan":   ("df_cluster_embedding_densi.csv",  "paese",   "cluster_hdbscan"),
+}
+# Shared catch-all label for ML areas whose country is absent from the text corpus (the 14
+# West-Africa/Sahel countries). Assigning them one sentinel cluster — rather than leaving them NaN /
+# falling back to global — makes the text scopes cover 100% of rows, a fair head-to-head with global /
+# regional. A string keeps it clearly distinct from the integer text-cluster ids (and from HDBSCAN's -1
+# noise, which is dropped before the per-country mode).
+TEXT_CLUSTER_OTHER = "OTHER"
+
+# The text CSVs identify countries by full English name; the ML data uses ISO3. This bridges the two so
+# the per-country text label can be joined on COUNTRY_COL. Names with no ML counterpart simply never
+# match (the text corpus covers a different country set — 23 of the 37 modelled countries overlap).
+COUNTRY_NAME_TO_ISO3 = {
+    "Afghanistan": "AFG", "Angola": "AGO", "Bangladesh": "BGD", "Burundi": "BDI", "Cambodia": "KHM",
+    "Central African Republic": "CAF", "Democratic Republic of the Congo": "COD", "Djibouti": "DJI",
+    "Dominican Republic": "DOM", "Ecuador": "ECU", "El Salvador": "SLV", "Eswatini": "SWZ",
+    "Ethiopia": "ETH", "Gaza Strip": "PSE", "Guatemala": "GTM", "Haiti": "HTI", "Honduras": "HND",
+    "Kenya": "KEN", "Lebanon": "LBN", "Lesotho": "LSO", "Madagascar": "MDG", "Malawi": "MWI",
+    "Mozambique": "MOZ", "Namibia": "NAM", "Pakistan": "PAK", "Somalia": "SOM", "South Africa": "ZAF",
+    "South Sudan": "SSD", "Sudan": "SDN", "Tajikistan": "TJK", "Timor-Leste": "TLS", "Uganda": "UGA",
+    "United Republic of Tanzania": "TZA", "Yemen": "YEM", "Zambia": "ZMB", "Zimbabwe": "ZWE",
+}
+
+# All cluster-based localization scopes (feature clusters + text clusters), in a fixed order. The
+# downstream loops (features.build_features, static_inference / nowcast localization) iterate this so
+# every cluster scope is carried and scored generically.
+CLUSTER_SCOPE_NAMES = list(CLUSTER_SCOPES) + list(TEXT_CLUSTER_SPECS)
+
 # ----------------------------------------------------------------------------- driver features
 # The colleague's already rate-normalized drivers (per-100k / per-population), taken as-is.
 # Drivers only: no country, no latitude/longitude. `features.build_features` also adds cyclical

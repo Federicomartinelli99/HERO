@@ -90,25 +90,40 @@ value, which is exactly what a useful early-warning signal must do.
 
 ## 4 · Localization — here it's a wash
 
-As in the static round, we re-run the nowcast at five training **scopes** — **global**, **regional**,
-**local** (per-country), and two unsupervised **cluster** schemes — routing each row to its own subgroup's
-model. Each scope is re-compared to the global model **on exactly the rows it scored**:
+As in the static round, we re-run the nowcast at **nine training scopes** — **global**, **regional**,
+**local** (per-country), two **driver-fingerprint** clusters, and **four text-narrative** clusters (a
+TF-IDF and a dense-embedding representation of the IPC report text, each split by K-Means and HDBSCAN,
+collapsed to one static per-country label). Each row is routed to its own subgroup's model; each scope is
+re-compared to the global model **on exactly the rows it scored**:
 
 | scope | overall R² | MAE (pp) | global on same rows (R²) | ΔR² |
 |---|---|---|---|---|
 | **global** | **0.742** | **5.23** | — | — |
 | regional | 0.734 | 5.26 | 0.742 | −0.008 |
 | local (per-country) | 0.649 | 5.37 | 0.638 | +0.012 |
-| cluster_kmeans | 0.751 | 5.16 | 0.744 | +0.007 |
-| cluster_hierarchical | 0.754 | 5.16 | 0.744 | +0.010 |
+| cluster_kmeans (drivers) | 0.751 | 5.16 | 0.744 | +0.007 |
+| cluster_hierarchical (drivers) | 0.754 | 5.16 | 0.744 | +0.010 |
+| cluster_tfidf_kmeans (text) | 0.660 | 5.56 | 0.725 | −0.065 |
+| cluster_tfidf_hdbscan (text) | 0.744 | 5.19 | 0.745 | −0.001 |
+| cluster_emb_kmeans (text) | 0.763 | 4.91 | 0.759 | +0.004 |
+| cluster_emb_hdbscan (text) | 0.746 | 5.18 | 0.752 | −0.006 |
 
-**Localization barely moves the needle for the nowcast — every scope is within ±0.01 R² of the global
-model on the same rows.** This is the opposite of the static round, and it makes sense: once you condition
-on an area's *own last assessment*, the "which context is this" information that localization supplies is
-largely already baked in. **The recommendation is one global model.**
+**Localization barely moves the needle for the nowcast — every scope sits essentially on top of the
+global model on the same rows** (all within ±0.01 R² except `cluster_tfidf_kmeans` at −0.065, which is
+*worse*). Strikingly, the **text-narrative clusters that lifted the static model by +0.11–0.13 add nothing
+here.** This is the opposite of the static round, and it makes sense: once you condition on an area's
+*own last assessment*, the "which crisis context is this" information that localization supplies —
+geographic, behavioural, or narrative — is largely already baked in. **The recommendation is one global
+model.**
 
-The per-country picture confirms it — no scope consistently wins (regional beats global in 8/21, local in
-5/10, cluster_kmeans in 11/21, cluster_hierarchical in 9/21; the best scope differs country to country):
+The per-country picture confirms it — no scope consistently wins (regional beats global in 8/21, local
+5/10, the driver clusters 9–11/21, and the text clusters 6–10 of ~20; the best scope differs country to
+country). The compact box-per-scope summary — here the honest lens is **skill vs persistence** (per-country
+R² is savage for a persistent target), dashed line = ties persistence:
+
+![Nowcast — localization scopes compared (per-country distribution)](results/nowcast/imputed/scope_box.png)
+
+And the full per-country detail:
 
 ![Nowcast — per-country R² & MAE by training scope](results/nowcast/imputed/scope_comparison.png)
 

@@ -64,44 +64,71 @@ regions, not in one global "why" model.** That points straight at localization.
 
 ---
 
-## 4 · Localization works
+## 4 · Localization works — and text-narrative clusters help most
 
-We re-run the round at five training **scopes** — **global**, **regional** (6-region agro-climatic
-map), **local** (one model per country), and two unsupervised **cluster** schemes
-(`cluster_kmeans`, `cluster_hierarchical`, from the colleague's driver-fingerprint clustering). Every
-row is routed to the model of its own subgroup; results are always reported per country. Local/cluster
-models are only built where a full model is defensible (≥300 rows).
+We re-run the round at **nine training scopes**: **global**, **regional** (6-region agro-climatic map),
+**local** (one model per country), two **driver-fingerprint** cluster schemes (`cluster_kmeans`,
+`cluster_hierarchical`, the colleague's feature-based clustering of each area's driver time-series), and
+**four text-narrative** cluster schemes built from the IPC *report text* — a TF-IDF and a
+dense-embedding representation, each split by K-Means and HDBSCAN (`cluster_tfidf_kmeans/hdbscan`,
+`cluster_emb_kmeans/hdbscan`). The text clusters are collapsed to one **static per-country** label (each
+country's dominant narrative type) and joined by country; the 14 (mostly West-Africa/Sahel) countries
+absent from the text corpus share one catch-all group, so every text scope still covers all rows (the
+full cluster→country membership is in [cluster_membership.md](cluster_membership.md)). Every row is
+routed to its subgroup's model; results are always reported per country, and local/cluster models are
+only built where a full model is defensible (≥300 rows).
 
-Pooled metrics per scope, with each scope re-compared to the global model **on exactly the rows it
-scored** (apples-to-apples "did routing help?"):
+Pooled metrics per scope, each re-compared to the global model **on exactly the rows it scored**
+(apples-to-apples "did routing help?"):
 
 | scope | overall R² | MAE (pp) | global on same rows (R²) | ΔR² |
 |---|---|---|---|---|
 | global | 0.529 | 8.77 | — | — |
-| **regional** | **0.617** | **7.64** | 0.529 | **+0.088** |
-| **local (per-country)** | **0.589** | **7.91** | 0.445 | **+0.144** |
-| cluster_kmeans | 0.527 | 8.66 | 0.529 | −0.002 |
-| cluster_hierarchical | 0.538 | 8.51 | 0.529 | +0.009 |
+| regional | 0.617 | 7.64 | 0.529 | +0.088 |
+| **local (per-country)** | 0.589 | 7.91 | 0.445 | **+0.144** |
+| cluster_kmeans (drivers) | 0.527 | 8.66 | 0.529 | −0.002 |
+| cluster_hierarchical (drivers) | 0.538 | 8.51 | 0.529 | +0.009 |
+| **cluster_tfidf_kmeans** (text) | **0.658** | **7.17** | 0.531 | **+0.127** |
+| **cluster_tfidf_hdbscan** (text) | 0.657 | 7.31 | 0.533 | +0.124 |
+| **cluster_emb_kmeans** (text) | 0.646 | 7.36 | 0.532 | +0.114 |
+| **cluster_emb_hdbscan** (text) | 0.657 | 7.30 | 0.531 | +0.126 |
 
-- **Regional lifts pooled R² from 0.529 → 0.617 and cuts MAE by more than a full point** (8.77 → 7.64 pp)
-  — with near-complete coverage (35 of 37 countries).
-- **Local wins hardest where it matters.** On the 11 data-rich countries where a per-country model is
-  built, local beats the global model **in all 11** (ΔR² **+0.144** on those same rows). The gains are
-  largest on the harder, higher-variance countries — e.g. TCD, NGA, SOM, SSD, GTM, HND all flip from
-  negative to positive R² under a local or regional model.
-- **The clusters don't help at admin-1** (ΔR² ±0.01 — effectively flat). The unsupervised
-  driver-fingerprint groups aren't a better partition than the geography we already have here.
+- **Regional and local behave as before.** Regional lifts pooled R² 0.529 → 0.617 and cuts MAE by more
+  than a point (8.77 → 7.64 pp) with near-complete coverage (35 of 37 countries); **local wins hardest**
+  on the 11 data-rich countries, beating global **in all 11** (ΔR² **+0.144**). The gains are largest on
+  the harder, higher-variance countries — TCD, NGA, SOM, SSD, GTM, HND all flip from negative to positive
+  R² under a local or regional model.
+- **The driver-fingerprint clusters are flat** (ΔR² ±0.01). Those groups aren't a better partition than
+  the geography we already have here.
+- **The text-narrative clusters are the strongest cluster scopes — and even edge out the geographic
+  region map.** All four add **+0.11 to +0.13 ΔR²** and cut MAE by ~1.4–1.6 pp, beating global in **27–29
+  of ~30** scored countries. Grouping countries by *what their IPC reports are about* turns out to be a
+  better partition than grouping them by agro-climatic region.
+- **Why it works — and the honest caveats.** The embedding K-Means groups are interpretable crisis
+  typologies: **conflict-refugee** (AFG, COD, SSD, YEM), **agropastoral-water** (KEN, SDN, TLS, ZWE),
+  **agricultural-price-inflation** (a Latin-America-plus block: AGO, BGD, CAF, ECU, GTM, HND, HTI, SLV),
+  **child-malnutrition** (MOZ, PAK, SOM), **COVID-economic** (ETH, ZAF). Grouping like-with-like context
+  lets the drivers fit relationships that a single global mapping averages away. Two caveats: (i) the
+  text clusters operate at **country granularity** (each country sits wholly in one group), so — like
+  regional and local — part of their gain is simply "grouping countries helps," not a sub-country signal;
+  and (ii) each scope is a **hybrid** — the 14 text-less countries are pooled into one catch-all "rest"
+  bucket that reflects *absence of text*, not a narrative type.
 
-The per-country picture across all scopes — R² (left) and MAE (right), one marker per scope, best
-country at the top:
+The clean at-a-glance comparison — each scope's per-country R² and MAE as a box (median, IQR, whiskers);
+the dashed line marks the global median R², so a box sitting to its right typically beats global:
+
+![Static inference — localization scopes compared (per-country distribution)](results/static_inference/imputed/scope_box.png)
+
+The full per-country detail — one marker per country per scope, R² (left) and MAE (right), best country
+at the top:
 
 ![Static inference — per-country R² & MAE by training scope](results/static_inference/imputed/scope_comparison.png)
 
 Read **both panels together**: R² is variance-explained *within* a country, so a stable, low-crisis
 country (SEN, BEN, GHA) can post a large-negative R² while its MAE is only 3–6 pp — the model is
-actually fine there, R² is just the wrong lens. What the chart shows cleanly is that for almost every
-country the coloured **regional / local** markers sit to the right (higher R²) and to the left (lower
-MAE) of the grey **global** marker.
+actually fine there, R² is just the wrong lens. What the charts show cleanly is that for almost every
+country the coloured **regional / local / text-cluster** markers sit to the right (higher R²) and to the
+left (lower MAE) of the grey **global** marker.
 
 ---
 
