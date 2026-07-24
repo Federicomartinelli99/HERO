@@ -210,10 +210,10 @@ function switchView(viewName) {
     // Safety check: remove stuck tooltips from svgMap on view changes
     document.querySelectorAll('.svgMap-tooltip').forEach(el => el.remove());
     
-    // Toggle main header visibility & main container padding for full-bleed tsgraph view
+    // Toggle main header visibility & main container padding for full-bleed views
     const mainHeader = document.getElementById('main-header');
     const mainElem = document.querySelector('main');
-    if (viewName === 'tsgraph') {
+    if (viewName === 'tsgraph' || viewName === 'clustering-evolution') {
         if (mainHeader) mainHeader.style.setProperty('display', 'none', 'important');
         if (mainElem) mainElem.style.padding = '0';
     } else {
@@ -358,6 +358,26 @@ function switchView(viewName) {
         document.getElementById('country-selector-wrapper').style.display = 'none';
         const subregSel = document.getElementById('subregion-selector-wrapper');
         if (subregSel) subregSel.style.display = 'none';
+        
+        const iframe = document.getElementById('tsgraph-iframe');
+        if (iframe && !iframe.getAttribute('src')) {
+            iframe.src = iframe.getAttribute('data-src');
+        }
+    } else if (viewName === 'clustering-evolution') {
+        document.getElementById('panel-clustering-evolution').classList.add('active');
+        document.getElementById('nav-clustering-evolution').classList.add('active');
+        
+        document.getElementById('admin-level-toggle-wrapper').style.display = 'none';
+        const toggleGroupVal = document.getElementById('chart-layout-toggle-group');
+        if (toggleGroupVal) toggleGroupVal.style.display = 'none';
+        document.getElementById('country-selector-wrapper').style.display = 'none';
+        const subregSel = document.getElementById('subregion-selector-wrapper');
+        if (subregSel) subregSel.style.display = 'none';
+        
+        const iframe = document.getElementById('clustering-evolution-iframe');
+        if (iframe && !iframe.getAttribute('src')) {
+            iframe.src = iframe.getAttribute('data-src');
+        }
     }
 }
 

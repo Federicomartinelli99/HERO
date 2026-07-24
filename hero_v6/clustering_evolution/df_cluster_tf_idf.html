@@ -265,8 +265,9 @@ function draw(){
  filt.forEach(r=>{if(!byY[r.year])return;if(!byY[r.year][r.cluster])byY[r.year][r.cluster]=[];byY[r.year][r.cluster].push(r.country)});
 
  const vis=[...enK].sort();
- const colW=220, rowH=Math.max(70, Math.min(140, 1000/(D.clusters.length||1)));
  const yearHeaderH=60;
+ const maxAvailableHeight = window.innerHeight - yearHeaderH - 40;
+ const colW=220, rowH=Math.max(35, Math.min(140, maxAvailableHeight/(D.clusters.length||1)));
 
  // --- BUILD STICKY CLUSTER COLUMN ---
  const ccol=document.getElementById('clusterCol');
