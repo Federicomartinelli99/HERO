@@ -33,6 +33,23 @@ body{font-family:var(--font-sans);background:var(--bg-main);color:var(--text-pri
     background:var(--bg-card);backdrop-filter:blur(12px);
     border-right:1px solid var(--border-color);
     display:flex;flex-direction:column;z-index:10;
+    transition: width 0.3s ease, min-width 0.3s ease;
+    overflow: hidden;
+}
+.side.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    border-right: none;
+}
+.toggle-side-btn {
+    position: absolute; left: 300px; top: 50%; transform: translateY(-50%); z-index: 100;
+    background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color);
+    border-left: none; border-radius: 0 8px 8px 0; padding: 12px 6px; cursor: pointer;
+    transition: left 0.3s ease; display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(12px); font-size: 12px;
+}
+.side.collapsed ~ .toggle-side-btn {
+    left: 0; border-left: 1px solid var(--border-color); border-radius: 0 8px 8px 0;
 }
 .side-head{
     padding:24px 22px 20px;border-bottom:1px solid var(--border-color);
@@ -82,7 +99,7 @@ body{font-family:var(--font-sans);background:var(--bg-main);color:var(--text-pri
 
 /* Chart layout: sticky cluster col + scrollable chart */
 .chart-wrap{flex:1;overflow:auto;position:relative}
-.chart-inner{display:flex;position:relative}
+.chart-inner{display:flex;position:relative;min-width:max-content}
 
 /* Sticky cluster column */
 .cluster-col{
@@ -142,8 +159,8 @@ body{font-family:var(--font-sans);background:var(--bg-main);color:var(--text-pri
 </head>
 <body>
 <div class="app">
-<div class="side">
- <div class="side-head">
+  <div class="side" id="sidePanel">
+   <div class="side-head">
   <h1>Cluster Evolution</h1>
   <p>df_cluster_embedding_densi.csv</p>
  </div>
@@ -155,10 +172,12 @@ body{font-family:var(--font-sans);background:var(--bg-main);color:var(--text-pri
  <div class="tpanel" id="tPanel">
   <h3 id="tTitle"></h3>
   <div id="tSteps"></div>
- </div>
-</div>
-
-<div class="main">
+   </div>
+  </div>
+  
+  <button class="toggle-side-btn" onclick="document.getElementById('sidePanel').classList.toggle('collapsed'); this.innerHTML = this.innerHTML === '◀' ? '▶' : '◀';" title="Mostra/Nascondi Menu">◀</button>
+  
+  <div class="main">
  <div class="chart-wrap" id="chartWrap">
   <div class="chart-inner" id="chartInner">
    <div class="cluster-col" id="clusterCol"></div>
@@ -265,8 +284,9 @@ function draw(){
  filt.forEach(r=>{if(!byY[r.year])return;if(!byY[r.year][r.cluster])byY[r.year][r.cluster]=[];byY[r.year][r.cluster].push(r.country)});
 
  const vis=[...enK].sort();
- const colW=220, rowH=Math.max(70, Math.min(140, 1000/(D.clusters.length||1)));
  const yearHeaderH=60;
+ const maxAvailableHeight = window.innerHeight - yearHeaderH - 40;
+ const colW=220, rowH=Math.max(35, Math.min(140, maxAvailableHeight/(D.clusters.length||1)));
 
  // --- BUILD STICKY CLUSTER COLUMN ---
  const ccol=document.getElementById('clusterCol');
