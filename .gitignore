@@ -16,6 +16,9 @@ hero_v5/*
 !hero_v6/data/raw/*.parquet
 hero_v6/ML/results/
 World_Food_Prices/
-hero_v6/TS/TS_Results/
+hero_v6/TS/**/results/
+hero_v6/TS/**/results_OLD/
 hero_v6/TSA/results/
 hero_v6/TSA/results_reorganized/
+hero_v6/UI/data/ts_reorganized/
+hero_v6/UI/tmp/

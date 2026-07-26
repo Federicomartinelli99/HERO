@@ -30,7 +30,11 @@ let state = {
     activeMapCountry: null, // ISO3 code of the currently highlighted map country
     ipcProportional: false, // Toggle for proportional-width timeline in IPC nativi
     ipcMainProportional: false, // Toggle for proportional-width timeline in main IPC chart
-    ipcPeriodFilter: 'all' // Filter for period type: 'all', 'current', 'projection'
+    ipcPeriodFilter: 'all', // Filter for period type: 'all', 'current', 'projection'
+    radarAvgModeGlobal: false, // Toggle for showing only Historical Average in global radar charts
+    nativeRadarModes: {}, // Map of containerId -> boolean for native radar charts
+    compareRadarSoloAvg: false, // Toggle for showing only Comparison Average in compare radar chart
+    compareRadarResolution: 'quarterly' // Resolution toggle ('quarterly' or 'monthly') for robust multi-country comparison across different sampling rates
 };
 
 // Data Cache
@@ -1186,6 +1190,54 @@ function updateQualityBadges(data, trends, isAdm2Level) {
 // Reset details sidebar content (no longer used since we show details in modal on click)
 function resetDetailSidebar() {
     // Empty
+}
+
+function toggleGlobalRadarMode() {
+    state.radarAvgModeGlobal = !state.radarAvgModeGlobal;
+    const btn = document.getElementById("btn-toggle-global-radar-mode");
+    const legendContainer = document.getElementById("seasonal-common-legend-container");
+    if (btn) {
+        if (state.radarAvgModeGlobal) {
+            btn.innerHTML = `<i class="fa-solid fa-calendar-days text-indigo-400"></i> <span>Mostra Tutti gli Anni</span>`;
+            btn.className = "px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all flex items-center gap-2 shadow-sm cursor-pointer outline-none";
+            if (legendContainer) legendContainer.style.display = "none";
+        } else {
+            btn.innerHTML = `<i class="fa-solid fa-star text-amber-400"></i> <span>Mostra Solo Media Storica</span>`;
+            btn.className = "px-4 py-1.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 transition-all flex items-center gap-2 shadow-sm cursor-pointer outline-none";
+            if (legendContainer) legendContainer.style.display = "flex";
+        }
+    }
+    if (typeof renderRadarCharts === "function") {
+        renderRadarCharts();
+    }
+}
+
+function toggleNativeRadarMode(containerId) {
+    state.nativeRadarModes = state.nativeRadarModes || {};
+    state.nativeRadarModes[containerId] = !state.nativeRadarModes[containerId];
+    const el = document.getElementById(containerId);
+    if (el && el._lastRadarArgs) {
+        const args = el._lastRadarArgs;
+        renderNativeSeasonalRadar(args.trends, args.containerId, args.metricGetter, args.chartKey, args.mode, args.linkedChartInstance, args.linkedSeriesIdx);
+    }
+}
+
+function toggleCompareRadarMode() {
+    state.compareRadarSoloAvg = !state.compareRadarSoloAvg;
+    const container = document.getElementById("chart-compare-radar");
+    if (container && container._lastCompareRadarArgs) {
+        const args = container._lastCompareRadarArgs;
+        renderComparativeRadarChart(args.countriesData, args.metricKey, args.dataType);
+    }
+}
+
+function toggleCompareRadarResolution() {
+    state.compareRadarResolution = (state.compareRadarResolution === 'monthly') ? 'quarterly' : 'monthly';
+    const container = document.getElementById("chart-compare-radar");
+    if (container && container._lastCompareRadarArgs) {
+        const args = container._lastCompareRadarArgs;
+        renderComparativeRadarChart(args.countriesData, args.metricKey, args.dataType);
+    }
 }
 
 // Helper to determine the quarter index (0-3) from a date string (YYYY-MM-DD)
@@ -2548,8 +2600,10 @@ function renderRadarCharts(trends) {
     const years = Object.keys(seasonalByYear).sort();
     const categories = ['Q1 (Gen-Mar)', 'Q2 (Apr-Giu)', 'Q3 (Lug-Set)', 'Q4 (Ott-Dic)'];
     
+    const isSoloMedia = !!state.radarAvgModeGlobal;
+    
     // Programmatic year color gradient (cool blue to warm orange/red)
-    const colors = years.map((y, idx) => {
+    const yearColors = years.map((y, idx) => {
         const hue = 220 - (idx / (years.length - 1 || 1)) * 205;
         return `hsl(${hue}, 85%, 60%)`;
     });
@@ -2559,7 +2613,7 @@ function renderRadarCharts(trends) {
     if (commonLegend) {
         commonLegend.innerHTML = "";
         years.forEach((year, idx) => {
-            const color = colors[idx];
+            const color = yearColors[idx];
             const pill = document.createElement("button");
             pill.id = `seasonal-legend-pill-${year}`;
             pill.style.cssText = `
@@ -2590,7 +2644,7 @@ function renderRadarCharts(trends) {
     }
     
     function buildSeries(metricGetter) {
-        return years.map(year => {
+        const sList = years.map(year => {
             const data = [0, 1, 2, 3].map(q => {
                 const qArr = seasonalByYear[year][q];
                 if (!qArr || qArr.length === 0) return null;
@@ -2601,17 +2655,29 @@ function renderRadarCharts(trends) {
                 data: data.map(val => val !== null && !isNaN(val) ? parseFloat(val.toFixed(2)) : null)
             };
         });
+        if (isSoloMedia) {
+            const avgData = [0, 1, 2, 3].map(q => {
+                const validVals = sList.map(s => s.data[q]).filter(v => v !== null && v !== undefined && !isNaN(v));
+                return validVals.length > 0 ? parseFloat((validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2)) : null;
+            });
+            return [{
+                name: '⭐ Media Storica',
+                data: avgData
+            }];
+        }
+        return sList;
     }
 
     const seasonalCommonOptions = {
+        colors: isSoloMedia ? ['#fbbf24'] : yearColors,
         stroke: {
-            width: 2,
+            width: isSoloMedia ? 3 : 2,
             spanNulls: true
         },
         fill: {
             type: 'solid',
             opacity: 0,
-            colors: ['transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent']
+            colors: Array(35).fill('transparent')
         },
         markers: {
             size: 4,
@@ -2661,6 +2727,7 @@ function renderRadarCharts(trends) {
                 markerClick: function(event, chartContext, { seriesIndex, dataPointIndex, config }) {
                     if (seriesIndex !== undefined && dataPointIndex !== undefined && seriesIndex !== -1 && dataPointIndex !== -1) {
                         const year = chartContext.w.config.series[seriesIndex].name;
+                        if (year === '⭐ Media Storica' || !String(year).match(/^\d{4}/)) return;
                         const targetTrend = trends.find(t => t.from.startsWith(year) && getQuarterFromDate(t.from) === dataPointIndex);
                         if (targetTrend) {
                             const idx = trends.indexOf(targetTrend);
@@ -2675,6 +2742,7 @@ function renderRadarCharts(trends) {
                     const dataPointIndex = config.dataPointIndex;
                     if (seriesIndex !== undefined && dataPointIndex !== undefined && seriesIndex !== -1 && dataPointIndex !== -1) {
                         const year = chartContext.w.config.series[seriesIndex].name;
+                        if (year === '⭐ Media Storica' || !String(year).match(/^\d{4}/)) return;
                         const targetTrend = trends.find(t => t.from.startsWith(year) && getQuarterFromDate(t.from) === dataPointIndex);
                         if (targetTrend) {
                             const idx = trends.indexOf(targetTrend);
@@ -3809,6 +3877,14 @@ async function onCompareCountriesChange() {
                 Aggiungi almeno un paese per visualizzare il confronto
             </div>
         `;
+        const radarEl = document.getElementById("chart-compare-radar");
+        if (radarEl) {
+            radarEl.innerHTML = `
+                <div style="height: 380px; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                    Aggiungi almeno un paese per visualizzare il confronto stagionale
+                </div>
+            `;
+        }
         document.getElementById("compare-details-grid").innerHTML = "";
         return;
     }
@@ -3836,6 +3912,7 @@ async function onCompareCountriesChange() {
         }
         
         renderComparativeChart(countriesData, metricKey, dataType);
+        renderComparativeRadarChart(countriesData, metricKey, dataType);
         
         // Always render comparative details using the main aggregated country data
         const aggPromises = state.compareCountries.map(code => getOrFetchCountry(code));
@@ -3958,6 +4035,220 @@ function renderComparativeChart(countriesData, metricKey, dataType = 'aggregated
     if (compareCharts) compareCharts.destroy();
     compareCharts = new ApexCharts(container, options);
     compareCharts.render();
+}
+
+let compareRadarChart = null;
+
+function renderComparativeRadarChart(countriesData, metricKey, dataType = 'aggregated') {
+    const container = document.getElementById("chart-compare-radar");
+    if (!container) return;
+    
+    const countryColors = ['#56B4E9', '#E69F00', '#009E73', '#CC79A7', '#D55E00', '#0072B2', '#F0E442', '#94A3B8'];
+    const isQuarterly = (state.compareRadarResolution || 'quarterly') === 'quarterly';
+    const categories = isQuarterly 
+        ? ['Q1 (Gen-Mar)', 'Q2 (Apr-Giu)', 'Q3 (Lug-Set)', 'Q4 (Ott-Dic)'] 
+        : ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const numCats = categories.length;
+    
+    const countrySeries = countriesData.map((data, idx) => {
+        let trends = [];
+        let countryName = "";
+        if (dataType === 'raw') {
+            trends = data.national || [];
+            const cObj = globalData.countries.find(c => c.code === state.compareCountries[idx]);
+            countryName = cObj ? cObj.name : state.compareCountries[idx];
+        } else {
+            trends = data.trends.adm1.length > 0 ? data.trends.adm1 : data.trends.adm2;
+            countryName = data.name;
+        }
+        
+        const buckets = Array.from({ length: numCats }, () => []);
+        trends.forEach(t => {
+            let val = null;
+            if (dataType === 'raw') {
+                val = getRawMetricVal(t, metricKey);
+            } else {
+                val = getMetricValFromTrend(t, metricKey);
+            }
+            if (val !== undefined && val !== null && !isNaN(val)) {
+                const dateFromStr = t.from || t.date;
+                const dateToStr = t.to || t.from || t.date;
+                if (dateFromStr && dateFromStr.length >= 7) {
+                    const startMonth = parseInt(dateFromStr.substring(5, 7), 10);
+                    const endMonth = (dateToStr && dateToStr.length >= 7) ? parseInt(dateToStr.substring(5, 7), 10) : startMonth;
+                    if (!isNaN(startMonth) && startMonth >= 1 && startMonth <= 12) {
+                        let sM = startMonth;
+                        let eM = (!isNaN(endMonth) && endMonth >= 1 && endMonth <= 12 && endMonth >= startMonth) ? endMonth : startMonth;
+                        
+                        // Map across all covered months/quarters to handle different sampling rates and multi-month periods
+                        const coveredCatIndices = new Set();
+                        for (let m = sM; m <= eM; m++) {
+                            const catIdx = isQuarterly ? Math.floor((m - 1) / 3) : (m - 1);
+                            coveredCatIndices.add(catIdx);
+                        }
+                        coveredCatIndices.forEach(catIdx => {
+                            buckets[catIdx].push(parseFloat(val));
+                        });
+                    }
+                }
+            }
+        });
+        
+        let periodAvgs = buckets.map(arr => {
+            if (arr.length === 0) return null;
+            return parseFloat((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2));
+        });
+        
+        // Circular perimeter interpolation: prevent radial collapse to origin 0 when a country has missing seasons/months
+        const validCount = periodAvgs.filter(v => v !== null && v !== undefined && !isNaN(v)).length;
+        if (validCount > 0 && validCount < numCats) {
+            if (validCount === 1) {
+                const singleVal = periodAvgs.find(v => v !== null && v !== undefined && !isNaN(v));
+                periodAvgs = periodAvgs.map(() => singleVal);
+            } else {
+                for (let i = 0; i < numCats; i++) {
+                    if (periodAvgs[i] === null || periodAvgs[i] === undefined || isNaN(periodAvgs[i])) {
+                        let prevDist = 1;
+                        while (periodAvgs[(i - prevDist + numCats) % numCats] === null) {
+                            prevDist++;
+                        }
+                        const prevVal = periodAvgs[(i - prevDist + numCats) % numCats];
+                        
+                        let nextDist = 1;
+                        while (periodAvgs[(i + nextDist) % numCats] === null) {
+                            nextDist++;
+                        }
+                        const nextVal = periodAvgs[(i + nextDist) % numCats];
+                        
+                        const totalDist = prevDist + nextDist;
+                        periodAvgs[i] = parseFloat(((prevVal * nextDist + nextVal * prevDist) / totalDist).toFixed(2));
+                    }
+                }
+            }
+        }
+        
+        return {
+            name: countryName,
+            data: periodAvgs,
+            color: countryColors[idx % countryColors.length]
+        };
+    });
+    
+    const globalAvgs = categories.map((_, catIdx) => {
+        const validVals = countrySeries.map(s => s.data[catIdx]).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return validVals.length > 0 ? parseFloat((validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2)) : null;
+    });
+    
+    const isSoloMedia = !!state.compareRadarSoloAvg;
+    
+    const cardEl = container.parentElement;
+    let toolbarEl = cardEl ? cardEl.querySelector('.radar-compare-toolbar') : null;
+    if (cardEl && !toolbarEl) {
+        toolbarEl = document.createElement('div');
+        toolbarEl.className = 'radar-compare-toolbar';
+        toolbarEl.style.cssText = 'display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.5rem 1rem 0 1rem; flex-wrap: wrap;';
+        cardEl.insertBefore(toolbarEl, container);
+    }
+    if (toolbarEl) {
+        const resBtnText = isQuarterly ? 'Stagionale (4 Trimestri)' : 'Mensile (12 Mesi)';
+        const resBtnIcon = isQuarterly ? 'fa-calendar-days' : 'fa-calendar';
+        toolbarEl.innerHTML = `
+            <button onclick="toggleCompareRadarResolution()" title="Cambia risoluzione temporale (risolve frequenze di campionamento difformi)" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-200 border border-slate-600/50 hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer outline-none shadow-sm">
+                <i class="fa-solid ${resBtnIcon} text-sky-400"></i>
+                <span>${resBtnText}</span>
+            </button>
+            ${isSoloMedia ? `
+                <button onclick="toggleCompareRadarMode()" class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer outline-none shadow-sm">
+                    <i class="fa-solid fa-earth-americas text-indigo-400"></i>
+                    <span>Mostra Confronto Paesi</span>
+                </button>
+            ` : `
+                <button onclick="toggleCompareRadarMode()" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer outline-none shadow-sm">
+                    <i class="fa-solid fa-star text-amber-400"></i>
+                    <span>Mostra Solo Media Confronto</span>
+                </button>
+            `}
+        `;
+    }
+    
+    container._lastCompareRadarArgs = { countriesData, metricKey, dataType };
+    
+    let finalSeries = [...countrySeries];
+    let finalColors = countrySeries.map(s => s.color);
+    
+    if (isSoloMedia) {
+        finalSeries = [{
+            name: '⭐ Media Confronto',
+            data: globalAvgs
+        }];
+        finalColors = ['#fbbf24'];
+    }
+    
+    const options = {
+        series: finalSeries.map(s => ({ name: s.name, data: s.data })),
+        chart: {
+            type: 'radar',
+            height: 380,
+            id: 'chart-compare-radar-view',
+            toolbar: { show: true },
+            background: 'transparent'
+        },
+        colors: finalColors,
+        stroke: {
+            width: isSoloMedia ? 3 : 2,
+            spanNulls: true
+        },
+        fill: {
+            type: 'solid',
+            opacity: 0,
+            colors: Array(30).fill('transparent')
+        },
+        plotOptions: {
+            radar: {
+                polygons: {
+                    strokeColors: 'rgba(255, 255, 255, 0.08)',
+                    connectorColors: 'rgba(255, 255, 255, 0.08)',
+                    fill: { colors: ['transparent', 'transparent'] }
+                }
+            }
+        },
+        markers: {
+            size: 4,
+            hover: { size: 6 }
+        },
+        xaxis: {
+            categories: categories,
+            labels: {
+                style: {
+                    colors: Array(numCats).fill('#94a3b8'),
+                    fontSize: '11px',
+                    fontFamily: 'Outfit',
+                    fontWeight: 500
+                }
+            }
+        },
+        yaxis: {
+            show: true,
+            labels: {
+                style: { colors: '#64748b', fontSize: '9px', fontFamily: 'Inter' }
+            }
+        },
+        theme: { mode: 'dark' },
+        tooltip: {
+            shared: true,
+            intersect: false
+        },
+        legend: {
+            position: 'top',
+            fontFamily: 'Inter',
+            fontSize: '12px'
+        }
+    };
+    
+    container.innerHTML = "";
+    if (compareRadarChart) { try { compareRadarChart.destroy(); } catch(e) {} }
+    compareRadarChart = new ApexCharts(container, options);
+    compareRadarChart.render();
 }
 
 function getMetricLabel(key) {
@@ -5549,12 +5840,39 @@ function renderNativeSeasonalRadar(trends, containerId, metricGetter, chartKey, 
         ? ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
         : ['Q1 (Gen-Mar)', 'Q2 (Apr-Giu)', 'Q3 (Lug-Set)', 'Q4 (Ott-Dic)'];
         
-    const colors = years.map((y, idx) => {
+    state.nativeRadarModes = state.nativeRadarModes || {};
+    const isSoloMedia = !!state.nativeRadarModes[containerId];
+    
+    const cardEl = el.parentElement;
+    let toolbarEl = cardEl ? cardEl.querySelector('.radar-native-toolbar') : null;
+    if (cardEl && !toolbarEl) {
+        toolbarEl = document.createElement('div');
+        toolbarEl.className = 'radar-native-toolbar';
+        toolbarEl.style.cssText = 'display: flex; justify-content: flex-end; padding: 0.5rem 1rem 0 1rem;';
+        cardEl.insertBefore(toolbarEl, el);
+    }
+    if (toolbarEl) {
+        toolbarEl.innerHTML = isSoloMedia ? `
+            <button onclick="toggleNativeRadarMode('${containerId}')" class="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer outline-none shadow-sm">
+                <i class="fa-solid fa-calendar-days text-indigo-400"></i>
+                <span>Mostra Tutti gli Anni</span>
+            </button>
+        ` : `
+            <button onclick="toggleNativeRadarMode('${containerId}')" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer outline-none shadow-sm">
+                <i class="fa-solid fa-star text-amber-400"></i>
+                <span>Mostra Solo Media</span>
+            </button>
+        `;
+    }
+    
+    el._lastRadarArgs = { trends, containerId, metricGetter, chartKey, mode, linkedChartInstance, linkedSeriesIdx };
+    
+    const yearColors = years.map((y, idx) => {
         const hue = 220 - (idx / (years.length - 1 || 1)) * 205;
         return `hsl(${hue}, 85%, 60%)`;
     });
     
-    const series = years.map(year => {
+    let series = years.map(year => {
         const data = categories.map((_, idx) => {
             const arr = byYear[year][idx];
             if (!arr || arr.length === 0) return null;
@@ -5566,6 +5884,19 @@ function renderNativeSeasonalRadar(trends, containerId, metricGetter, chartKey, 
         };
     });
     
+    let colors = yearColors;
+    if (isSoloMedia) {
+        const avgData = categories.map((_, idx) => {
+            const validVals = series.map(s => s.data[idx]).filter(v => v !== null && v !== undefined && !isNaN(v));
+            return validVals.length > 0 ? parseFloat((validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2)) : null;
+        });
+        series = [{
+            name: '⭐ Media Storica',
+            data: avgData
+        }];
+        colors = ['#fbbf24'];
+    }
+    
     const options = {
         series: series,
         chart: {
@@ -5576,8 +5907,10 @@ function renderNativeSeasonalRadar(trends, containerId, metricGetter, chartKey, 
             events: {
                 dataPointMouseEnter: function(event, chartContext, config) {
                     if (linkedChartInstance && typeof linkedChartInstance.tooltip === 'object' && typeof linkedChartInstance.tooltip.showTooltip === 'function') {
-                        const year = years[config.seriesIndex];
-                        if (!year) return;
+                        const sObj = config.w.config.series[config.seriesIndex];
+                        const sName = sObj ? sObj.name : null;
+                        if (!sName || sName === '⭐ Media Storica' || !String(sName).match(/^\d{4}/)) return;
+                        const year = sName;
                         const pIdx = config.dataPointIndex;
                         let targetDatePrefix = year + "-";
                         if (mode === 'monthly') {
@@ -5616,11 +5949,14 @@ function renderNativeSeasonalRadar(trends, containerId, metricGetter, chartKey, 
             }
         },
         colors: colors,
-        stroke: { width: 2, spanNulls: true },
+        stroke: { 
+            width: isSoloMedia ? 3 : 2, 
+            spanNulls: true 
+        },
         fill: {
             type: 'solid',
             opacity: 0,
-            colors: ['transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent']
+            colors: Array(35).fill('transparent')
         },
         plotOptions: {
             radar: {
@@ -6422,7 +6758,7 @@ function renderRainfallTab(trends) {
     }, 'rainfallRainSeasonal', 'monthly', rawCharts.rainfallReal, 0);
 
     renderNativeSeasonalRadar(trends, 'chart-raw-rainfall-anomaly-seasonal', arr => {
-        const vals = arr.map(x => x.anomaly_1m).filter(v => v !== null && v !== undefined && !isNaN(v));
+        const vals = arr.map(x => x.rain_anomaly_1m).filter(v => v !== null && v !== undefined && !isNaN(v));
         return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
     }, 'rainfallAnomalySeasonal', 'monthly', rawCharts.rainfallAnom, 0);
 }
