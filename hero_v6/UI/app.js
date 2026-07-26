@@ -906,6 +906,10 @@ function updateCountryDashboard() {
         tsaZipBtn.setAttribute('download', `Grafici_HTML_${code}.zip`);
         tsaZipLabel.textContent = code;
     }
+    const saveAllCountryLbl = document.getElementById('lbl-save-all-country-code');
+    if (saveAllCountryLbl) {
+        saveAllCountryLbl.textContent = code;
+    }
     
     // Determine active trend list
     let activeTrends = [];
@@ -2418,14 +2422,37 @@ function renderGdeltChart(trends) {
         toneData.push({ x: ts, y: (t.gdelt_material_conflict_tone !== null && t.gdelt_material_conflict_tone !== undefined) ? parseFloat(t.gdelt_material_conflict_tone.toFixed(2)) : null });
     });
     
+    const gdeltViewMode = (state.gdeltViewModes && state.gdeltViewModes['chart-gdelt']) || 'events';
+    
+    let gdeltSeries = [
+        { name: 'Coop. Verbale (Eventi)', type: 'column', data: vCoopData, color: '#34d399' },
+        { name: 'Coop. Materiale (Eventi)', type: 'column', data: mCoopData, color: '#60a5fa' },
+        { name: 'Conflitto Verbale (Eventi)', type: 'column', data: vConfData, color: '#fbbf24' },
+        { name: 'Conflitto Materiale (Eventi)', type: 'column', data: mConfData, color: '#f87171' },
+        { name: 'Tono Conflitto Materiale', type: 'line', data: toneData, color: '#a855f7' }
+    ];
+    let gdeltYAxis = [
+        {
+            title: { text: 'Numero di Eventi' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+        },
+        {
+            opposite: true,
+            title: { text: 'Tono Medio (-10 a +10)' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) : "" }
+        }
+    ];
+    
+    if (gdeltViewMode === 'events') {
+        gdeltSeries = gdeltSeries.slice(0, 4);
+        gdeltYAxis = [gdeltYAxis[0]];
+    } else if (gdeltViewMode === 'tone') {
+        gdeltSeries = [gdeltSeries[4]];
+        gdeltYAxis = [{ ...gdeltYAxis[1], opposite: false }];
+    }
+    
     const options = {
-        series: [
-            { name: 'Coop. Verbale (Eventi)', type: 'column', data: vCoopData, color: '#34d399' },
-            { name: 'Coop. Materiale (Eventi)', type: 'column', data: mCoopData, color: '#60a5fa' },
-            { name: 'Conflitto Verbale (Eventi)', type: 'column', data: vConfData, color: '#fbbf24' },
-            { name: 'Conflitto Materiale (Eventi)', type: 'column', data: mConfData, color: '#f87171' },
-            { name: 'Tono Conflitto Materiale', type: 'line', data: toneData, color: '#a855f7' }
-        ],
+        series: gdeltSeries,
         chart: {
             height: 320,
             type: 'line',
@@ -2450,12 +2477,12 @@ function renderGdeltChart(trends) {
         },
         theme: { mode: 'dark' },
         stroke: {
-            width: [0, 0, 0, 0, 3],
+            width: gdeltViewMode === 'events' ? [0, 0, 0, 0] : (gdeltViewMode === 'tone' ? [3] : [0, 0, 0, 0, 3]),
             curve: 'smooth',
             connectNulls: true
         },
         markers: {
-            size: [0, 0, 0, 0, 5],
+            size: gdeltViewMode === 'events' ? [0, 0, 0, 0] : (gdeltViewMode === 'tone' ? [5] : [0, 0, 0, 0, 5]),
             hover: { size: 7 }
         },
         plotOptions: {
@@ -2473,17 +2500,7 @@ function renderGdeltChart(trends) {
                 style: { fontSize: '10px' }
             }
         },
-        yaxis: [
-            {
-                title: { text: 'Numero di Eventi' },
-                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
-            },
-            {
-                opposite: true,
-                title: { text: 'Tono Medio (-10 a +10)' },
-                labels: { formatter: val => (val !== null && val !== undefined) ? val.toFixed(1) : "" }
-            }
-        ],
+        yaxis: gdeltYAxis,
         tooltip: {
             shared: true,
             intersect: false,
@@ -5701,13 +5718,34 @@ function renderGdeltTab(trends) {
     gdeltTabCharts.tone = new ApexCharts(containerTone, toneOptions);
     gdeltTabCharts.tone.render();
     
-    const salienceSeries = [
+    const salienceViewMode = (state.gdeltViewModes && state.gdeltViewModes['chart-gdelt-tab-salience']) || 'histogram';
+    
+    let salienceSeries = [
         { name: 'Coop. Verbale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_coop_mentions ? Math.round(t.gdelt_verbal_coop_mentions) : 0 })), color: '#34d399' },
         { name: 'Coop. Materiale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_coop_mentions ? Math.round(t.gdelt_material_coop_mentions) : 0 })), color: '#60a5fa' },
         { name: 'Conflitto Verbale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_verbal_conflict_mentions ? Math.round(t.gdelt_verbal_conflict_mentions) : 0 })), color: '#fbbf24' },
         { name: 'Conflitto Materiale (Menzioni)', type: 'column', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_conflict_mentions ? Math.round(t.gdelt_material_conflict_mentions) : 0 })), color: '#f87171' },
         { name: 'Eventi Conflitto Materiale', type: 'line', data: displayTrends.map(t => ({ x: new Date(t.from).getTime(), y: t.gdelt_material_conflict_events ? Math.round(t.gdelt_material_conflict_events) : 0 })), color: '#a855f7' }
     ];
+    let salienceYAxis = [
+        {
+            title: { text: 'Menzioni Totali nei Media' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+        },
+        {
+            opposite: true,
+            title: { text: 'Numero Eventi Reali' },
+            labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
+        }
+    ];
+    
+    if (salienceViewMode === 'histogram') {
+        salienceSeries = salienceSeries.slice(0, 4);
+        salienceYAxis = [salienceYAxis[0]];
+    } else if (salienceViewMode === 'line') {
+        salienceSeries = [salienceSeries[4]];
+        salienceYAxis = [{ ...salienceYAxis[1], opposite: false }];
+    }
     
     // 2. SALIENCE/MENTIONS CHART OPTIONS
     const salienceOptions = {
@@ -5723,12 +5761,12 @@ function renderGdeltTab(trends) {
         },
         theme: { mode: 'dark' },
         stroke: {
-            width: [0, 0, 0, 0, 3],
+            width: salienceViewMode === 'histogram' ? [0, 0, 0, 0] : (salienceViewMode === 'line' ? [3] : [0, 0, 0, 0, 3]),
             curve: 'smooth',
             connectNulls: true
         },
         markers: {
-            size: [0, 0, 0, 0, 5],
+            size: salienceViewMode === 'histogram' ? [0, 0, 0, 0] : (salienceViewMode === 'line' ? [5] : [0, 0, 0, 0, 5]),
             hover: { size: 7 }
         },
         plotOptions: {
@@ -5744,17 +5782,7 @@ function renderGdeltTab(trends) {
                 style: { fontSize: '10px' }
             }
         },
-        yaxis: [
-            {
-                title: { text: 'Menzioni Totali nei Media' },
-                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
-            },
-            {
-                opposite: true,
-                title: { text: 'Numero Eventi Reali' },
-                labels: { formatter: val => (val !== null && val !== undefined) ? formatNumber(Math.round(val)) : "" }
-            }
-        ],
+        yaxis: salienceYAxis,
         tooltip: {
             shared: true,
             intersect: false,
@@ -7585,4 +7613,140 @@ function loadTsaGlobalPanel() {
         }
     });
 }
+
+// ── GDELT VIEW TOGGLE & SEPARATE EXPORTS ──
+
+function toggleGdeltView(containerId, mode) {
+    state.gdeltViewModes = state.gdeltViewModes || {};
+    state.gdeltViewModes[containerId] = mode;
+    
+    // Update active button styling in DOM
+    const card = document.getElementById(containerId)?.closest('.glass-card');
+    if (card) {
+        card.querySelectorAll('.gdelt-toggle-btn').forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.style.background = 'rgba(99, 102, 241, 0.4)';
+                btn.style.color = '#fff';
+                btn.style.borderColor = 'rgba(99, 102, 241, 0.6)';
+            } else {
+                btn.style.background = 'rgba(15, 23, 42, 0.4)';
+                btn.style.color = 'rgba(255, 255, 255, 0.5)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        });
+    }
+    
+    // Re-render target chart
+    if (containerId === 'chart-gdelt') {
+        const trends = typeof getFilteredTrends === 'function' ? getFilteredTrends() : (state.countryData?.trends?.national || []);
+        renderGdeltChart(trends);
+    } else if (containerId === 'chart-gdelt-tab-salience') {
+        const trends = typeof getFilteredTrends === 'function' ? getFilteredTrends() : (state.countryData?.trends?.national || []);
+        renderGdeltTab(trends);
+    }
+}
+
+// ── TRIGGER ALL COUNTRY SECTION SAVES (EXPORT MASTER ARCHIVE & SECTION ZIPS) ──
+
+function triggerAllCountrySectionSaves() {
+    const code = state.activeMapCountry || 'AFG';
+    const sectionIds = ['charts', 'ipc', 'acled', 'idp', 'rainfall', 'ndvi', 'gdelt'];
+    
+    // 1. Download Master TSA HTML archive (contains all HTMLs of the country)
+    const tsaBtn = document.getElementById('tsa-download-all-zip-btn');
+    if (tsaBtn && tsaBtn.href) {
+        const a = document.createElement('a');
+        a.href = tsaBtn.href;
+        a.download = tsaBtn.getAttribute('download') || `Grafici_HTML_${code}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+    
+    // 2. Sequentially trigger all section ZIP archives so every section is saved
+    sectionIds.forEach((id, index) => {
+        setTimeout(() => {
+            const btn = document.getElementById(`btn-dl-zip-${id}`);
+            if (btn && btn.href) {
+                const a = document.createElement('a');
+                a.href = btn.href;
+                a.download = btn.getAttribute('download') || `Grafici_${id}_${code}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        }, (index + 1) * 350);
+    });
+}
+
+// ── INTERACTIVE CHART EXPORT DELEGATE (DUAL EXPORT FOR GDELT) ──
+
+window.exportInteractiveChart = function(configToExport, containerId) {
+    if (!configToExport.chart) configToExport.chart = {};
+    configToExport.chart.background = '#0f172a';
+    if (!configToExport.chart.toolbar) configToExport.chart.toolbar = {};
+    configToExport.chart.toolbar.show = true;
+
+    function downloadHtmlBlob(config, filename) {
+        const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${config.title?.text || 'HERO v6 Chart Export'}</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"><\/script>
+    <style>
+        body { background-color: #0f172a; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; font-family: sans-serif; padding: 20px; box-sizing: border-box; }
+        #chart { width: 100%; max-width: 1200px; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+    <div id="chart"></div>
+    <script>
+        var options = ${JSON.stringify(config)};
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+    <\/script>
+</body>
+</html>`;
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    if (containerId === 'chart-gdelt' || containerId === 'chart-gdelt-tab-salience') {
+        const code = state.activeMapCountry || 'AFG';
+        const isTab = (containerId === 'chart-gdelt-tab-salience');
+        
+        // 1. Istogramma (Eventi / Menzioni)
+        const histConfig = JSON.parse(JSON.stringify(configToExport));
+        histConfig.series = (histConfig.series || []).filter(s => s.type === 'column' || (!s.type && !String(s.name).toLowerCase().includes('tono') && !String(s.name).toLowerCase().includes('eventi conflitto')));
+        if (histConfig.yaxis && Array.isArray(histConfig.yaxis)) {
+            histConfig.yaxis = [histConfig.yaxis[0]];
+        }
+        histConfig.title = { text: isTab ? `Salienza Mediatica GDELT (Istogramma Menzioni) - ${code}` : `Instabilità GDELT (Istogramma Eventi) - ${code}`, style: { color: '#fff', fontSize: '16px' } };
+        downloadHtmlBlob(histConfig, isTab ? `gdelt_salienza_istogramma_menzioni_${code}.html` : `gdelt_instabilita_istogramma_eventi_${code}.html`);
+        
+        // 2. Linegraph (Tono / Volume Eventi Reali)
+        setTimeout(() => {
+            const lineConfig = JSON.parse(JSON.stringify(configToExport));
+            lineConfig.series = (lineConfig.series || []).filter(s => s.type === 'line' || String(s.name).toLowerCase().includes('tono') || String(s.name).toLowerCase().includes('eventi conflitto'));
+            if (lineConfig.yaxis && Array.isArray(lineConfig.yaxis) && lineConfig.yaxis.length > 1) {
+                lineConfig.yaxis = [{ ...lineConfig.yaxis[1], opposite: false }];
+            }
+            lineConfig.title = { text: isTab ? `Salienza Mediatica GDELT (Linegraph Eventi Reali) - ${code}` : `Instabilità GDELT (Linegraph Tono) - ${code}`, style: { color: '#fff', fontSize: '16px' } };
+            downloadHtmlBlob(lineConfig, isTab ? `gdelt_salienza_linegraph_eventi_${code}.html` : `gdelt_instabilita_linegraph_tono_${code}.html`);
+        }, 400);
+    } else {
+        const defaultName = (configToExport.title?.text ? configToExport.title.text.replace(/[^a-z0-9]/gi, '_').toLowerCase() : (containerId || 'interactive_chart')) + '.html';
+        downloadHtmlBlob(configToExport, defaultName);
+    }
+};
+
 
