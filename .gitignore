@@ -14,3 +14,8 @@ hero_v4/*
 hero_v5/*
 !hero_v6/data/merged/*.parquet
 !hero_v6/data/raw/*.parquet
+hero_v6/ML/results/
+World_Food_Prices/
+hero_v6/TS/TS_Results/
+hero_v6/TSA/results/
+hero_v6/TSA/results_reorganized/
