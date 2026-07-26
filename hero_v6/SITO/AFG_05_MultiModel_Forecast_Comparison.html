@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Model Forecast Comparison & SARIMAX Evaluation - AFG - HERO v6 SITO</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif']
+                    },
+                    colors: {
+                        slate: {
+                            750: '#22304a',
+                            850: '#141e33',
+                            900: '#0f172a',
+                            950: '#0b1120'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- ApexCharts & Plotly.js -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #070a12 0%, #0f172a 50%, #141e33 100%);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.05);
+            border-radius: 1.5rem;
+        }
+        /* ApexCharts & Plotly dark styling overrides */
+        .apexcharts-tooltip, .js-plotly-plot .plotly .hovertext {
+            background: rgba(15, 23, 42, 0.95) !important;
+            backdrop-filter: blur(8px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+            color: #f8fafc !important;
+            border-radius: 0.75rem !important;
+        }
+        .apexcharts-tooltip-title {
+            background: rgba(11, 17, 32, 0.95) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            font-family: 'Outfit', sans-serif !important;
+            font-weight: 600 !important;
+        }
+        .apexcharts-menu {
+            background: #1e293b !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+            color: #f8fafc !important;
+        }
+        .apexcharts-menu-item:hover {
+            background: #334155 !important;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Widget Container -->
+    <div class="max-w-7xl w-full mx-auto glass-card p-6 md:p-8 flex flex-col gap-6">
+        <!-- Widget Header Bar -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
+            <div>
+                <div class="flex items-center gap-2.5 mb-1.5">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i> TSA Forecasting & Evaluation
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md text-[11px] font-mono bg-slate-800 text-slate-400 border border-slate-700">
+                        HERO v6 TSA
+                    </span>
+                </div>
+                <h1 class="text-xl md:text-2xl font-bold font-display tracking-tight text-white flex items-center gap-3">
+                    Multi-Model Forecast Comparison
+                </h1>
+                <p class="text-slate-400 text-xs md:text-sm mt-0.5">Comparative analysis of forecasting trajectories (Holt-Winters, SARIMAX, Prophet, VAR) vs. test validation data.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 self-start md:self-center">
+                
+        <button onclick="toggleSarimaxPanel()" id="btnToggleSarimax" class="px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition-all flex items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i> Show SARIMAX Evaluation (05b)
+        </button>
+    
+                <button onclick="downloadCombinedCSV()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-white/10 transition-all flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-download text-indigo-400"></i> Export CSV
+                </button>
+            </div>
+        </div>
+        <!-- Chart Section -->
+        <div class="w-full flex-1">
+
+        <!-- Main Forecast Comparison Chart -->
+        <div id="forecastChart" class="w-full" style="min-height: 520px;"></div>
+
+        <!-- COLLAPSIBLE COMPACT SARIMAX EVALUATION PANEL (05b) -->
+        <div id="sarimaxContainer" class="hidden overflow-hidden transition-all duration-300 mt-6 pt-6 border-t border-white/10">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                    <h3 class="text-base md:text-lg font-bold font-display text-white flex items-center gap-2">
+                        <i class="fa-solid fa-scale-balanced text-amber-400"></i> Compact SARIMAX Parameter Evaluation (AIC vs BIC)
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Optimal Candidate: <strong class="text-amber-300 font-mono">ARIMA(1, 1, 2)x(1, 1, 1, 12)</strong> (Min AIC: 261.72 | Min BIC: 273.54)</p>
+                </div>
+                <button onclick="toggleCompactOrientation()" id="btnCompactOrientation" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-white/10 transition-all flex items-center gap-1.5 self-start sm:self-center">
+                    <i class="fa-solid fa-rotate text-indigo-400"></i> Horizontal View
+                </button>
+            </div>
+            <div class="bg-slate-900/50 rounded-xl p-4 border border-white/5">
+                <div id="sarimaxCompactChart" class="w-full" style="min-height: 350px;"></div>
+            </div>
+        </div>
+
+        <script>
+            const sTrain = [{"x": "2017-08-01", "y": 30.03}, {"x": "2017-09-01", "y": 30.03}, {"x": "2017-10-01", "y": 30.03}, {"x": "2017-11-01", "y": 30.03}, {"x": "2017-12-01", "y": 31.26}, {"x": "2018-01-01", "y": 31.26}, {"x": "2018-02-01", "y": 31.26}, {"x": "2018-03-01", "y": 31.26}, {"x": "2018-04-01", "y": 31.26}, {"x": "2018-05-01", "y": 31.26}, {"x": "2018-06-01", "y": 31.26}, {"x": "2018-07-01", "y": 31.26}, {"x": "2018-08-01", "y": 42.38}, {"x": "2018-09-01", "y": 42.38}, {"x": "2018-10-01", "y": 42.38}, {"x": "2018-11-01", "y": 42.38}, {"x": "2018-12-01", "y": 42.38}, {"x": "2019-01-01", "y": 42.38}, {"x": "2019-02-01", "y": 42.38}, {"x": "2019-03-01", "y": 42.38}, {"x": "2019-04-01", "y": 42.38}, {"x": "2019-05-01", "y": 42.38}, {"x": "2019-06-01", "y": 42.38}, {"x": "2019-07-01", "y": 42.38}, {"x": "2019-08-01", "y": 34.56}, {"x": "2019-09-01", "y": 34.56}, {"x": "2019-10-01", "y": 34.56}, {"x": "2019-11-01", "y": 34.56}, {"x": "2019-12-01", "y": 34.56}, {"x": "2020-01-01", "y": 34.56}, {"x": "2020-02-01", "y": 34.56}, {"x": "2020-03-01", "y": 34.56}, {"x": "2020-04-01", "y": 35.74}, {"x": "2020-05-01", "y": 35.74}, {"x": "2020-06-01", "y": 35.74}, {"x": "2020-07-01", "y": 35.74}, {"x": "2020-08-01", "y": 35.88}, {"x": "2020-09-01", "y": 35.88}, {"x": "2020-10-01", "y": 35.88}, {"x": "2020-11-01", "y": 35.88}, {"x": "2020-12-01", "y": 35.88}, {"x": "2021-01-01", "y": 35.88}, {"x": "2021-02-01", "y": 35.88}, {"x": "2021-03-01", "y": 33.82}, {"x": "2021-04-01", "y": 33.82}, {"x": "2021-05-01", "y": 33.82}, {"x": "2021-06-01", "y": 33.82}, {"x": "2021-07-01", "y": 33.82}, {"x": "2021-08-01", "y": 33.82}, {"x": "2021-09-01", "y": 47.06}, {"x": "2021-10-01", "y": 47.06}, {"x": "2021-11-01", "y": 47.06}, {"x": "2021-12-01", "y": 47.06}, {"x": "2022-01-01", "y": 47.06}, {"x": "2022-02-01", "y": 47.06}, {"x": "2022-03-01", "y": 46.62}, {"x": "2022-04-01", "y": 46.62}, {"x": "2022-05-01", "y": 46.62}, {"x": "2022-06-01", "y": 46.62}, {"x": "2022-07-01", "y": 46.62}, {"x": "2022-08-01", "y": 46.62}, {"x": "2022-09-01", "y": 40.74}, {"x": "2022-10-01", "y": 40.74}, {"x": "2022-11-01", "y": 40.74}, {"x": "2022-12-01", "y": 40.74}, {"x": "2023-01-01", "y": 40.74}, {"x": "2023-02-01", "y": 40.74}, {"x": "2023-03-01", "y": 40.74}, {"x": "2023-04-01", "y": 40.15}, {"x": "2023-05-01", "y": 40.15}, {"x": "2023-06-01", "y": 40.15}, {"x": "2023-07-01", "y": 40.15}, {"x": "2023-08-01", "y": 40.15}, {"x": "2023-09-01", "y": 40.15}, {"x": "2023-10-01", "y": 31.47}, {"x": "2023-11-01", "y": 31.47}, {"x": "2023-12-01", "y": 31.47}, {"x": "2024-01-01", "y": 31.47}, {"x": "2024-02-01", "y": 31.47}, {"x": "2024-03-01", "y": 35.29}, {"x": "2024-04-01", "y": 35.29}, {"x": "2024-05-01", "y": null}, {"x": "2024-06-01", "y": null}, {"x": "2024-07-01", "y": null}, {"x": "2024-08-01", "y": null}, {"x": "2024-09-01", "y": null}, {"x": "2024-10-01", "y": null}, {"x": "2024-11-01", "y": null}, {"x": "2024-12-01", "y": null}, {"x": "2025-01-01", "y": null}, {"x": "2025-02-01", "y": null}, {"x": "2025-03-01", "y": null}, {"x": "2025-04-01", "y": null}];
+            const sTest = [{"x": "2017-08-01", "y": null}, {"x": "2017-09-01", "y": null}, {"x": "2017-10-01", "y": null}, {"x": "2017-11-01", "y": null}, {"x": "2017-12-01", "y": null}, {"x": "2018-01-01", "y": null}, {"x": "2018-02-01", "y": null}, {"x": "2018-03-01", "y": null}, {"x": "2018-04-01", "y": null}, {"x": "2018-05-01", "y": null}, {"x": "2018-06-01", "y": null}, {"x": "2018-07-01", "y": null}, {"x": "2018-08-01", "y": null}, {"x": "2018-09-01", "y": null}, {"x": "2018-10-01", "y": null}, {"x": "2018-11-01", "y": null}, {"x": "2018-12-01", "y": null}, {"x": "2019-01-01", "y": null}, {"x": "2019-02-01", "y": null}, {"x": "2019-03-01", "y": null}, {"x": "2019-04-01", "y": null}, {"x": "2019-05-01", "y": null}, {"x": "2019-06-01", "y": null}, {"x": "2019-07-01", "y": null}, {"x": "2019-08-01", "y": null}, {"x": "2019-09-01", "y": null}, {"x": "2019-10-01", "y": null}, {"x": "2019-11-01", "y": null}, {"x": "2019-12-01", "y": null}, {"x": "2020-01-01", "y": null}, {"x": "2020-02-01", "y": null}, {"x": "2020-03-01", "y": null}, {"x": "2020-04-01", "y": null}, {"x": "2020-05-01", "y": null}, {"x": "2020-06-01", "y": null}, {"x": "2020-07-01", "y": null}, {"x": "2020-08-01", "y": null}, {"x": "2020-09-01", "y": null}, {"x": "2020-10-01", "y": null}, {"x": "2020-11-01", "y": null}, {"x": "2020-12-01", "y": null}, {"x": "2021-01-01", "y": null}, {"x": "2021-02-01", "y": null}, {"x": "2021-03-01", "y": null}, {"x": "2021-04-01", "y": null}, {"x": "2021-05-01", "y": null}, {"x": "2021-06-01", "y": null}, {"x": "2021-07-01", "y": null}, {"x": "2021-08-01", "y": null}, {"x": "2021-09-01", "y": null}, {"x": "2021-10-01", "y": null}, {"x": "2021-11-01", "y": null}, {"x": "2021-12-01", "y": null}, {"x": "2022-01-01", "y": null}, {"x": "2022-02-01", "y": null}, {"x": "2022-03-01", "y": null}, {"x": "2022-04-01", "y": null}, {"x": "2022-05-01", "y": null}, {"x": "2022-06-01", "y": null}, {"x": "2022-07-01", "y": null}, {"x": "2022-08-01", "y": null}, {"x": "2022-09-01", "y": null}, {"x": "2022-10-01", "y": null}, {"x": "2022-11-01", "y": null}, {"x": "2022-12-01", "y": null}, {"x": "2023-01-01", "y": null}, {"x": "2023-02-01", "y": null}, {"x": "2023-03-01", "y": null}, {"x": "2023-04-01", "y": null}, {"x": "2023-05-01", "y": null}, {"x": "2023-06-01", "y": null}, {"x": "2023-07-01", "y": null}, {"x": "2023-08-01", "y": null}, {"x": "2023-09-01", "y": null}, {"x": "2023-10-01", "y": null}, {"x": "2023-11-01", "y": null}, {"x": "2023-12-01", "y": null}, {"x": "2024-01-01", "y": null}, {"x": "2024-02-01", "y": null}, {"x": "2024-03-01", "y": null}, {"x": "2024-04-01", "y": null}, {"x": "2024-05-01", "y": 35.29}, {"x": "2024-06-01", "y": 35.29}, {"x": "2024-07-01", "y": 35.29}, {"x": "2024-08-01", "y": 35.29}, {"x": "2024-09-01", "y": 26.18}, {"x": "2024-10-01", "y": 26.18}, {"x": "2024-11-01", "y": 26.18}, {"x": "2024-12-01", "y": 26.18}, {"x": "2025-01-01", "y": 26.18}, {"x": "2025-02-01", "y": 26.18}, {"x": "2025-03-01", "y": 27.94}, {"x": "2025-04-01", "y": 27.94}];
+            const sHW = [{"x": "2024-04-01", "y": 35.29}, {"x": "2024-05-01", "y": 35.29}, {"x": "2024-06-01", "y": 35.29}, {"x": "2024-07-01", "y": 35.29}, {"x": "2024-08-01", "y": 35.87}, {"x": "2024-09-01", "y": 36.92}, {"x": "2024-10-01", "y": 35.68}, {"x": "2024-11-01", "y": 35.68}, {"x": "2024-12-01", "y": 35.86}, {"x": "2025-01-01", "y": 35.86}, {"x": "2025-02-01", "y": 35.86}, {"x": "2025-03-01", "y": 36.04}, {"x": "2025-04-01", "y": 36.13}];
+            const sSarimax = [{"x": "2024-04-01", "y": 35.29}, {"x": "2024-05-01", "y": 34.2}, {"x": "2024-06-01", "y": 34.91}, {"x": "2024-07-01", "y": 34.37}, {"x": "2024-08-01", "y": 33.58}, {"x": "2024-09-01", "y": 35.38}, {"x": "2024-10-01", "y": 38.28}, {"x": "2024-11-01", "y": 38.25}, {"x": "2024-12-01", "y": 38.37}, {"x": "2025-01-01", "y": 38.36}, {"x": "2025-02-01", "y": 38.37}, {"x": "2025-03-01", "y": 36.47}, {"x": "2025-04-01", "y": 36.63}];
+            const sProphet = [{"x": "2024-04-01", "y": 35.29}, {"x": "2024-05-01", "y": 43.05}, {"x": "2024-06-01", "y": 42.84}, {"x": "2024-07-01", "y": 41.48}, {"x": "2024-08-01", "y": 40.16}, {"x": "2024-09-01", "y": 41.84}, {"x": "2024-10-01", "y": 41.48}, {"x": "2024-11-01", "y": 40.46}, {"x": "2024-12-01", "y": 40.82}, {"x": "2025-01-01", "y": 41.91}, {"x": "2025-02-01", "y": 43.83}, {"x": "2025-03-01", "y": 40.32}, {"x": "2025-04-01", "y": 41.04}];
+            const sVar = [{"x": "2024-04-01", "y": 35.29}, {"x": "2024-05-01", "y": 35.9}, {"x": "2024-06-01", "y": 36.53}, {"x": "2024-07-01", "y": 36.98}, {"x": "2024-08-01", "y": 37.01}, {"x": "2024-09-01", "y": 37.03}, {"x": "2024-10-01", "y": 36.94}, {"x": "2024-11-01", "y": 36.66}, {"x": "2024-12-01", "y": 36.12}, {"x": "2025-01-01", "y": 35.71}, {"x": "2025-02-01", "y": 35.38}, {"x": "2025-03-01", "y": 35.12}, {"x": "2025-04-01", "y": 34.99}];
+            const splitDate = new Date('2024-04-01').getTime();
+
+            const models05b = ["(1, 0, 1)x(0, 0, 0, 0)", "(1, 1, 1)x(0, 0, 0, 0)", "(1, 1, 1)x(1, 0, 0, 12)", "(1, 1, 1)x(1, 1, 1, 12)", "(2, 1, 1)x(1, 1, 1, 12)", "(1, 1, 2)x(1, 1, 1, 12)"];
+            const aic05b = [374.71, 371.04, 298.12, 265.14, 267.11, 261.72];
+            const bic05b = [381.82, 378.11, 306.94, 275.08, 279.05, 273.54];
+            let isSarimaxOpen = false;
+            let isCompactHorizontal = false;
+            let compactSarimaxInstance = null;
+
+            function renderForecastChart() {
+                new ApexCharts(document.getElementById("forecastChart"), {
+                    series: [
+                        { name: 'Historical Actual (Train)', type: 'line', data: sTrain },
+                        { name: 'Historical Actual (Test)', type: 'scatter', data: sTest },
+                        { name: 'Holt-Winters Forecast', type: 'line', data: sHW },
+                        { name: 'SARIMAX Forecast', type: 'line', data: sSarimax },
+                        { name: 'Prophet Forecast', type: 'line', data: sProphet },
+                        { name: 'VAR Forecast', type: 'line', data: sVar }
+                    ],
+                    chart: {
+                        height: 520,
+                        width: '100%',
+                        background: 'transparent',
+                        toolbar: { show: true, tools: { download: true, zoom: true, pan: true, reset: true } },
+                        animations: { enabled: true, speed: 350 }
+                    },
+                    colors: ['#cbd5e1', '#f8fafc', '#10b981', '#3b82f6', '#f59e0b', '#a855f7'],
+                    stroke: {
+                        width: [2.5, 0, 2.5, 2.5, 2.5, 2.5],
+                        curve: ['stepline', 'straight', 'smooth', 'smooth', 'smooth', 'smooth'],
+                        dashArray: [0, 0, 4, 4, 2, 0]
+                    },
+                    markers: {
+                        size: [0, 6, 0, 0, 0, 0],
+                        colors: ['transparent', '#0f172a'],
+                        strokeColors: ['transparent', '#f8fafc'],
+                        strokeWidth: 2.5,
+                        hover: { size: 8 }
+                    },
+                    dataLabels: { enabled: false },
+                    xaxis: {
+                        type: 'datetime',
+                        labels: {
+                            style: { colors: '#94a3b8', fontSize: '11px', fontFamily: 'Outfit' },
+                            format: 'MMM yyyy'
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        title: { text: '% Population in Phase 3+', style: { color: '#cbd5e1', fontSize: '12px', fontFamily: 'Outfit', fontWeight: 500 } },
+                        labels: {
+                            style: { colors: '#cbd5e1', fontSize: '11px', fontFamily: 'Outfit' },
+                            formatter: (val) => val !== null && val !== undefined ? val.toFixed(1) + '%' : ''
+                        }
+                    },
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                        strokeDashArray: 3,
+                        padding: { top: 10, right: 20, bottom: 0, left: 15 }
+                    },
+                    legend: {
+                        position: 'top',
+                        horizontalAlign: 'center',
+                        labels: { colors: '#e2e8f0' },
+                        fontFamily: 'Outfit',
+                        fontSize: '12px',
+                        markers: { radius: 4 }
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        x: { format: 'MMMM yyyy' },
+                        y: { formatter: (val) => val !== null && val !== undefined ? val.toFixed(2) + "%" : "N/A" }
+                    },
+                    annotations: {
+                        xaxis: splitDate ? [{
+                            x: splitDate,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                text: 'Forecast / Validation Split',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '11px', fontFamily: 'Outfit', padding: { left: 8, right: 8, top: 3, bottom: 3 }, borderRadius: 4 }
+                            }
+                        }] : []
+                    }
+                }).render();
+            }
+
+            function toggleSarimaxPanel() {
+                isSarimaxOpen = !isSarimaxOpen;
+                const container = document.getElementById("sarimaxContainer");
+                const btn = document.getElementById("btnToggleSarimax");
+                if (isSarimaxOpen) {
+                    container.classList.remove("hidden");
+                    btn.innerHTML = `<i class="fa-solid fa-eye-slash text-indigo-400"></i> Hide SARIMAX Evaluation (05b)`;
+                    btn.classList.add("bg-indigo-600/40", "border-indigo-400");
+                    if (!compactSarimaxInstance) {
+                        renderCompactSarimax();
+                    }
+                } else {
+                    container.classList.add("hidden");
+                    btn.innerHTML = `<i class="fa-solid fa-layer-group text-indigo-400"></i> Show SARIMAX Evaluation (05b)`;
+                    btn.classList.remove("bg-indigo-600/40", "border-indigo-400");
+                }
+            }
+
+            function renderCompactSarimax() {
+                const el = document.getElementById("sarimaxCompactChart");
+                if (!el) return;
+                el.innerHTML = "";
+                
+                const options = {
+                    series: [
+                        { name: 'AIC', data: aic05b },
+                        { name: 'BIC', data: bic05b }
+                    ],
+                    chart: {
+                        type: 'bar',
+                        height: isCompactHorizontal ? 420 : 350,
+                        background: 'transparent',
+                        toolbar: { show: true, tools: { download: true } },
+                        animations: { enabled: true, speed: 300 }
+                    },
+                    plotOptions: {
+                        bar: {
+                            horizontal: isCompactHorizontal,
+                            columnWidth: '45%',
+                            barHeight: '70%',
+                            borderRadius: 4,
+                            dataLabels: { position: isCompactHorizontal ? 'right' : 'top' }
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: (val) => val.toFixed(1),
+                        offsetY: isCompactHorizontal ? 0 : -16,
+                        offsetX: isCompactHorizontal ? 15 : 0,
+                        style: { fontSize: '10px', fontFamily: 'Outfit', fontWeight: 600, colors: ['#cbd5e1'] }
+                    },
+                    colors: ['#3b82f6', '#f97316'],
+                    stroke: { show: true, width: 1.5, colors: ['transparent'] },
+                    xaxis: {
+                        categories: models05b,
+                        labels: {
+                            style: { colors: '#94a3b8', fontSize: '10px', fontFamily: 'Outfit', fontWeight: 500 },
+                            rotate: isCompactHorizontal ? 0 : -30,
+                            rotateAlways: !isCompactHorizontal
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        min: Math.floor(Math.min(...aic05b, ...bic05b) * 0.88),
+                        labels: { style: { colors: '#cbd5e1', fontSize: '11px', fontFamily: 'Outfit' } }
+                    },
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.05)',
+                        strokeDashArray: 3,
+                        padding: { top: 20, right: 25, bottom: isCompactHorizontal ? 10 : 20, left: 10 }
+                    },
+                    legend: {
+                        position: 'top',
+                        horizontalAlign: 'center',
+                        labels: { colors: '#e2e8f0' },
+                        fontFamily: 'Outfit',
+                        fontSize: '11px',
+                        markers: { radius: 3 }
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        y: { formatter: (val) => val.toFixed(2) + " pts" }
+                    }
+                };
+
+                compactSarimaxInstance = new ApexCharts(el, options);
+                compactSarimaxInstance.render();
+            }
+
+            function toggleCompactOrientation() {
+                isCompactHorizontal = !isCompactHorizontal;
+                const btn = document.getElementById("btnCompactOrientation");
+                if (btn) {
+                    btn.innerHTML = isCompactHorizontal 
+                        ? `<i class="fa-solid fa-rotate text-indigo-400"></i> Vertical View`
+                        : `<i class="fa-solid fa-rotate text-indigo-400"></i> Horizontal View`;
+                }
+                renderCompactSarimax();
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                renderForecastChart();
+            });
+        </script>
+    
+        </div>
+        <!-- Subtle Footer inside Card -->
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+            <span>HERO v6 — Epidemiological & Environmental Research Observatory</span>
+            <span class="flex items-center gap-1.5 text-indigo-400/80"><i class="fa-solid fa-circle-check"></i> 100% Standalone Interactive Widget</span>
+        </div>
+    </div>
+    <script>
+        
+        function downloadCombinedCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,date,actual_train,actual_test,forecast_holt-winters,forecast_sarimax,forecast_prophet,forecast_var\n";
+            const rows = [{"date": "2017-08-01", "train": 30.029411764705884, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2017-09-01", "train": 30.029411764705884, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2017-10-01", "train": 30.029411764705884, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2017-11-01", "train": 30.029411764705884, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2017-12-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-01-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-02-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-03-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-04-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-05-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-06-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-07-01", "train": 31.264705882352942, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-08-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-09-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-10-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-11-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2018-12-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-01-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-02-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-03-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-04-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-05-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-06-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-07-01", "train": 42.38235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-08-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-09-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-10-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-11-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2019-12-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-01-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-02-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-03-01", "train": 34.55882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-04-01", "train": 35.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-05-01", "train": 35.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-06-01", "train": 35.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-07-01", "train": 35.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-08-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-09-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-10-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-11-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2020-12-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-01-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-02-01", "train": 35.88235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-03-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-04-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-05-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-06-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-07-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-08-01", "train": 33.8235294117647, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-09-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-10-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-11-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2021-12-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-01-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-02-01", "train": 47.05882352941177, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-03-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-04-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-05-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-06-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-07-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-08-01", "train": 46.61764705882353, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-09-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-10-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-11-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2022-12-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-01-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-02-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-03-01", "train": 40.73529411764706, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-04-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-05-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-06-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-07-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-08-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-09-01", "train": 40.14705882352941, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-10-01", "train": 31.470588235294116, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-11-01", "train": 31.470588235294116, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2023-12-01", "train": 31.470588235294116, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2024-01-01", "train": 31.470588235294116, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2024-02-01", "train": 31.470588235294116, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2024-03-01", "train": 35.294117647058826, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2024-04-01", "train": 35.294117647058826, "test": null, "hw": null, "sa": null, "pr": null, "va": null}, {"date": "2024-05-01", "train": null, "test": 35.294117647058826, "hw": 35.294129338425776, "sa": 34.20460453266317, "pr": 43.05449527904158, "va": 35.89882770175519}, {"date": "2024-06-01", "train": null, "test": 35.294117647058826, "hw": 35.294142077809944, "sa": 34.907397548382626, "pr": 42.83918083156892, "va": 36.534131807165096}, {"date": "2024-07-01", "train": null, "test": 35.294117647058826, "hw": 35.29416579674434, "sa": 34.36895014999473, "pr": 41.475353105459476, "va": 36.97888213657275}, {"date": "2024-08-01", "train": null, "test": 35.294117647058826, "hw": 35.867718642868255, "sa": 33.58343552542693, "pr": 40.16099119938076, "va": 37.010462032239204}, {"date": "2024-09-01", "train": null, "test": 26.176470588235293, "hw": 36.91814093599675, "sa": 35.37751060025322, "pr": 41.835494221259175, "va": 37.03259809258082}, {"date": "2024-10-01", "train": null, "test": 26.176470588235293, "hw": 35.67866767792495, "sa": 38.27632141152691, "pr": 41.47810939834279, "va": 36.93966189877916}, {"date": "2024-11-01", "train": null, "test": 26.176470588235293, "hw": 35.678669989418864, "sa": 38.25290710250184, "pr": 40.45538184926116, "va": 36.659153585773815}, {"date": "2024-12-01", "train": null, "test": 26.176470588235293, "hw": 35.855167796087656, "sa": 38.373104300205455, "pr": 40.817502009594506, "va": 36.12284987347615}, {"date": "2025-01-01", "train": null, "test": 26.176470588235293, "hw": 35.85511262415035, "sa": 38.35939513146936, "pr": 41.907008230613805, "va": 35.705612214963246}, {"date": "2025-02-01", "train": null, "test": 26.176470588235293, "hw": 35.85512373861777, "sa": 38.36986656542396, "pr": 43.83333030848158, "va": 35.378370018977186}, {"date": "2025-03-01", "train": null, "test": 27.941176470588236, "hw": 36.04420021622925, "sa": 36.47409870937731, "pr": 40.324636698027135, "va": 35.11555044574792}, {"date": "2025-04-01", "train": null, "test": 27.941176470588236, "hw": 36.12829248203337, "sa": 36.62607023620036, "pr": 41.041793116756764, "va": 34.987620679056214}];
+            rows.forEach(r => {
+                csvContent += `${r.date},${r.train !== null ? r.train : ""},${r.test !== null ? r.test : ""},${r.hw !== null ? r.hw : ""},${r.sa !== null ? r.sa : ""},${r.pr !== null ? r.pr : ""},${r.va !== null ? r.va : ""}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "05_MultiModel_Forecast_Comparison_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    
+    </script>
+</body>
+</html>
