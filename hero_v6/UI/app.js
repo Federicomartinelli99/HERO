@@ -55,13 +55,19 @@ let gdeltTabCharts = {
 };
 let rawCharts = {
     ipc: null,
+    ipcSeasonal: null,
     acledEvents: null,
     acledFatalities: null,
+    acledSeasonal: null,
     idp: null,
+    idpSeasonal: null,
     rainfallReal: null,
     rainfallAnom: null,
+    rainfallSeasonal: null,
     ndviVim: null,
-    ndviViq: null
+    ndviViq: null,
+    ndviSeasonal: null,
+    gdeltSeasonal: null
 };
 let wfpMarketsCache = {}; // Cache for raw market prices: wfpMarketsCache[iso3]
 let wfpMarketCharts = {
@@ -861,6 +867,41 @@ function updateCountryDashboard() {
     const code = state.selectedCountry;
     const data = countryCache[code];
     if (!data) return;
+
+    // Aggiornamento dinamico pulsanti download ZIP per singola pagina
+    const globalBannerTitle = document.getElementById('global-country-banner-title');
+    if (globalBannerTitle) {
+        const countryName = (data && data.name) ? data.name : code;
+        globalBannerTitle.textContent = `${countryName} (${code})`;
+    }
+
+    const pageZips = [
+        { id: 'charts', file: `Grafici_Trend_${code}.zip` },
+        { id: 'ipc', file: `Grafici_IPC_${code}.zip` },
+        { id: 'acled', file: `Grafici_ACLED_${code}.zip` },
+        { id: 'idp', file: `Grafici_IDP_${code}.zip` },
+        { id: 'rainfall', file: `Grafici_Rainfall_${code}.zip` },
+        { id: 'ndvi', file: `Grafici_NDVI_${code}.zip` },
+        { id: 'gdelt', file: `Grafici_GDELT_${code}.zip` }
+    ];
+
+    pageZips.forEach(cfg => {
+        const btn = document.getElementById(`btn-dl-zip-${cfg.id}`);
+        const lbl = document.getElementById(`lbl-dl-zip-${cfg.id}`);
+        if (btn && lbl) {
+            btn.href = `data/page_zips/${cfg.file}`;
+            btn.setAttribute('download', cfg.file);
+            lbl.textContent = code;
+        }
+    });
+
+    const tsaZipBtn = document.getElementById('tsa-download-all-zip-btn');
+    const tsaZipLabel = document.getElementById('tsa-zip-country-label');
+    if (tsaZipBtn && tsaZipLabel) {
+        tsaZipBtn.href = `data/ts_reorganized/zip/Grafici_HTML_${code}.zip`;
+        tsaZipBtn.setAttribute('download', `Grafici_HTML_${code}.zip`);
+        tsaZipLabel.textContent = code;
+    }
     
     // Determine active trend list
     let activeTrends = [];
@@ -2412,7 +2453,12 @@ function highlightMarkerInAllSeasonalCharts(qIndex) {
         'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
         'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal',
         'chart-ndvi-vim-seasonal', 'chart-ndvi-viq-seasonal',
-        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal'
+        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal',
+        'chart-raw-ipc-pop-seasonal', 'chart-raw-ipc-pct-seasonal',
+        'chart-raw-acled-events-seasonal', 'chart-raw-acled-fatalities-seasonal',
+        'chart-raw-idp-seasonal', 'chart-raw-rainfall-rain-seasonal', 'chart-raw-rainfall-anomaly-seasonal',
+        'chart-raw-ndvi-vim-seasonal', 'chart-raw-ndvi-viq-seasonal',
+        'chart-raw-gdelt-events-seasonal', 'chart-raw-gdelt-tone-seasonal'
     ];
     chartIds.forEach(id => {
         const container = document.getElementById(id);
@@ -2429,11 +2475,13 @@ function highlightMarkerInAllSeasonalCharts(qIndex) {
                 marker.setAttribute('r', '7');
                 marker.style.stroke = '#ffffff';
                 marker.style.strokeWidth = '2px';
+                marker.style.filter = 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))';
             } else {
                 // Reset
                 marker.setAttribute('r', '4');
                 marker.style.stroke = '';
                 marker.style.strokeWidth = '';
+                marker.style.filter = '';
             }
         });
     });
@@ -2445,7 +2493,12 @@ function clearHighlightInAllSeasonalCharts() {
         'chart-idp-seasonal', 'chart-rainfall-rain-seasonal', 'chart-rainfall-anomaly-seasonal', 
         'chart-wfp-price-seasonal', 'chart-wfp-inflation-seasonal',
         'chart-ndvi-vim-seasonal', 'chart-ndvi-viq-seasonal',
-        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal'
+        'chart-gdelt-events-seasonal', 'chart-gdelt-tone-seasonal',
+        'chart-raw-ipc-pop-seasonal', 'chart-raw-ipc-pct-seasonal',
+        'chart-raw-acled-events-seasonal', 'chart-raw-acled-fatalities-seasonal',
+        'chart-raw-idp-seasonal', 'chart-raw-rainfall-rain-seasonal', 'chart-raw-rainfall-anomaly-seasonal',
+        'chart-raw-ndvi-vim-seasonal', 'chart-raw-ndvi-viq-seasonal',
+        'chart-raw-gdelt-events-seasonal', 'chart-raw-gdelt-tone-seasonal'
     ];
     chartIds.forEach(id => {
         const container = document.getElementById(id);
@@ -2456,6 +2509,7 @@ function clearHighlightInAllSeasonalCharts() {
             marker.setAttribute('r', '4');
             marker.style.stroke = '';
             marker.style.strokeWidth = '';
+            marker.style.filter = '';
         });
     });
 }
@@ -2551,19 +2605,13 @@ function renderRadarCharts(trends) {
 
     const seasonalCommonOptions = {
         stroke: {
-            width: 2
+            width: 2,
+            spanNulls: true
         },
         fill: {
-            type: 'gradient',
-            gradient: {
-                shade: 'dark',
-                type: 'diagonal1',
-                shadeIntensity: 0.5,
-                inverseColors: false,
-                opacityFrom: 0.45,
-                opacityTo: 0.05,
-                stops: [0, 100]
-            }
+            type: 'solid',
+            opacity: 0,
+            colors: ['transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent']
         },
         markers: {
             size: 4,
@@ -2643,7 +2691,7 @@ function renderRadarCharts(trends) {
                 mouseMove: function(event, chartContext, config) {
                     const qIndex = config.dataPointIndex;
                     if (qIndex !== undefined && qIndex !== -1) {
-                        highlightMarkerInAllSeasonalCharts(qIndex);
+                        setTimeout(() => highlightMarkerInAllSeasonalCharts(qIndex), 0);
                     } else {
                         clearHighlightInAllSeasonalCharts();
                     }
@@ -5299,6 +5347,8 @@ function renderGdeltTab(trends) {
         gdeltTabCharts.salience.destroy();
         gdeltTabCharts.salience = null;
     }
+    destroyRawChart('gdeltEventsSeasonal');
+    destroyRawChart('gdeltToneSeasonal');
     
     const containerTone = document.getElementById("chart-gdelt-tab-tone");
     const containerSalience = document.getElementById("chart-gdelt-tab-salience");
@@ -5424,6 +5474,16 @@ function renderGdeltTab(trends) {
     
     gdeltTabCharts.salience = new ApexCharts(containerSalience, salienceOptions);
     gdeltTabCharts.salience.render();
+    
+    renderNativeSeasonalRadar(displayTrends, 'chart-raw-gdelt-events-seasonal', arr => {
+        const vals = arr.map(x => x.gdelt_material_conflict_events).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0) : null;
+    }, 'gdeltEventsSeasonal', 'monthly', gdeltTabCharts.salience, 4);
+
+    renderNativeSeasonalRadar(displayTrends, 'chart-raw-gdelt-tone-seasonal', arr => {
+        const vals = arr.map(x => x.gdelt_avg_tone).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'gdeltToneSeasonal', 'monthly', gdeltTabCharts.tone, 3);
 }
 
 // ── RAW DATA HIGH-RESOLUTION TABS LOGIC ──
@@ -5449,6 +5509,158 @@ function showRawSpinner(containerId, message = "Caricamento dati nativi...") {
     }
 }
 
+// Universal helper to render Native High-Resolution Seasonal Radar charts
+function renderNativeSeasonalRadar(trends, containerId, metricGetter, chartKey, mode = 'monthly', linkedChartInstance = null, linkedSeriesIdx = 0) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = "";
+    if (!trends || trends.length === 0) {
+        el.innerHTML = `<div style="height: 320px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 0.85rem;">Nessun dato stagionale disponibile</div>`;
+        return;
+    }
+    
+    // Group trends by year and period (month 0-11 or quarter 0-3)
+    const byYear = {};
+    trends.forEach(t => {
+        const dateStr = t.from || t.date;
+        if (!dateStr) return;
+        const year = dateStr.split('-')[0];
+        let pIndex = 0;
+        if (mode === 'monthly') {
+            const parts = dateStr.split('-');
+            if (parts.length >= 2) pIndex = parseInt(parts[1], 10) - 1;
+        } else {
+            pIndex = typeof getQuarterFromDate === 'function' ? getQuarterFromDate(dateStr) : Math.floor((parseInt(dateStr.split('-')[1]||1, 10)-1)/3);
+        }
+        if (isNaN(pIndex) || pIndex < 0) pIndex = 0;
+        if (mode === 'monthly' && pIndex > 11) pIndex = 11;
+        if (mode !== 'monthly' && pIndex > 3) pIndex = 3;
+        
+        if (!byYear[year]) {
+            byYear[year] = mode === 'monthly' 
+                ? { 0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[], 10:[], 11:[] } 
+                : { 0:[], 1:[], 2:[], 3:[] };
+        }
+        byYear[year][pIndex].push(t);
+    });
+    
+    const years = Object.keys(byYear).sort();
+    const categories = mode === 'monthly'
+        ? ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+        : ['Q1 (Gen-Mar)', 'Q2 (Apr-Giu)', 'Q3 (Lug-Set)', 'Q4 (Ott-Dic)'];
+        
+    const colors = years.map((y, idx) => {
+        const hue = 220 - (idx / (years.length - 1 || 1)) * 205;
+        return `hsl(${hue}, 85%, 60%)`;
+    });
+    
+    const series = years.map(year => {
+        const data = categories.map((_, idx) => {
+            const arr = byYear[year][idx];
+            if (!arr || arr.length === 0) return null;
+            return metricGetter(arr);
+        });
+        return {
+            name: year,
+            data: data.map(val => val !== null && !isNaN(val) ? parseFloat(val.toFixed(2)) : null)
+        };
+    });
+    
+    const options = {
+        series: series,
+        chart: {
+            type: 'radar',
+            height: 350,
+            toolbar: { show: true },
+            background: 'transparent',
+            events: {
+                dataPointMouseEnter: function(event, chartContext, config) {
+                    if (linkedChartInstance && typeof linkedChartInstance.tooltip === 'object' && typeof linkedChartInstance.tooltip.showTooltip === 'function') {
+                        const year = years[config.seriesIndex];
+                        if (!year) return;
+                        const pIdx = config.dataPointIndex;
+                        let targetDatePrefix = year + "-";
+                        if (mode === 'monthly') {
+                            const mStr = (pIdx + 1).toString().padStart(2, '0');
+                            targetDatePrefix += mStr;
+                        }
+                        try {
+                            const sData = linkedChartInstance.w && linkedChartInstance.w.config && linkedChartInstance.w.config.series && linkedChartInstance.w.config.series[linkedSeriesIdx] && linkedChartInstance.w.config.series[linkedSeriesIdx].data;
+                            const cats = linkedChartInstance.w && linkedChartInstance.w.config && linkedChartInstance.w.config.xaxis && linkedChartInstance.w.config.xaxis.categories;
+                            if (sData && Array.isArray(sData)) {
+                                let matchIdx = -1;
+                                const matchQuarter = (dateStr, qIdx) => {
+                                    const m = parseInt(dateStr.substring(5, 7), 10);
+                                    if (isNaN(m)) return false;
+                                    return Math.floor((m - 1) / 3) === qIdx;
+                                };
+                                for (let i = 0; i < sData.length; i++) {
+                                    const pt = sData[i];
+                                    let xVal = (pt && typeof pt === 'object' && pt.x !== undefined) ? pt.x : (cats && cats[i] ? cats[i] : null);
+                                    if (xVal === null || xVal === undefined) continue;
+                                    let xStr = typeof xVal === 'string' ? xVal : (typeof xVal === 'number' ? (new Date(xVal)).toISOString() : String(xVal));
+                                    if (!xStr) continue;
+                                    if (mode === 'monthly') {
+                                        if (xStr.startsWith(targetDatePrefix)) { matchIdx = i; break; }
+                                    } else {
+                                        if (xStr.startsWith(year + "-") && matchQuarter(xStr, pIdx)) { matchIdx = i; break; }
+                                    }
+                                }
+                                if (matchIdx >= 0) {
+                                    linkedChartInstance.tooltip.showTooltip(linkedSeriesIdx, matchIdx);
+                                }
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
+        },
+        colors: colors,
+        stroke: { width: 2, spanNulls: true },
+        fill: {
+            type: 'solid',
+            opacity: 0,
+            colors: ['transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent', 'transparent']
+        },
+        plotOptions: {
+            radar: {
+                polygons: {
+                    strokeColors: 'rgba(255, 255, 255, 0.08)',
+                    connectorColors: 'rgba(255, 255, 255, 0.08)',
+                    fill: { colors: ['transparent', 'transparent'] }
+                }
+            }
+        },
+        markers: { size: 3, hover: { size: 6 } },
+        xaxis: {
+            categories: categories,
+            labels: {
+                style: {
+                    colors: Array(categories.length).fill('#94a3b8'),
+                    fontSize: '10px',
+                    fontFamily: 'Outfit',
+                    fontWeight: 500
+                }
+            }
+        },
+        yaxis: {
+            show: true,
+            labels: {
+                style: { colors: '#64748b', fontSize: '8px', fontFamily: 'Inter' }
+            }
+        },
+        theme: { mode: 'dark' },
+        tooltip: { shared: true, intersect: false },
+        legend: { position: 'bottom', fontFamily: 'Inter', fontSize: '11px', horizontalAlign: 'center' }
+    };
+    
+    if (rawCharts[chartKey]) {
+        try { rawCharts[chartKey].destroy(); } catch(e) {}
+    }
+    rawCharts[chartKey] = new ApexCharts(el, options);
+    rawCharts[chartKey].render();
+}
+
 // Main coordinator for loading and rendering raw tabs
 async function loadAndRenderRawTab(countryCode, feature) {
     if (!countryCode) return;
@@ -5460,17 +5672,26 @@ async function loadAndRenderRawTab(countryCode, feature) {
     if (!rawCache[countryCode][feature]) {
         if (feature === 'ipc') {
             showRawSpinner('chart-raw-ipc-time');
+            showRawSpinner('chart-raw-ipc-pop-seasonal');
+            showRawSpinner('chart-raw-ipc-pct-seasonal');
         } else if (feature === 'acled') {
             showRawSpinner('chart-raw-acled-events');
             showRawSpinner('chart-raw-acled-fatalities');
+            showRawSpinner('chart-raw-acled-events-seasonal');
+            showRawSpinner('chart-raw-acled-fatalities-seasonal');
         } else if (feature === 'idp') {
             showRawSpinner('chart-raw-idp-time');
+            showRawSpinner('chart-raw-idp-seasonal');
         } else if (feature === 'rainfall') {
             showRawSpinner('chart-raw-rainfall-real');
             showRawSpinner('chart-raw-rainfall-anom');
+            showRawSpinner('chart-raw-rainfall-rain-seasonal');
+            showRawSpinner('chart-raw-rainfall-anomaly-seasonal');
         } else if (feature === 'ndvi') {
             showRawSpinner('chart-raw-ndvi-vim');
             showRawSpinner('chart-raw-ndvi-viq');
+            showRawSpinner('chart-raw-ndvi-vim-seasonal');
+            showRawSpinner('chart-raw-ndvi-viq-seasonal');
         }
     }
     
@@ -5530,6 +5751,8 @@ async function loadAndRenderRawTab(countryCode, feature) {
 // 1. IPC RAW RENDERER
 function renderIpcTab(trends) {
     destroyRawChart('ipc');
+    destroyRawChart('ipcPopSeasonal');
+    destroyRawChart('ipcPctSeasonal');
     const container = document.getElementById("chart-raw-ipc-time");
     const tbody = document.querySelector("#table-raw-ipc tbody");
     
@@ -5627,6 +5850,16 @@ function renderIpcTab(trends) {
     
     rawCharts.ipc = new ApexCharts(container, options);
     rawCharts.ipc.render();
+    
+    renderNativeSeasonalRadar(trends, 'chart-raw-ipc-pop-seasonal', arr => {
+        const vals = arr.map(x => x.phase_3plus).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'ipcPopSeasonal', 'quarterly', rawCharts.ipc, 0);
+
+    renderNativeSeasonalRadar(trends, 'chart-raw-ipc-pct-seasonal', arr => {
+        const vals = arr.map(x => x.phase_3plus_percentage).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'ipcPctSeasonal', 'quarterly', rawCharts.ipc, 1);
 }
 
 // Handler for toggle of proportional width timeline in IPC tab
@@ -5850,6 +6083,8 @@ function renderIpcProportionalTimeline(container, trends) {
 function renderAcledTab(trends) {
     destroyRawChart('acledEvents');
     destroyRawChart('acledFatalities');
+    destroyRawChart('acledEventsSeasonal');
+    destroyRawChart('acledFatalitiesSeasonal');
     const containerEvents = document.getElementById("chart-raw-acled-events");
     const containerFatal = document.getElementById("chart-raw-acled-fatalities");
     const tbody = document.querySelector("#table-raw-acled tbody");
@@ -5969,11 +6204,22 @@ function renderAcledTab(trends) {
     
     rawCharts.acledFatalities = new ApexCharts(containerFatal, fatalOptions);
     rawCharts.acledFatalities.render();
+    
+    renderNativeSeasonalRadar(trends, 'chart-raw-acled-events-seasonal', arr => {
+        const vals = arr.map(x => x.total_events).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0) : null;
+    }, 'acledEventsSeasonal', 'monthly', rawCharts.acledEvents, 0);
+
+    renderNativeSeasonalRadar(trends, 'chart-raw-acled-fatalities-seasonal', arr => {
+        const vals = arr.map(x => x.total_fatalities).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0) : null;
+    }, 'acledFatalitiesSeasonal', 'monthly', rawCharts.acledFatalities, 0);
 }
 
 // 3. IDP RAW RENDERER
 function renderIdpTab(trends) {
     destroyRawChart('idp');
+    destroyRawChart('idpSeasonal');
     const container = document.getElementById("chart-raw-idp-time");
     const tbody = document.querySelector("#table-raw-idp tbody");
     
@@ -6037,12 +6283,19 @@ function renderIdpTab(trends) {
     
     rawCharts.idp = new ApexCharts(container, options);
     rawCharts.idp.render();
+    
+    renderNativeSeasonalRadar(trends, 'chart-raw-idp-seasonal', arr => {
+        const vals = arr.map(x => x.population).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'idpSeasonal', 'quarterly', rawCharts.idp, 0);
 }
 
 // 4. RAINFALL RAW RENDERER
 function renderRainfallTab(trends) {
     destroyRawChart('rainfallReal');
     destroyRawChart('rainfallAnom');
+    destroyRawChart('rainfallRainSeasonal');
+    destroyRawChart('rainfallAnomalySeasonal');
     const containerReal = document.getElementById("chart-raw-rainfall-real");
     const containerAnom = document.getElementById("chart-raw-rainfall-anom");
     const tbody = document.querySelector("#table-raw-rainfall tbody");
@@ -6162,12 +6415,24 @@ function renderRainfallTab(trends) {
     
     rawCharts.rainfallAnom = new ApexCharts(containerAnom, anomOptions);
     rawCharts.rainfallAnom.render();
+    
+    renderNativeSeasonalRadar(trends, 'chart-raw-rainfall-rain-seasonal', arr => {
+        const vals = arr.map(x => x.rain_1m).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'rainfallRainSeasonal', 'monthly', rawCharts.rainfallReal, 0);
+
+    renderNativeSeasonalRadar(trends, 'chart-raw-rainfall-anomaly-seasonal', arr => {
+        const vals = arr.map(x => x.anomaly_1m).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'rainfallAnomalySeasonal', 'monthly', rawCharts.rainfallAnom, 0);
 }
 
 // 5. NDVI RAW RENDERER
 function renderNdviTab(trends) {
     destroyRawChart('ndviVim');
     destroyRawChart('ndviViq');
+    destroyRawChart('ndviVimSeasonal');
+    destroyRawChart('ndviViqSeasonal');
     const containerVim = document.getElementById("chart-raw-ndvi-vim");
     const containerViq = document.getElementById("chart-raw-ndvi-viq");
     const tbody = document.querySelector("#table-raw-ndvi tbody");
@@ -6291,6 +6556,16 @@ function renderNdviTab(trends) {
     
     rawCharts.ndviViq = new ApexCharts(containerViq, viqOptions);
     rawCharts.ndviViq.render();
+    
+    renderNativeSeasonalRadar(trends, 'chart-raw-ndvi-vim-seasonal', arr => {
+        const vals = arr.map(x => x.vim).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'ndviVimSeasonal', 'monthly', rawCharts.ndviVim, 0);
+
+    renderNativeSeasonalRadar(trends, 'chart-raw-ndvi-viq-seasonal', arr => {
+        const vals = arr.map(x => x.viq).filter(v => v !== null && v !== undefined && !isNaN(v));
+        return vals.length > 0 ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+    }, 'ndviViqSeasonal', 'monthly', rawCharts.ndviViq, 0);
 }
 
 // ── SPATIOTEMPORAL HEATMAPS LOGIC ──
